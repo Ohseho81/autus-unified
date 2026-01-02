@@ -351,3 +351,4 @@ class TestWebSocketAPI:
         data = response.json()
         assert data["success"] is True
 
+
