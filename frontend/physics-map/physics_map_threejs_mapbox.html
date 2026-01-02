@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>🌍 AUTUS Physics Map - Three.js + Mapbox GL</title>
+  
+  <!--
+    ╔═══════════════════════════════════════════════════════════════════════════════╗
+    ║           Three.js + Mapbox GL JS 통합 Physics Map                            ║
+    ║                                                                               ║
+    ║  Source: https://docs.mapbox.com/mapbox-gl-js/example/add-3d-model/           ║
+    ║  Threebox: https://github.com/peterqliu/threebox                              ║
+    ║                                                                               ║
+    ║  Features:                                                                    ║
+    ║  - Mapbox GL JS 위성 지도                                                      ║
+    ║  - Three.js CustomLayerInterface                                              ║
+    ║  - 3D 노드 렌더링                                                              ║
+    ║  - 곡선 돈 흐름 화살표                                                          ║
+    ╚═══════════════════════════════════════════════════════════════════════════════╝
+  -->
+  
+  <!-- Mapbox GL JS -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
+  
+  <!-- Three.js -->
+  <script src="https://unpkg.com/three@0.126.0/build/three.min.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    
+    #map { 
+      position: absolute; 
+      top: 0; 
+      bottom: 0; 
+      width: 100%; 
+    }
+    
+    /* 헤더 */
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
+      padding: 20px 30px;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    .header h1 {
+      color: #fff;
+      font-size: 22px;
+      font-weight: 600;
+    }
+    
+    .header p {
+      color: #888;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    
+    .stats {
+      display: flex;
+      gap: 30px;
+    }
+    
+    .stat {
+      text-align: right;
+    }
+    
+    .stat-label {
+      color: #777;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+    
+    .stat-value {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    
+    .green { color: #00ff88; text-shadow: 0 0 15px rgba(0, 255, 136, 0.5); }
+    .cyan { color: #00ccff; text-shadow: 0 0 15px rgba(0, 204, 255, 0.5); }
+    .gold { color: #ffcc00; text-shadow: 0 0 15px rgba(255, 204, 0, 0.5); }
+    
+    /* 패널 */
+    .panel {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+    
+    .formula-panel {
+      top: 100px;
+      right: 30px;
+      width: 200px;
+    }
+    
+    .formula-title {
+      color: #666;
+      font-size: 10px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    
+    .formula-main {
+      color: #00ccff;
+      font-family: 'Courier New', monospace;
+      font-size: 22px;
+      font-weight: bold;
+      text-shadow: 0 0 20px rgba(0, 204, 255, 0.5);
+    }
+    
+    .formula-desc {
+      color: #888;
+      font-size: 11px;
+      line-height: 1.7;
+      margin-top: 12px;
+    }
+    
+    .info-panel {
+      top: 100px;
+      left: 30px;
+      min-width: 260px;
+      display: none;
+    }
+    
+    .info-panel.visible {
+      display: block;
+    }
+    
+    .info-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 12px;
+    }
+    
+    .info-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    
+    .info-name {
+      color: #fff;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    
+    .info-role {
+      color: #888;
+      font-size: 11px;
+      margin-top: 2px;
+    }
+    
+    .info-location {
+      color: #00ccff;
+      font-size: 10px;
+      margin-top: 4px;
+    }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    
+    .info-row-label { color: #888; }
+    .info-row-value { font-weight: bold; color: #fff; }
+    
+    .legend-panel {
+      bottom: 100px;
+      left: 30px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-size: 11px;
+      color: #aaa;
+    }
+    
+    .legend-line {
+      width: 30px;
+      height: 4px;
+      border-radius: 2px;
+    }
+    
+    .legend-line.synergy { background: linear-gradient(90deg, #00ff88, #00ccff); }
+    .legend-line.prediction { background: linear-gradient(90deg, #ffcc00, #ff6600); }
+    .legend-line.investment { background: linear-gradient(90deg, #ff3366, #ff6600); }
+    
+    .controls {
+      position: absolute;
+      bottom: 30px;
+      right: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 100;
+    }
+    
+    .control-btn {
+      width: 44px;
+      height: 44px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(0, 204, 255, 0.4);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .control-btn:hover {
+      background: rgba(0, 204, 255, 0.2);
+      border-color: #00ccff;
+    }
+    
+    .footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #666;
+      z-index: 50;
+    }
+    
+    /* Mapbox 로고 위치 조정 */
+    .mapboxgl-ctrl-bottom-left,
+    .mapboxgl-ctrl-bottom-right {
+      display: none;
+    }
+    
+    .token-notice {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid #00ccff;
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      z-index: 200;
+      max-width: 400px;
+    }
+    
+    .token-notice h2 {
+      color: #00ccff;
+      margin-bottom: 15px;
+    }
+    
+    .token-notice p {
+      color: #888;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+    
+    .token-notice a {
+      color: #ffcc00;
+    }
+    
+    .token-notice.hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  
+  <!-- 토큰 없을 때 안내 -->
+  <div class="token-notice" id="token-notice">
+    <h2>🔑 Mapbox Token Required</h2>
+    <p>
+      이 시각화는 Mapbox GL JS를 사용합니다.<br>
+      <a href="https://account.mapbox.com/access-tokens/" target="_blank">Mapbox</a>에서 무료 토큰을 발급받으세요.
+    </p>
+    <p style="font-size: 12px; color: #666;">
+      토큰을 발급받으면 이 파일의 <code>MAPBOX_TOKEN</code>을 수정하세요.
+    </p>
+  </div>
+  
+  <!-- 헤더 -->
+  <div class="header">
+    <div>
+      <h1>🌍 AUTUS Physics Map - Three.js + Mapbox</h1>
+      <p>3D Custom Layer • Mapbox GL JS + Three.js Integration</p>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Total Value</div>
+        <div class="stat-value green">₩7.09억</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Synergy</div>
+        <div class="stat-value cyan">₩2,281만</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">12M Forecast</div>
+        <div class="stat-value gold">₩8.08억</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 수식 패널 -->
+  <div class="panel formula-panel">
+    <div class="formula-title">Physics Formula</div>
+    <div class="formula-main">V = D - T + S</div>
+    <div class="formula-desc">
+      <strong>D</strong>: Direct Money<br>
+      <strong>T</strong>: Time Cost<br>
+      <strong>S</strong>: Synergy = k(N₁×N₂)/d²<br>
+      <strong>3D</strong>: Three.js Layer
+    </div>
+  </div>
+  
+  <!-- 노드 정보 패널 -->
+  <div class="panel info-panel" id="info-panel">
+    <div class="info-header">
+      <div class="info-icon" id="info-icon" style="background: #00ff88;">👤</div>
+      <div>
+        <div class="info-name" id="info-name">-</div>
+        <div class="info-role" id="info-role">-</div>
+        <div class="info-location" id="info-location">-</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Total Value</span>
+      <span class="info-row-value green" id="info-value">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Direct Money</span>
+      <span class="info-row-value" style="color: #00ff88" id="info-direct">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Time Cost</span>
+      <span class="info-row-value" style="color: #ff6666" id="info-time">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Synergy</span>
+      <span class="info-row-value cyan" id="info-synergy">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">12M Forecast</span>
+      <span class="info-row-value gold" id="info-forecast">-</span>
+    </div>
+  </div>
+  
+  <!-- 범례 -->
+  <div class="panel legend-panel">
+    <div class="formula-title">Flow Types</div>
+    <div class="legend-item">
+      <div class="legend-line synergy"></div>
+      <span>Synergy (시너지)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line prediction"></div>
+      <span>Prediction ⭐ (예측)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line investment"></div>
+      <span>Investment (투자)</span>
+    </div>
+  </div>
+  
+  <!-- 컨트롤 -->
+  <div class="controls">
+    <button class="control-btn" id="btn-korea" title="한국">🇰🇷</button>
+    <button class="control-btn" id="btn-asia" title="아시아">🌏</button>
+    <button class="control-btn" id="btn-world" title="세계">🌍</button>
+  </div>
+  
+  <!-- 푸터 -->
+  <div class="footer">
+    <span>🖱️ 드래그: 이동 | 스크롤: 줌 | 우클릭+드래그: 회전 | 클릭: 노드 상세</span>
+    <span>AUTUS Physics Map v3.0 • Three.js + Mapbox GL JS</span>
+  </div>
+  
+  <script>
+    /**
+     * Three.js + Mapbox GL JS 통합
+     * 
+     * Mapbox 공식 예제 기반:
+     * https://docs.mapbox.com/mapbox-gl-js/example/add-3d-model/
+     * 
+     * Three.js CustomLayerInterface를 사용하여
+     * Mapbox 지도 위에 3D 객체 렌더링
+     */
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Mapbox 토큰 설정
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    // 🔑 여기에 Mapbox 토큰 입력
+    // 무료 발급: https://account.mapbox.com/access-tokens/
+    const MAPBOX_TOKEN = '';  // 예: 'pk.eyJ1Ijoi...'
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Physics Map 데이터
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const nodes = [
+      { id: 'P03', role: 'CONTROLLER', lat: 37.5665, lon: 126.978, location: 'Seoul, Korea',
+        value: 182886563, direct: 175480000, time: 4000000, synergy: 11406562, forecast: 210000000, color: 0x00ff88 },
+      { id: 'P05', role: 'BUILDER', lat: 35.6762, lon: 139.6503, location: 'Tokyo, Japan',
+        value: 175282188, direct: 175480000, time: 4000000, synergy: 3802187, forecast: 200000000, color: 0x00ccff },
+      { id: 'P11', role: 'CONNECTOR', lat: 22.3193, lon: 114.1694, location: 'Hong Kong',
+        value: 175282188, direct: 175480000, time: 4000000, synergy: 3802187, forecast: 200000000, color: 0xffcc00 },
+      { id: 'P01', role: 'RAINMAKER', lat: 1.3521, lon: 103.8198, location: 'Singapore',
+        value: 175282188, direct: 175480000, time: 4000000, synergy: 3802187, forecast: 200000000, color: 0xff6600 },
+      { id: 'P07', role: 'PARTNER', lat: 40.7128, lon: -74.006, location: 'New York, USA',
+        value: 50000000, direct: 60000000, time: 4000000, synergy: -6000000, forecast: 65000000, color: 0x9966ff },
+      { id: 'P08', role: 'INVESTOR', lat: 51.5074, lon: -0.1278, location: 'London, UK',
+        value: 80000000, direct: 85000000, time: 4000000, synergy: -1000000, forecast: 95000000, color: 0xff3366 },
+      { id: 'P12', role: 'SUPPLIER', lat: -33.8688, lon: 151.2093, location: 'Sydney, Australia',
+        value: 30000000, direct: 35000000, time: 4000000, synergy: -1000000, forecast: 40000000, color: 0x33cccc },
+      { id: 'FUTURE1', role: 'PREDICTION', lat: 24.7136, lon: 46.6753, location: 'Riyadh, Saudi Arabia',
+        value: 0, direct: 0, time: 0, synergy: 0, forecast: 150000000, color: 0xffcc00, isPrediction: true },
+    ];
+    
+    const links = [
+      { source: 'P03', target: 'P11', value: 11406562, type: 'synergy' },
+      { source: 'P03', target: 'P05', value: 3802187, type: 'synergy' },
+      { source: 'P01', target: 'P03', value: 3802187, type: 'synergy' },
+      { source: 'P07', target: 'P01', value: 15000000, type: 'flow' },
+      { source: 'P08', target: 'P03', value: 25000000, type: 'investment' },
+      { source: 'P12', target: 'P05', value: 8000000, type: 'flow' },
+      { source: 'P03', target: 'FUTURE1', value: 50000000, type: 'prediction' },
+    ];
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Mapbox 초기화
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    if (!MAPBOX_TOKEN) {
+      console.log('⚠️ Mapbox 토큰이 필요합니다.');
+      console.log('🔗 토큰 발급: https://account.mapbox.com/access-tokens/');
+    } else {
+      document.getElementById('token-notice').classList.add('hidden');
+      
+      mapboxgl.accessToken = MAPBOX_TOKEN;
+      
+      const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/dark-v11',
+        center: [110, 20],
+        zoom: 2.5,
+        pitch: 45,
+        bearing: 0,
+        antialias: true
+      });
+      
+      // ═══════════════════════════════════════════════════════════════════════
+      // Three.js Custom Layer (Mapbox 공식 예제 기반)
+      // ═══════════════════════════════════════════════════════════════════════
+      
+      const THREE = window.THREE;
+      
+      // Three.js 장면 설정
+      const customLayer = {
+        id: 'physics-map-3d',
+        type: 'custom',
+        renderingMode: '3d',
+        
+        onAdd: function(map, gl) {
+          this.camera = new THREE.Camera();
+          this.scene = new THREE.Scene();
+          
+          // 조명
+          const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+          this.scene.add(ambientLight);
+          
+          const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+          directionalLight.position.set(0, 70, 100).normalize();
+          this.scene.add(directionalLight);
+          
+          // 노드 생성 (구체)
+          nodes.forEach(node => {
+            const size = Math.max(50000, Math.sqrt(node.value || node.forecast) * 5);
+            
+            // Mercator 좌표 변환
+            const mercator = mapboxgl.MercatorCoordinate.fromLngLat([node.lon, node.lat], size);
+            const scale = mercator.meterInMercatorCoordinateUnits();
+            
+            // 구체 생성
+            const geometry = new THREE.SphereGeometry(size * scale, 32, 32);
+            const material = new THREE.MeshPhongMaterial({
+              color: node.color,
+              emissive: node.color,
+              emissiveIntensity: 0.3,
+              transparent: true,
+              opacity: 0.9
+            });
+            
+            const sphere = new THREE.Mesh(geometry, material);
+            sphere.position.set(mercator.x, mercator.y, mercator.z);
+            sphere.userData = node;
+            
+            this.scene.add(sphere);
+            
+            // 글로우 효과
+            const glowGeometry = new THREE.SphereGeometry(size * scale * 1.5, 32, 32);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+              color: node.color,
+              transparent: true,
+              opacity: 0.2
+            });
+            
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            glow.position.set(mercator.x, mercator.y, mercator.z);
+            
+            this.scene.add(glow);
+          });
+          
+          // 링크 생성 (곡선)
+          links.forEach(link => {
+            const sourceNode = nodes.find(n => n.id === link.source);
+            const targetNode = nodes.find(n => n.id === link.target);
+            if (!sourceNode || !targetNode) return;
+            
+            const sourcePos = mapboxgl.MercatorCoordinate.fromLngLat([sourceNode.lon, sourceNode.lat], 100000);
+            const targetPos = mapboxgl.MercatorCoordinate.fromLngLat([targetNode.lon, targetNode.lat], 100000);
+            
+            // 중간점 (곡선용)
+            const midLon = (sourceNode.lon + targetNode.lon) / 2;
+            const midLat = (sourceNode.lat + targetNode.lat) / 2;
+            const midPos = mapboxgl.MercatorCoordinate.fromLngLat([midLon, midLat], 500000);
+            
+            // 베지어 곡선
+            const curve = new THREE.QuadraticBezierCurve3(
+              new THREE.Vector3(sourcePos.x, sourcePos.y, sourcePos.z),
+              new THREE.Vector3(midPos.x, midPos.y, midPos.z),
+              new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z)
+            );
+            
+            const points = curve.getPoints(50);
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            
+            // 링크 색상
+            let color;
+            if (link.type === 'synergy') color = 0x00ff88;
+            else if (link.type === 'prediction') color = 0xffcc00;
+            else if (link.type === 'investment') color = 0xff3366;
+            else color = 0x9966ff;
+            
+            const material = new THREE.LineBasicMaterial({
+              color: color,
+              linewidth: Math.max(1, Math.sqrt(link.value) / 2000),
+              transparent: true,
+              opacity: 0.7
+            });
+            
+            if (link.type === 'prediction') {
+              material.dashSize = 0.001;
+              material.gapSize = 0.0005;
+            }
+            
+            const line = new THREE.Line(geometry, material);
+            this.scene.add(line);
+          });
+          
+          // 렌더러
+          this.renderer = new THREE.WebGLRenderer({
+            canvas: map.getCanvas(),
+            context: gl,
+            antialias: true
+          });
+          
+          this.renderer.autoClear = false;
+          this.map = map;
+        },
+        
+        render: function(gl, matrix) {
+          // 카메라 행렬 동기화
+          const m = new THREE.Matrix4().fromArray(matrix);
+          
+          this.camera.projectionMatrix = m;
+          this.renderer.resetState();
+          this.renderer.render(this.scene, this.camera);
+          this.map.triggerRepaint();
+        }
+      };
+      
+      // 지도 로드 시 레이어 추가
+      map.on('style.load', () => {
+        map.addLayer(customLayer);
+        
+        // 마커 추가 (레이블용)
+        nodes.forEach(node => {
+          const el = document.createElement('div');
+          el.className = 'marker';
+          el.style.cssText = `
+            background: ${node.isPrediction ? '#ffcc00' : '#00ff88'};
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid white;
+            cursor: pointer;
+            box-shadow: 0 0 10px ${node.isPrediction ? '#ffcc00' : '#00ff88'};
+          `;
+          
+          el.addEventListener('click', () => {
+            showNodeInfo(node);
+          });
+          
+          new mapboxgl.Marker(el)
+            .setLngLat([node.lon, node.lat])
+            .addTo(map);
+        });
+      });
+      
+      // ═══════════════════════════════════════════════════════════════════════
+      // 컨트롤
+      // ═══════════════════════════════════════════════════════════════════════
+      
+      document.getElementById('btn-korea').addEventListener('click', () => {
+        map.flyTo({ center: [127.5, 36], zoom: 5, pitch: 45, duration: 2000 });
+      });
+      
+      document.getElementById('btn-asia').addEventListener('click', () => {
+        map.flyTo({ center: [110, 25], zoom: 3, pitch: 45, duration: 2000 });
+      });
+      
+      document.getElementById('btn-world').addEventListener('click', () => {
+        map.flyTo({ center: [50, 20], zoom: 1.5, pitch: 0, duration: 2000 });
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UI 함수
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function showNodeInfo(node) {
+      const panel = document.getElementById('info-panel');
+      panel.classList.add('visible');
+      
+      const colorHex = '#' + node.color.toString(16).padStart(6, '0');
+      document.getElementById('info-icon').style.background = colorHex;
+      document.getElementById('info-icon').textContent = node.isPrediction ? '⭐' : '👤';
+      document.getElementById('info-name').textContent = node.id;
+      document.getElementById('info-role').textContent = node.role;
+      document.getElementById('info-location').textContent = '📍 ' + node.location;
+      document.getElementById('info-value').textContent = formatMoney(node.value);
+      document.getElementById('info-direct').textContent = formatMoney(node.direct);
+      document.getElementById('info-time').textContent = '-' + formatMoney(node.time);
+      document.getElementById('info-synergy').textContent = (node.synergy >= 0 ? '+' : '') + formatMoney(node.synergy);
+      document.getElementById('info-forecast').textContent = formatMoney(node.forecast);
+    }
+    
+    function formatMoney(value) {
+      if (Math.abs(value) >= 100000000) return '₩' + (value / 100000000).toFixed(2) + '억';
+      if (Math.abs(value) >= 10000) return '₩' + Math.round(value / 10000).toLocaleString() + '만';
+      return '₩' + value.toLocaleString();
+    }
+    
+    console.log('🌍 AUTUS Physics Map - Three.js + Mapbox GL JS');
+    console.log('📊 Nodes:', nodes.length);
+    console.log('🔗 Links:', links.length);
+  </script>
+</body>
+</html>

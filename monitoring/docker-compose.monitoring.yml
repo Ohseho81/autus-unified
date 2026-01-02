@@ -1,0 +1,77 @@
+# monitoring/docker-compose.monitoring.yml
+# Prometheus + Grafana + Uptime Kuma
+
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: autus-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    restart: unless-stopped
+    networks:
+      - autus-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: autus-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-autus123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - autus-network
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: autus-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    networks:
+      - autus-network
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: autus-uptime
+    ports:
+      - "3002:3001"
+    volumes:
+      - uptime_data:/app/data
+    restart: unless-stopped
+    networks:
+      - autus-network
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  uptime_data:
+
+networks:
+  autus-network:
+    external: true

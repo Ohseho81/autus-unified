@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>아우투스 - 시너지 폭발 모드 🚀</title>
+  
+  <!-- Leaflet (무료 지도) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #000;
+      --accent: #00ffff;
+      --accent2: #00ff88;
+      --gold: #ffd700;
+      --pink: #ff00ff;
+      --text: #fff;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+    
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+    
+    /* Header Panel */
+    #header {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 25px;
+      border-radius: 20px;
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 40px var(--accent), inset 0 0 20px rgba(0,255,255,0.1);
+      animation: headerPulse 3s infinite;
+    }
+    
+    @keyframes headerPulse {
+      0%, 100% { box-shadow: 0 0 40px var(--accent), inset 0 0 20px rgba(0,255,255,0.1); }
+      50% { box-shadow: 0 0 80px var(--accent2), inset 0 0 30px rgba(0,255,136,0.2); }
+    }
+    
+    #header h1 {
+      font-size: 1.8rem;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: textGlow 2s infinite;
+    }
+    
+    @keyframes textGlow {
+      0%, 100% { filter: drop-shadow(0 0 10px var(--accent)); }
+      50% { filter: drop-shadow(0 0 20px var(--accent2)); }
+    }
+    
+    .subtitle {
+      color: var(--accent);
+      font-size: 0.9rem;
+      margin-top: 5px;
+      opacity: 0.8;
+    }
+    
+    /* Stats Panel */
+    #stats {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 15px;
+      border: 1px solid var(--accent);
+      min-width: 220px;
+    }
+    
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(0,255,255,0.2);
+    }
+    
+    .stat-row:last-child { border-bottom: none; }
+    
+    .stat-label { color: rgba(255,255,255,0.6); }
+    
+    .stat-value {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+    
+    .stat-value.gold { color: var(--gold); }
+    .stat-value.pink { color: var(--pink); }
+    
+    /* Controls */
+    #controls {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      gap: 15px;
+    }
+    
+    .btn {
+      padding: 15px 30px;
+      font-size: 1rem;
+      font-weight: 700;
+      border: 2px solid;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .btn:hover {
+      transform: scale(1.1);
+    }
+    
+    .btn-explode {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-color: var(--accent);
+      color: #000;
+      animation: btnPulse 2s infinite;
+    }
+    
+    @keyframes btnPulse {
+      0%, 100% { box-shadow: 0 0 20px var(--accent); }
+      50% { box-shadow: 0 0 40px var(--accent2); }
+    }
+    
+    .btn-link {
+      background: transparent;
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    
+    .btn-reset {
+      background: transparent;
+      border-color: var(--pink);
+      color: var(--pink);
+    }
+    
+    /* Node Info */
+    #node-info {
+      position: absolute;
+      bottom: 100px;
+      left: 20px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.9);
+      padding: 20px;
+      border-radius: 15px;
+      border: 1px solid var(--gold);
+      display: none;
+      min-width: 200px;
+    }
+    
+    #node-info.visible { display: block; }
+    
+    .node-name {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin-bottom: 10px;
+    }
+    
+    /* Explosion Effect Overlay */
+    #explosion-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0;
+      background: radial-gradient(circle at center, rgba(0,255,255,0.3) 0%, transparent 70%);
+      transition: opacity 0.3s;
+    }
+    
+    #explosion-overlay.active {
+      opacity: 1;
+      animation: explosionFlash 1s ease-out;
+    }
+    
+    @keyframes explosionFlash {
+      0% { opacity: 1; transform: scale(0.5); }
+      50% { opacity: 0.8; }
+      100% { opacity: 0; transform: scale(2); }
+    }
+    
+    /* Legend */
+    #legend {
+      position: absolute;
+      bottom: 100px;
+      right: 20px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0;
+    }
+    
+    .legend-dot {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+    }
+    
+    .legend-line {
+      width: 30px;
+      height: 4px;
+      border-radius: 2px;
+    }
+    
+    /* Leaflet Custom */
+    .leaflet-container {
+      background: #000 !important;
+    }
+    
+    .synergy-node {
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.7rem;
+      color: #000;
+      text-shadow: 0 0 3px rgba(255,255,255,0.5);
+    }
+    
+    .synergy-node:hover {
+      transform: scale(1.3);
+      z-index: 1000 !important;
+    }
+    
+    .synergy-node.exploding {
+      animation: nodeExplode 0.5s ease-out;
+    }
+    
+    @keyframes nodeExplode {
+      0% { transform: scale(1); }
+      50% { transform: scale(2); filter: brightness(2); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div id="header">
+    <h1>⚡ 시너지 폭발 모드</h1>
+    <div class="subtitle">AUTUS Synergy Explosion Engine</div>
+  </div>
+  
+  <!-- Stats -->
+  <div id="stats">
+    <div class="stat-row">
+      <span class="stat-label">총 시너지</span>
+      <span class="stat-value gold" id="total-synergy">0%</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">연결 강도</span>
+      <span class="stat-value" id="link-strength">0</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">폭발 카운트</span>
+      <span class="stat-value pink" id="explosion-count">0</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">총 가치</span>
+      <span class="stat-value" id="total-value">₩0</span>
+    </div>
+  </div>
+  
+  <!-- Map -->
+  <div id="map"></div>
+  
+  <!-- Canvas for particles -->
+  <canvas id="canvas"></canvas>
+  
+  <!-- Explosion Overlay -->
+  <div id="explosion-overlay"></div>
+  
+  <!-- Controls -->
+  <div id="controls">
+    <button class="btn btn-explode" onclick="triggerExplosion()">🚀 시너지 폭발</button>
+    <button class="btn btn-link" onclick="addRandomLink()">🔗 연결 추가</button>
+    <button class="btn btn-reset" onclick="resetExplosion()">🔄 리셋</button>
+  </div>
+  
+  <!-- Node Info -->
+  <div id="node-info">
+    <div class="node-name" id="info-name">-</div>
+    <div class="stat-row">
+      <span class="stat-label">가치</span>
+      <span class="stat-value" id="info-value">₩0</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">시너지</span>
+      <span class="stat-value gold" id="info-synergy">0%</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">연결 수</span>
+      <span class="stat-value" id="info-links">0</span>
+    </div>
+  </div>
+  
+  <!-- Legend -->
+  <div id="legend">
+    <div class="legend-item">
+      <div class="legend-dot" style="background: linear-gradient(135deg, #00ffff, #00ff88);"></div>
+      <span>고시너지 노드</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: #ffd700;"></div>
+      <span>핵심 노드</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line" style="background: linear-gradient(90deg, #00ffff, #ff00ff);"></div>
+      <span>시너지 연결</span>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DATA
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const nodes = [
+      { id: "오세호", value: 66000000, lat: 37.5415, lng: 127.0155, synergy: 0.5, color: "#ffd700" },
+      { id: "김경희", value: 30000000, lat: 37.5420, lng: 127.0160, synergy: 0.4, color: "#00ffff" },
+      { id: "오선우", value: 28000000, lat: 37.5410, lng: 127.0150, synergy: 0.45, color: "#00ff88" },
+      { id: "오연유", value: 15000000, lat: 37.5425, lng: 127.0145, synergy: 0.35, color: "#ff00ff" },
+      { id: "오은우", value: 10000000, lat: 37.5408, lng: 127.0165, synergy: 0.3, color: "#00ffff" }
+    ];
+    
+    let links = [
+      { source: "오세호", target: "김경희", value: 20000000, synergy: 0.4 },
+      { source: "오세호", target: "오선우", value: 25000000, synergy: 0.5 },
+      { source: "김경희", target: "오선우", value: 18000000, synergy: 0.35 },
+      { source: "오선우", target: "오연유", value: 15000000, synergy: 0.4 },
+      { source: "오선우", target: "오은우", value: 12000000, synergy: 0.3 },
+      { source: "오세호", target: "오연유", value: 30000000, synergy: 0.45, predicted: true }
+    ];
+    
+    let explosionCount = 0;
+    let selectedNode = null;
+    let markers = {};
+    let polylines = [];
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MAP INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const map = L.map('map', {
+      center: [37.5415, 127.0155],
+      zoom: 17,
+      zoomControl: false
+    });
+    
+    // Dark satellite style
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'ESRI',
+      maxZoom: 19
+    }).addTo(map);
+    
+    // Dark overlay for better visibility
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      opacity: 0.7
+    }).addTo(map);
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CANVAS SETUP
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let explosionParticles = [];
+    
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // NODE RENDERING
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function getNodeSize(node) {
+      return Math.max(30, Math.min(60, Math.sqrt(node.value) / 400));
+    }
+    
+    function createNodeMarker(node) {
+      const size = getNodeSize(node);
+      
+      const icon = L.divIcon({
+        className: 'synergy-node',
+        html: `<div style="
+          width: ${size}px;
+          height: ${size}px;
+          background: ${node.color};
+          border-radius: 50%;
+          box-shadow: 0 0 ${size}px ${node.color}, 0 0 ${size * 2}px ${node.color}50;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: ${size / 4}px;
+          animation: nodePulse ${2 + Math.random()}s infinite;
+        ">${node.id.charAt(0)}</div>`,
+        iconSize: [size, size],
+        iconAnchor: [size/2, size/2]
+      });
+      
+      const marker = L.marker([node.lat, node.lng], { icon })
+        .addTo(map)
+        .on('click', () => selectNode(node))
+        .on('mouseover', () => highlightNode(node, true))
+        .on('mouseout', () => highlightNode(node, false));
+      
+      markers[node.id] = { marker, node };
+      return marker;
+    }
+    
+    function renderNodes() {
+      Object.values(markers).forEach(m => m.marker.remove());
+      markers = {};
+      nodes.forEach(node => createNodeMarker(node));
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // LINK RENDERING
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function renderLinks() {
+      polylines.forEach(p => p.remove());
+      polylines = [];
+      
+      links.forEach(link => {
+        const source = nodes.find(n => n.id === link.source);
+        const target = nodes.find(n => n.id === link.target);
+        
+        if (!source || !target) return;
+        
+        const weight = 2 + link.synergy * 8;
+        const opacity = 0.4 + link.synergy * 0.5;
+        
+        // Gradient effect with multiple lines
+        const colors = link.predicted 
+          ? ['#ff00ff', '#00ffff'] 
+          : ['#00ffff', '#00ff88'];
+        
+        colors.forEach((color, i) => {
+          const offset = (i - 0.5) * 0.0001;
+          const polyline = L.polyline(
+            [[source.lat + offset, source.lng], [target.lat + offset, target.lng]],
+            {
+              color: color,
+              weight: weight - i,
+              opacity: opacity - i * 0.1,
+              dashArray: link.predicted ? '10, 10' : null,
+              className: 'synergy-link'
+            }
+          ).addTo(map);
+          
+          polylines.push(polyline);
+        });
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PARTICLE SYSTEM
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    class FlowParticle {
+      constructor(link) {
+        this.link = link;
+        this.progress = 0;
+        this.speed = 0.005 + link.synergy * 0.01;
+        this.size = 2 + link.synergy * 4;
+        this.opacity = 1;
+        this.color = link.predicted ? '#ff00ff' : '#00ffff';
+      }
+      
+      update() {
+        this.progress += this.speed;
+        return this.progress < 1;
+      }
+      
+      draw() {
+        const source = nodes.find(n => n.id === this.link.source);
+        const target = nodes.find(n => n.id === this.link.target);
+        
+        if (!source || !target) return;
+        
+        const sp = map.latLngToContainerPoint([source.lat, source.lng]);
+        const tp = map.latLngToContainerPoint([target.lat, target.lng]);
+        
+        const x = sp.x + (tp.x - sp.x) * this.progress;
+        const y = sp.y + (tp.y - sp.y) * this.progress;
+        
+        // Glow
+        ctx.beginPath();
+        ctx.arc(x, y, this.size * 2, 0, Math.PI * 2);
+        ctx.fillStyle = this.color + '40';
+        ctx.fill();
+        
+        // Core
+        ctx.beginPath();
+        ctx.arc(x, y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        
+        // Trail
+        const trailLength = 0.05;
+        const tx = sp.x + (tp.x - sp.x) * Math.max(0, this.progress - trailLength);
+        const ty = sp.y + (tp.y - sp.y) * Math.max(0, this.progress - trailLength);
+        
+        const gradient = ctx.createLinearGradient(tx, ty, x, y);
+        gradient.addColorStop(0, this.color + '00');
+        gradient.addColorStop(1, this.color);
+        
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(x, y);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = this.size;
+        ctx.stroke();
+      }
+    }
+    
+    class ExplosionParticle {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 20;
+        this.vy = (Math.random() - 0.5) * 20;
+        this.size = 3 + Math.random() * 5;
+        this.life = 1;
+        this.decay = 0.02 + Math.random() * 0.02;
+        this.color = color;
+      }
+      
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx *= 0.98;
+        this.vy *= 0.98;
+        this.life -= this.decay;
+        return this.life > 0;
+      }
+      
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * this.life, 0, Math.PI * 2);
+        ctx.fillStyle = this.color + Math.floor(this.life * 255).toString(16).padStart(2, '0');
+        ctx.fill();
+      }
+    }
+    
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Spawn flow particles
+      links.forEach(link => {
+        if (Math.random() < link.synergy * 0.1) {
+          particles.push(new FlowParticle(link));
+        }
+      });
+      
+      // Update and draw flow particles
+      particles = particles.filter(p => {
+        const alive = p.update();
+        if (alive) p.draw();
+        return alive;
+      });
+      
+      // Update and draw explosion particles
+      explosionParticles = explosionParticles.filter(p => {
+        const alive = p.update();
+        if (alive) p.draw();
+        return alive;
+      });
+      
+      // Limit particles
+      if (particles.length > 200) particles = particles.slice(-200);
+      
+      requestAnimationFrame(animate);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EXPLOSION EFFECT
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function triggerExplosion() {
+      explosionCount++;
+      document.getElementById('explosion-count').textContent = explosionCount;
+      
+      // Flash overlay
+      const overlay = document.getElementById('explosion-overlay');
+      overlay.classList.add('active');
+      setTimeout(() => overlay.classList.remove('active'), 1000);
+      
+      // Explode from each node
+      nodes.forEach(node => {
+        const point = map.latLngToContainerPoint([node.lat, node.lng]);
+        const colors = ['#00ffff', '#00ff88', '#ffd700', '#ff00ff'];
+        
+        for (let i = 0; i < 50; i++) {
+          explosionParticles.push(
+            new ExplosionParticle(point.x, point.y, colors[Math.floor(Math.random() * colors.length)])
+          );
+        }
+        
+        // Animate node
+        const marker = markers[node.id];
+        if (marker) {
+          const el = marker.marker.getElement();
+          if (el) {
+            el.querySelector('div').classList.add('exploding');
+            setTimeout(() => el.querySelector('div').classList.remove('exploding'), 500);
+          }
+        }
+        
+        // Increase synergy
+        node.synergy = Math.min(0.9, node.synergy + 0.05);
+        node.value = Math.floor(node.value * 1.1);
+      });
+      
+      // Increase link synergy
+      links.forEach(link => {
+        link.synergy = Math.min(0.9, link.synergy + 0.03);
+        link.value = Math.floor(link.value * 1.08);
+      });
+      
+      updateStats();
+      renderNodes();
+      renderLinks();
+    }
+    
+    function addRandomLink() {
+      const available = [];
+      
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const exists = links.some(l => 
+            (l.source === nodes[i].id && l.target === nodes[j].id) ||
+            (l.source === nodes[j].id && l.target === nodes[i].id)
+          );
+          if (!exists) {
+            available.push([nodes[i], nodes[j]]);
+          }
+        }
+      }
+      
+      if (available.length === 0) {
+        alert('모든 노드가 연결되어 있습니다!');
+        return;
+      }
+      
+      const [source, target] = available[Math.floor(Math.random() * available.length)];
+      
+      links.push({
+        source: source.id,
+        target: target.id,
+        value: 5000000 + Math.random() * 10000000,
+        synergy: 0.2 + Math.random() * 0.3,
+        predicted: true
+      });
+      
+      updateStats();
+      renderLinks();
+      
+      // Mini explosion at new link
+      const sp = map.latLngToContainerPoint([source.lat, source.lng]);
+      const tp = map.latLngToContainerPoint([target.lat, target.lng]);
+      const midX = (sp.x + tp.x) / 2;
+      const midY = (sp.y + tp.y) / 2;
+      
+      for (let i = 0; i < 30; i++) {
+        explosionParticles.push(
+          new ExplosionParticle(midX, midY, '#ffd700')
+        );
+      }
+    }
+    
+    function resetExplosion() {
+      explosionCount = 0;
+      
+      // Reset nodes
+      nodes.forEach((node, i) => {
+        node.synergy = [0.5, 0.4, 0.45, 0.35, 0.3][i];
+        node.value = [66000000, 30000000, 28000000, 15000000, 10000000][i];
+      });
+      
+      // Reset links
+      links = [
+        { source: "오세호", target: "김경희", value: 20000000, synergy: 0.4 },
+        { source: "오세호", target: "오선우", value: 25000000, synergy: 0.5 },
+        { source: "김경희", target: "오선우", value: 18000000, synergy: 0.35 },
+        { source: "오선우", target: "오연유", value: 15000000, synergy: 0.4 },
+        { source: "오선우", target: "오은우", value: 12000000, synergy: 0.3 },
+        { source: "오세호", target: "오연유", value: 30000000, synergy: 0.45, predicted: true }
+      ];
+      
+      particles = [];
+      explosionParticles = [];
+      
+      updateStats();
+      renderNodes();
+      renderLinks();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // NODE SELECTION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function selectNode(node) {
+      selectedNode = node;
+      
+      const info = document.getElementById('node-info');
+      info.classList.add('visible');
+      
+      document.getElementById('info-name').textContent = node.id;
+      document.getElementById('info-value').textContent = formatMoney(node.value);
+      document.getElementById('info-synergy').textContent = (node.synergy * 100).toFixed(0) + '%';
+      
+      const linkCount = links.filter(l => l.source === node.id || l.target === node.id).length;
+      document.getElementById('info-links').textContent = linkCount;
+    }
+    
+    function highlightNode(node, highlight) {
+      const marker = markers[node.id];
+      if (!marker) return;
+      
+      const el = marker.marker.getElement();
+      if (el) {
+        const div = el.querySelector('div');
+        if (highlight) {
+          div.style.transform = 'scale(1.3)';
+          div.style.zIndex = '1000';
+        } else {
+          div.style.transform = '';
+          div.style.zIndex = '';
+        }
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STATS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function updateStats() {
+      const totalSynergy = nodes.reduce((sum, n) => sum + n.synergy, 0) / nodes.length;
+      const linkStrength = links.reduce((sum, l) => sum + l.synergy, 0);
+      const totalValue = nodes.reduce((sum, n) => sum + n.value, 0);
+      
+      document.getElementById('total-synergy').textContent = (totalSynergy * 100).toFixed(0) + '%';
+      document.getElementById('link-strength').textContent = linkStrength.toFixed(2);
+      document.getElementById('explosion-count').textContent = explosionCount;
+      document.getElementById('total-value').textContent = formatMoney(totalValue);
+    }
+    
+    function formatMoney(value) {
+      if (value >= 100000000) {
+        return '₩' + (value / 100000000).toFixed(1) + '억';
+      }
+      if (value >= 10000) {
+        return '₩' + (value / 10000).toFixed(0) + '만';
+      }
+      return '₩' + value.toLocaleString();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CSS Animation for nodes
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes nodePulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.8; transform: scale(1.1); }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function init() {
+      renderNodes();
+      renderLinks();
+      updateStats();
+      animate();
+      
+      // Auto explosion every 10 seconds
+      setInterval(() => {
+        if (Math.random() < 0.3) {
+          // Small auto burst
+          const randomNode = nodes[Math.floor(Math.random() * nodes.length)];
+          const point = map.latLngToContainerPoint([randomNode.lat, randomNode.lng]);
+          
+          for (let i = 0; i < 10; i++) {
+            explosionParticles.push(
+              new ExplosionParticle(point.x, point.y, randomNode.color)
+            );
+          }
+        }
+      }, 3000);
+      
+      console.log('⚡ 시너지 폭발 모드 활성화!');
+    }
+    
+    // Close node info on map click
+    map.on('click', () => {
+      document.getElementById('node-info').classList.remove('visible');
+      selectedNode = null;
+    });
+    
+    // Redraw on map move
+    map.on('moveend', () => {
+      renderLinks();
+    });
+    
+    init();
+  </script>
+</body>
+</html>

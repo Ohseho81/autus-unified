@@ -1,0 +1,119 @@
+{
+  "name": "AUTUS Universal Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autus-universal",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook",
+      "name": "Universal Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 소스 자동 감지\nconst headers = $input.item.json.headers || {};\nconst body = $input.item.json.body || {};\n\nlet source = 'unknown';\nif (headers['stripe-signature']) source = 'stripe';\nelse if (headers['x-shopify-hmac-sha256']) source = 'shopify';\nelse if (headers['x-quickbooks-signature']) source = 'quickbooks';\nelse if (body.livemode !== undefined) source = 'stripe';\nelse if (body.admin_graphql_api_id) source = 'shopify';\n\n// Zero Meaning 정제\nconst FORBIDDEN = ['name', 'email', 'phone', 'address', 'description', 'note'];\n\nfunction extractId(data, source) {\n  if (source === 'stripe') return data.customer || data.id;\n  if (source === 'shopify') return data.customer?.id || data.id;\n  return data.customer_id || data.user_id || data.id || 'anon_' + Date.now();\n}\n\nfunction extractAmount(data, source) {\n  if (source === 'stripe') return (data.amount || 0) / 100;\n  return parseFloat(data.total_price || data.amount || data.totalAmount || 0);\n}\n\nfunction detectFlowType(data) {\n  const event = (data.type || data.topic || '').toLowerCase();\n  if (event.includes('refund') || event.includes('cancel')) return 'outflow';\n  if (event.includes('succeeded') || event.includes('paid') || event.includes('create')) return 'inflow';\n  return 'inflow';\n}\n\nconst cleaned = {\n  node_id: String(extractId(body, source)),\n  value: extractAmount(body, source),\n  flow_type: detectFlowType(body),\n  source: source,\n  timestamp: new Date().toISOString()\n};\n\nreturn [{ json: cleaned }];"
+      },
+      "id": "zero_meaning",
+      "name": "Zero Meaning 정제",
+      "type": "n8n-nodes-base.function",
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.flow_type }}",
+              "value2": "inflow"
+            }
+          ]
+        }
+      },
+      "id": "flow_check",
+      "name": "Inflow/Outflow 분기",
+      "type": "n8n-nodes-base.if",
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUTUS_API_URL }}/nodes/upsert",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "external_id", "value": "={{ $json.node_id }}" },
+            { "name": "source", "value": "={{ $json.source }}" }
+          ]
+        }
+      },
+      "id": "upsert_node",
+      "name": "노드 Upsert",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUTUS_API_URL }}/motions/create",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "source_id", "value": "={{ $json.node_id }}" },
+            { "name": "target_id", "value": "owner" },
+            { "name": "amount", "value": "={{ $json.value }}" },
+            { "name": "direction", "value": "inflow" }
+          ]
+        }
+      },
+      "id": "create_inflow",
+      "name": "Inflow 모션 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUTUS_API_URL }}/motions/create",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "source_id", "value": "owner" },
+            { "name": "target_id", "value": "={{ $json.node_id }}" },
+            { "name": "amount", "value": "={{ $json.value }}" },
+            { "name": "direction", "value": "outflow" }
+          ]
+        }
+      },
+      "id": "create_outflow",
+      "name": "Outflow 모션 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, node_id: $json.node_id, amount: $json.value, flow_type: $json.flow_type } }}"
+      },
+      "id": "response",
+      "name": "Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Universal Webhook": { "main": [[{ "node": "Zero Meaning 정제", "type": "main", "index": 0 }]] },
+    "Zero Meaning 정제": { "main": [[{ "node": "Inflow/Outflow 분기", "type": "main", "index": 0 }]] },
+    "Inflow/Outflow 분기": {
+      "main": [
+        [{ "node": "노드 Upsert", "type": "main", "index": 0 }],
+        [{ "node": "Outflow 모션 생성", "type": "main", "index": 0 }]
+      ]
+    },
+    "노드 Upsert": { "main": [[{ "node": "Inflow 모션 생성", "type": "main", "index": 0 }]] },
+    "Inflow 모션 생성": { "main": [[{ "node": "Response", "type": "main", "index": 0 }]] },
+    "Outflow 모션 생성": { "main": [[{ "node": "Response", "type": "main", "index": 0 }]] }
+  }
+}

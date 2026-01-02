@@ -1,0 +1,110 @@
+{
+  "name": "AUTUS CRM 범용 연동 (HubSpot/Salesforce/Zoho)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crm-universal",
+        "responseMode": "responseNode"
+      },
+      "id": "crm_webhook",
+      "name": "CRM Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// CRM 범용 데이터 변환\nconst data = $input.item.json.body || $input.item.json;\n\n// CRM별 필드 매핑\nconst mapping = {\n  hubspot: {\n    id: ['properties.hs_contact_id', 'vid', 'id'],\n    value: ['properties.hs_deal_amount', 'properties.amount', 'amount'],\n    event: ['subscriptionType', 'eventType']\n  },\n  salesforce: {\n    id: ['AccountId', 'Id', 'ContactId'],\n    value: ['Amount', 'TotalPrice'],\n    event: ['type', 'event']\n  },\n  zoho: {\n    id: ['Contact_Id', 'id'],\n    value: ['Amount', 'Grand_Total'],\n    event: ['event', 'trigger']\n  },\n  pipedrive: {\n    id: ['person_id', 'org_id'],\n    value: ['value', 'amount'],\n    event: ['event', 'action']\n  }\n};\n\n// CRM 자동 감지\nlet crmType = 'unknown';\nif (data.portalId || data.subscriptionType) crmType = 'hubspot';\nelse if (data.AccountId || data.sobjectType) crmType = 'salesforce';\nelse if (data.Contact_Id || data.module) crmType = 'zoho';\nelse if (data.current && data.previous) crmType = 'pipedrive';\n\nconst map = mapping[crmType] || { id: ['id'], value: ['amount'], event: ['event'] };\n\n// 중첩 필드 접근 헬퍼\nfunction getNestedValue(obj, path) {\n  return path.split('.').reduce((o, p) => o && o[p], obj);\n}\n\n// ID 추출\nlet nodeId = null;\nfor (const field of map.id) {\n  const val = field.includes('.') ? getNestedValue(data, field) : data[field];\n  if (val) { nodeId = String(val); break; }\n}\nnodeId = nodeId || 'anon_' + Date.now();\n\n// 금액 추출\nlet value = 0;\nfor (const field of map.value) {\n  const val = field.includes('.') ? getNestedValue(data, field) : data[field];\n  if (val) { value = parseFloat(val); break; }\n}\n\n// 이벤트 추출\nlet event = '';\nfor (const field of map.event) {\n  const val = field.includes('.') ? getNestedValue(data, field) : data[field];\n  if (val) { event = String(val).toLowerCase(); break; }\n}\n\n// Flow 타입 결정\nlet flowType = 'inflow';\nif (event.includes('delete') || event.includes('lost') || event.includes('cancel')) {\n  flowType = 'outflow';\n}\n\n// 의미 필드 제거\nconst FORBIDDEN = ['firstname', 'lastname', 'email', 'phone', 'company', 'description', 'notes', 'address'];\nFORBIDDEN.forEach(f => {\n  delete data[f];\n  if (data.properties) delete data.properties[f];\n});\n\nreturn [{\n  json: {\n    node_id: nodeId,\n    value: value,\n    flow_type: flowType,\n    source: crmType,\n    event: event,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "crm_transform",
+      "name": "CRM 데이터 정제 (Zero Meaning)",
+      "type": "n8n-nodes-base.function",
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.value }}",
+              "operation": "largerEqual",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "value_check",
+      "name": "가치 체크 (≥0)",
+      "type": "n8n-nodes-base.if",
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUTUS_API_URL }}/nodes/upsert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ external_id: $json.node_id, source: $json.source }) }}"
+      },
+      "id": "upsert_node",
+      "name": "노드 생성/업데이트",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUTUS_API_URL }}/motions/create",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ source_id: $json.node_id, target_id: 'owner', amount: $json.value, direction: $json.flow_type }) }}"
+      },
+      "id": "create_motion",
+      "name": "모션 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 가치 ≤ 0 고객 삭제 제안 로깅\nconst data = $input.item.json;\nconsole.log(`⚠️ 삭제 권장: ${data.node_id} (value: ${data.value})`);\nreturn [{ json: { ...data, recommendation: 'DELETE', reason: 'value <= 0' } }];"
+      },
+      "id": "delete_recommend",
+      "name": "삭제 권장 로그",
+      "type": "n8n-nodes-base.function",
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, node_id: $json.node_id, value: $json.value, source: $json.source } }}"
+      },
+      "id": "response",
+      "name": "Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "CRM Webhook": {
+      "main": [[{ "node": "CRM 데이터 정제 (Zero Meaning)", "type": "main", "index": 0 }]]
+    },
+    "CRM 데이터 정제 (Zero Meaning)": {
+      "main": [[{ "node": "가치 체크 (≥0)", "type": "main", "index": 0 }]]
+    },
+    "가치 체크 (≥0)": {
+      "main": [
+        [{ "node": "노드 생성/업데이트", "type": "main", "index": 0 }],
+        [{ "node": "삭제 권장 로그", "type": "main", "index": 0 }]
+      ]
+    },
+    "노드 생성/업데이트": {
+      "main": [[{ "node": "모션 생성", "type": "main", "index": 0 }]]
+    },
+    "모션 생성": {
+      "main": [[{ "node": "Response", "type": "main", "index": 0 }]]
+    },
+    "삭제 권장 로그": {
+      "main": [[{ "node": "Response", "type": "main", "index": 0 }]]
+    }
+  }
+}

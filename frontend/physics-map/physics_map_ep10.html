@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚛️ AUTUS Physics Map - SehoOS EP10</title>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #000;
+      color: #fff;
+      overflow: hidden;
+    }
+    
+    /* 캔버스 */
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      cursor: grab;
+    }
+    
+    #canvas.dragging {
+      cursor: grabbing;
+    }
+    
+    /* 헤더 KPI */
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, transparent 100%);
+      padding: 20px 24px;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    .header-left h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #00ff88;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .header-left .subtitle {
+      color: #444;
+      font-size: 10px;
+      margin-top: 4px;
+      letter-spacing: 2px;
+    }
+    
+    .kpi-row {
+      display: flex;
+      gap: 24px;
+    }
+    
+    .kpi-item {
+      text-align: right;
+    }
+    
+    .kpi-label {
+      color: #555;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .kpi-value {
+      font-size: 20px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    
+    .kpi-delta {
+      font-size: 10px;
+      margin-top: 2px;
+    }
+    
+    .positive { color: #00ff88; }
+    .negative { color: #ff4466; }
+    .neutral { color: #ffcc00; }
+    
+    /* 왼쪽 패널 - Scale Metrics */
+    .left-panel {
+      position: absolute;
+      top: 100px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 100;
+      width: 240px;
+    }
+    
+    .panel-title {
+      color: #555;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    
+    .metric-label { color: #666; }
+    .metric-value { font-weight: bold; }
+    
+    /* 오른쪽 패널 - Prediction */
+    .right-panel {
+      position: absolute;
+      top: 100px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(255, 204, 0, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 100;
+      width: 260px;
+    }
+    
+    .prediction-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    
+    .prediction-label {
+      color: #888;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+    
+    .prediction-value {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    
+    .best-team {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    
+    .team-member {
+      background: rgba(0, 255, 136, 0.2);
+      border: 1px solid rgba(0, 255, 136, 0.4);
+      border-radius: 12px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: #00ff88;
+    }
+    
+    /* 드래그 패널 */
+    .drag-panel {
+      position: absolute;
+      bottom: 100px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(153, 102, 255, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 100;
+      width: 280px;
+    }
+    
+    .drag-type-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .drag-type-btn {
+      flex: 1;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: #888;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .drag-type-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .drag-type-btn.active {
+      background: rgba(153, 102, 255, 0.2);
+      border-color: #9966ff;
+      color: #9966ff;
+    }
+    
+    .drag-hint {
+      color: #666;
+      font-size: 11px;
+      line-height: 1.5;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 6px;
+    }
+    
+    /* 트리거 패널 */
+    .trigger-panel {
+      position: absolute;
+      bottom: 100px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(255, 68, 102, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 100;
+      width: 240px;
+    }
+    
+    .trigger-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    
+    .trigger-urgency {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    .trigger-urgency.high { background: #ff4466; box-shadow: 0 0 10px #ff4466; }
+    .trigger-urgency.medium { background: #ffcc00; box-shadow: 0 0 10px #ffcc00; }
+    .trigger-urgency.low { background: #00ff88; box-shadow: 0 0 10px #00ff88; }
+    
+    .trigger-content {
+      flex: 1;
+    }
+    
+    .trigger-type {
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .trigger-reason {
+      font-size: 10px;
+      color: #666;
+      margin-top: 2px;
+    }
+    
+    /* 노드 정보 패널 */
+    .node-info {
+      position: absolute;
+      display: none;
+      background: rgba(0, 0, 0, 0.95);
+      border: 1px solid rgba(0, 255, 136, 0.5);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 200;
+      min-width: 200px;
+    }
+    
+    .node-info.visible {
+      display: block;
+    }
+    
+    .node-info-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .node-info-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(0, 255, 136, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    
+    .node-info-name {
+      font-size: 16px;
+      font-weight: bold;
+    }
+    
+    .node-info-id {
+      font-size: 10px;
+      color: #666;
+    }
+    
+    .node-info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    
+    /* 컨트롤 */
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 100;
+    }
+    
+    .control-btn {
+      padding: 10px 20px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(0, 204, 255, 0.4);
+      border-radius: 20px;
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .control-btn:hover {
+      background: rgba(0, 204, 255, 0.2);
+    }
+    
+    .control-btn.active {
+      background: rgba(0, 255, 136, 0.2);
+      border-color: #00ff88;
+    }
+    
+    /* 상태 표시 */
+    .status-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.9);
+      padding: 8px 20px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #444;
+      z-index: 50;
+    }
+    
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ff4466;
+    }
+    
+    .status-dot.connected {
+      background: #00ff88;
+      box-shadow: 0 0 6px #00ff88;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  
+  <!-- 헤더 KPI -->
+  <div class="header">
+    <div class="header-left">
+      <h1>⚛️ AUTUS Physics Map</h1>
+      <div class="subtitle">SehoOS EP10 • 사람+돈만 • 의미 해석 금지</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-item">
+        <div class="kpi-label">NetCoin (7D)</div>
+        <div class="kpi-value positive" id="kpi-netcoin">₩0</div>
+        <div class="kpi-delta positive" id="kpi-netcoin-delta">↑ 0%</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">EntropyRatio</div>
+        <div class="kpi-value neutral" id="kpi-entropy">0.00</div>
+        <div class="kpi-delta" id="kpi-entropy-delta">—</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">Velocity</div>
+        <div class="kpi-value" style="color: #00ccff;" id="kpi-velocity">₩0/min</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">Network V(t)</div>
+        <div class="kpi-value" style="color: #9966ff;" id="kpi-network">₩0</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 왼쪽 패널 - Scale Metrics -->
+  <div class="left-panel">
+    <div class="panel-title">🔗 Musk Metcalfe's Law</div>
+    <div class="metric-row">
+      <span class="metric-label">Node Count (n)</span>
+      <span class="metric-value" id="metric-nodes">0</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Theoretical (n²)</span>
+      <span class="metric-value" style="color: #666;" id="metric-theoretical">0</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Verified Links</span>
+      <span class="metric-value positive" id="metric-verified">0</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Link Efficiency</span>
+      <span class="metric-value" style="color: #ffcc00;" id="metric-efficiency">0%</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Avg Link Energy</span>
+      <span class="metric-value" style="color: #9966ff;" id="metric-avg-energy">₩0</span>
+    </div>
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+      <div style="color: #555; font-size: 9px; margin-bottom: 6px;">AUTUS Scale Law</div>
+      <div style="font-family: monospace; font-size: 11px; color: #00ccff;">
+        V(t) = Σ Φ_ij(t)
+      </div>
+      <div style="font-size: 9px; color: #666; margin-top: 4px;">
+        n²가 아닌 검증된 coin-flow 링크만 인정
+      </div>
+    </div>
+  </div>
+  
+  <!-- 오른쪽 패널 - Prediction -->
+  <div class="right-panel">
+    <div class="panel-title">🔮 Rolling Prediction (7D)</div>
+    <div class="prediction-item">
+      <div class="prediction-label">Predicted NetCoin</div>
+      <div class="prediction-value positive" id="pred-netcoin">₩0</div>
+    </div>
+    <div class="prediction-item">
+      <div class="prediction-label">Predicted EntropyRatio</div>
+      <div class="prediction-value neutral" id="pred-entropy">0.00</div>
+    </div>
+    <div class="prediction-item">
+      <div class="prediction-label">Best Team</div>
+      <div class="best-team" id="pred-team"></div>
+      <div style="margin-top: 8px; font-size: 11px; color: #888;">
+        Score: <span id="pred-team-score" style="color: #00ff88;">₩0</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 드래그 패널 -->
+  <div class="drag-panel">
+    <div class="panel-title">🖱️ 드래그 입력 (물리 변환)</div>
+    <div class="drag-type-selector">
+      <button class="drag-type-btn" data-type="swap">
+        👥 Swap<br><span style="font-size: 8px;">팀 교체</span>
+      </button>
+      <button class="drag-type-btn active" data-type="allocation">
+        ⏱️ Allocation<br><span style="font-size: 8px;">시간 배분</span>
+      </button>
+      <button class="drag-type-btn" data-type="link">
+        🔗 Link<br><span style="font-size: 8px;">연결 강도</span>
+      </button>
+    </div>
+    <div class="drag-hint" id="drag-hint">
+      노드를 드래그하면 시간 배분(Minutes)이 변경됩니다.
+      드래그 거리 → 물리 입력 변환 → 예측 즉시 갱신
+    </div>
+  </div>
+  
+  <!-- 트리거 패널 -->
+  <div class="trigger-panel">
+    <div class="panel-title">⚡ Auto Triggers</div>
+    <div id="trigger-list">
+      <div style="color: #666; font-size: 11px; padding: 10px;">
+        트리거 없음
+      </div>
+    </div>
+  </div>
+  
+  <!-- 노드 정보 -->
+  <div class="node-info" id="node-info">
+    <div class="node-info-header">
+      <div class="node-info-avatar" id="node-avatar">👤</div>
+      <div>
+        <div class="node-info-name" id="node-name">Name</div>
+        <div class="node-info-id" id="node-id">ID</div>
+      </div>
+    </div>
+    <div class="node-info-row">
+      <span class="metric-label">Total Coin</span>
+      <span class="metric-value positive" id="node-coin">₩0</span>
+    </div>
+    <div class="node-info-row">
+      <span class="metric-label">Coin Rate</span>
+      <span class="metric-value" style="color: #00ccff;" id="node-rate">₩0/min</span>
+    </div>
+    <div class="node-info-row">
+      <span class="metric-label">Links</span>
+      <span class="metric-value" style="color: #9966ff;" id="node-links">0</span>
+    </div>
+  </div>
+  
+  <!-- 컨트롤 -->
+  <div class="controls">
+    <button class="control-btn" id="btn-links">🔗 링크 표시</button>
+    <button class="control-btn active" id="btn-animate">✨ 파티클</button>
+    <button class="control-btn" id="btn-center">🎯 중심</button>
+  </div>
+  
+  <!-- 상태 바 -->
+  <div class="status-bar">
+    <div class="connection-status">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">연결 중...</span>
+    </div>
+    <span>AUTUS Physics Map • SehoOS EP10 • V = Σ Φ_ij</span>
+  </div>
+  
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 상태
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let state = {
+      nodes: [],
+      links: [],
+      kpi_current: {},
+      kpi_predicted: {},
+      triggers: [],
+      scale_metrics: {}
+    };
+    
+    let dragType = 'allocation';
+    let showLinks = false;
+    let showParticles = true;
+    let particles = [];
+    
+    let isDragging = false;
+    let dragNode = null;
+    let dragStart = { x: 0, y: 0 };
+    let panOffset = { x: 0, y: 0 };
+    let isPanning = false;
+    let panStart = { x: 0, y: 0 };
+    
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // WebSocket
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let ws = null;
+    
+    function connectWebSocket() {
+      const wsUrl = `ws://${window.location.hostname}:8000/ws`;
+      
+      try {
+        ws = new WebSocket(wsUrl);
+        
+        ws.onopen = () => {
+          document.getElementById('status-dot').classList.add('connected');
+          document.getElementById('status-text').textContent = '실시간 연결됨';
+        };
+        
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          handleMessage(data);
+        };
+        
+        ws.onclose = () => {
+          document.getElementById('status-dot').classList.remove('connected');
+          document.getElementById('status-text').textContent = '연결 끊김 - 재연결 중...';
+          setTimeout(connectWebSocket, 3000);
+        };
+        
+        ws.onerror = () => {
+          console.log('WebSocket 연결 실패 - 데모 모드');
+          loadDemoData();
+        };
+      } catch (e) {
+        console.log('WebSocket 사용 불가 - 데모 모드');
+        loadDemoData();
+      }
+    }
+    
+    function handleMessage(data) {
+      if (data.type === 'initial_state' || data.type === 'state_update') {
+        state = data.data;
+        positionNodes();
+        updateUI();
+      } else if (data.type === 'drag_result') {
+        // 드래그 결과 처리
+        if (data.data.prediction) {
+          state.kpi_predicted = data.data.prediction;
+          updatePrediction();
+        }
+      }
+    }
+    
+    function sendDragInput(type, params) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'drag',
+          drag_type: type,
+          params: params
+        }));
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 데모 데이터
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function loadDemoData() {
+      document.getElementById('status-text').textContent = '데모 모드';
+      
+      state = {
+        nodes: [
+          { id: 'P01', name: '오세호', coin: 50000000, coin_rate: 20833 },
+          { id: 'P02', name: '김경희', coin: 20000000, coin_rate: 11111 },
+          { id: 'P03', name: '오선우', coin: 17500000, coin_rate: 17500 },
+          { id: 'P04', name: '오연우', coin: 9000000, coin_rate: 15000 },
+          { id: 'P05', name: '오은우', coin: 7500000, coin_rate: 12500 },
+        ],
+        links: [
+          { source: 'P01', target: 'P03', phi: 8500000, event_count: 2 },
+          { source: 'P01', target: 'P02', phi: 5200000, event_count: 1 },
+          { source: 'P02', target: 'P04', phi: 3800000, event_count: 1 },
+        ],
+        kpi_current: {
+          mint: 148000000,
+          burn: 15000000,
+          net_coin: 133000000,
+          entropy_ratio: 0.10,
+          velocity: 17750
+        },
+        kpi_predicted: {
+          predicted_net_coin: 142000000,
+          predicted_entropy_ratio: 0.12,
+          best_team: ['P01', 'P02', 'P03'],
+          best_team_score: 13700000
+        },
+        triggers: [
+          { type: 'EXPAND', reason: 'Velocity 17,750 > 10,000', urgency: 'low' }
+        ],
+        scale_metrics: {
+          node_count: 5,
+          theoretical_links_n2: 10,
+          verified_links: 3,
+          link_efficiency: 0.3,
+          network_value_V: 17500000,
+          avg_link_energy: 5833333
+        }
+      };
+      
+      positionNodes();
+      updateUI();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UI 업데이트
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function updateUI() {
+      updateKPI();
+      updateMetrics();
+      updatePrediction();
+      updateTriggers();
+      initParticles();
+    }
+    
+    function updateKPI() {
+      const kpi = state.kpi_current;
+      
+      document.getElementById('kpi-netcoin').textContent = formatMoney(kpi.net_coin);
+      document.getElementById('kpi-entropy').textContent = (kpi.entropy_ratio || 0).toFixed(2);
+      document.getElementById('kpi-velocity').textContent = formatMoney(kpi.velocity) + '/min';
+      document.getElementById('kpi-network').textContent = formatMoney(state.scale_metrics?.network_value_V || 0);
+      
+      // EntropyRatio 색상
+      const entropyEl = document.getElementById('kpi-entropy');
+      if (kpi.entropy_ratio > 0.5) {
+        entropyEl.className = 'kpi-value negative';
+      } else if (kpi.entropy_ratio > 0.3) {
+        entropyEl.className = 'kpi-value neutral';
+      } else {
+        entropyEl.className = 'kpi-value positive';
+      }
+    }
+    
+    function updateMetrics() {
+      const m = state.scale_metrics || {};
+      
+      document.getElementById('metric-nodes').textContent = m.node_count || 0;
+      document.getElementById('metric-theoretical').textContent = m.theoretical_links_n2 || 0;
+      document.getElementById('metric-verified').textContent = m.verified_links || 0;
+      document.getElementById('metric-efficiency').textContent = ((m.link_efficiency || 0) * 100).toFixed(0) + '%';
+      document.getElementById('metric-avg-energy').textContent = formatMoney(m.avg_link_energy || 0);
+    }
+    
+    function updatePrediction() {
+      const pred = state.kpi_predicted || {};
+      
+      document.getElementById('pred-netcoin').textContent = formatMoney(pred.predicted_net_coin);
+      document.getElementById('pred-entropy').textContent = (pred.predicted_entropy_ratio || 0).toFixed(2);
+      document.getElementById('pred-team-score').textContent = formatMoney(pred.best_team_score);
+      
+      // Best Team
+      const teamEl = document.getElementById('pred-team');
+      teamEl.innerHTML = '';
+      (pred.best_team || []).forEach(id => {
+        const node = state.nodes.find(n => n.id === id);
+        if (node) {
+          const badge = document.createElement('span');
+          badge.className = 'team-member';
+          badge.textContent = node.name;
+          teamEl.appendChild(badge);
+        }
+      });
+    }
+    
+    function updateTriggers() {
+      const listEl = document.getElementById('trigger-list');
+      
+      if (!state.triggers || state.triggers.length === 0) {
+        listEl.innerHTML = '<div style="color: #666; font-size: 11px; padding: 10px;">트리거 없음</div>';
+        return;
+      }
+      
+      listEl.innerHTML = state.triggers.map(t => `
+        <div class="trigger-item">
+          <div class="trigger-urgency ${t.urgency}"></div>
+          <div class="trigger-content">
+            <div class="trigger-type">${t.type}</div>
+            <div class="trigger-reason">${t.reason}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 캔버스 렌더링
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      positionNodes();
+    }
+    
+    function positionNodes() {
+      if (!state.nodes || state.nodes.length === 0) return;
+      
+      const centerX = width / 2 + panOffset.x;
+      const centerY = height / 2 + panOffset.y;
+      const radius = Math.min(width, height) * 0.25;
+      
+      state.nodes.forEach((node, i) => {
+        if (node.x === undefined) {
+          const angle = (i / state.nodes.length) * Math.PI * 2 - Math.PI / 2;
+          node.x = centerX + Math.cos(angle) * radius;
+          node.y = centerY + Math.sin(angle) * radius;
+        }
+      });
+    }
+    
+    function initParticles() {
+      particles = [];
+      
+      if (!state.links) return;
+      
+      state.links.forEach(link => {
+        const count = Math.min(Math.ceil(link.phi / 2000000), 8);
+        for (let i = 0; i < count; i++) {
+          particles.push({
+            source: link.source,
+            target: link.target,
+            progress: Math.random(),
+            speed: 0.003 + Math.random() * 0.003,
+            trail: []
+          });
+        }
+      });
+    }
+    
+    function updateParticles() {
+      particles.forEach(p => {
+        p.progress += p.speed;
+        if (p.progress > 1) {
+          p.progress = 0;
+          p.trail = [];
+        }
+        
+        const source = state.nodes.find(n => n.id === p.source);
+        const target = state.nodes.find(n => n.id === p.target);
+        if (!source || !target) return;
+        
+        const midX = (source.x + target.x) / 2;
+        const midY = (source.y + target.y) / 2 - 30;
+        
+        const t = p.progress;
+        p.x = Math.pow(1-t, 2) * source.x + 2 * (1-t) * t * midX + Math.pow(t, 2) * target.x;
+        p.y = Math.pow(1-t, 2) * source.y + 2 * (1-t) * t * midY + Math.pow(t, 2) * target.y;
+        
+        p.trail.push({ x: p.x, y: p.y });
+        if (p.trail.length > 12) p.trail.shift();
+      });
+    }
+    
+    function render() {
+      // 배경
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+      ctx.fillRect(0, 0, width, height);
+      
+      // 그리드
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < width; x += 50) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < height; y += 50) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      
+      // 링크 (요청시만)
+      if (showLinks && state.links) {
+        state.links.forEach(link => {
+          const source = state.nodes.find(n => n.id === link.source);
+          const target = state.nodes.find(n => n.id === link.target);
+          if (!source || !target) return;
+          
+          const midX = (source.x + target.x) / 2;
+          const midY = (source.y + target.y) / 2 - 30;
+          
+          ctx.beginPath();
+          ctx.moveTo(source.x, source.y);
+          ctx.quadraticCurveTo(midX, midY, target.x, target.y);
+          
+          const gradient = ctx.createLinearGradient(source.x, source.y, target.x, target.y);
+          gradient.addColorStop(0, 'rgba(0, 255, 136, 0.3)');
+          gradient.addColorStop(1, 'rgba(0, 204, 255, 0.3)');
+          
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = Math.max(1, link.phi / 3000000);
+          ctx.stroke();
+        });
+      }
+      
+      // 파티클
+      if (showParticles) {
+        particles.forEach(p => {
+          if (!p.x || !p.y) return;
+          
+          // 트레일
+          if (p.trail.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(p.trail[0].x, p.trail[0].y);
+            for (let i = 1; i < p.trail.length; i++) {
+              ctx.lineTo(p.trail[i].x, p.trail[i].y);
+            }
+            const trailGrad = ctx.createLinearGradient(p.trail[0].x, p.trail[0].y, p.x, p.y);
+            trailGrad.addColorStop(0, 'rgba(0, 255, 136, 0)');
+            trailGrad.addColorStop(1, 'rgba(0, 255, 136, 0.8)');
+            ctx.strokeStyle = trailGrad;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+          
+          // 파티클
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+          ctx.fillStyle = '#00ff88';
+          ctx.shadowColor = '#00ff88';
+          ctx.shadowBlur = 10;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        });
+      }
+      
+      // 노드 (사람 + 돈)
+      state.nodes.forEach(node => {
+        const size = 30 + Math.sqrt(node.coin) / 300;
+        
+        // 글로우
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, size * 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 255, 136, 0.1)';
+        ctx.fill();
+        
+        // 메인 원
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = node === dragNode ? '#ffcc00' : '#00ff88';
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 15;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        // 테두리
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // 아이콘
+        ctx.font = `${size * 0.7}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#000';
+        ctx.fillText('👤', node.x, node.y);
+        
+        // 이름
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(node.name, node.x, node.y + size + 16);
+        
+        // 돈 (coin)
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = '#00ff88';
+        ctx.fillText(formatMoneyShort(node.coin), node.x, node.y - size - 10);
+      });
+    }
+    
+    function animate() {
+      updateParticles();
+      render();
+      requestAnimationFrame(animate);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 이벤트 핸들러
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function getNodeAt(x, y) {
+      for (const node of state.nodes) {
+        const dist = Math.sqrt(Math.pow(node.x - x, 2) + Math.pow(node.y - y, 2));
+        const size = 30 + Math.sqrt(node.coin) / 300;
+        if (dist < size * 1.5) return node;
+      }
+      return null;
+    }
+    
+    canvas.addEventListener('mousedown', e => {
+      const node = getNodeAt(e.clientX, e.clientY);
+      
+      if (node) {
+        isDragging = true;
+        dragNode = node;
+        dragStart = { x: e.clientX, y: e.clientY };
+        canvas.classList.add('dragging');
+      } else {
+        isPanning = true;
+        panStart = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
+      }
+    });
+    
+    canvas.addEventListener('mousemove', e => {
+      if (isDragging && dragNode) {
+        dragNode.x = e.clientX;
+        dragNode.y = e.clientY;
+      } else if (isPanning) {
+        panOffset.x = e.clientX - panStart.x;
+        panOffset.y = e.clientY - panStart.y;
+      }
+    });
+    
+    canvas.addEventListener('mouseup', e => {
+      if (isDragging && dragNode) {
+        // 드래그 완료 → 물리 입력 전송
+        const dx = e.clientX - dragStart.x;
+        const dy = e.clientY - dragStart.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance > 10) {
+          // 물리 입력 생성
+          let params = {};
+          
+          if (dragType === 'allocation') {
+            params = {
+              person_id: dragNode.id,
+              delta_minutes: distance * 10  // 거리 → 분 변환
+            };
+          } else if (dragType === 'link') {
+            // 가장 가까운 다른 노드 찾기
+            let closest = null;
+            let minDist = Infinity;
+            state.nodes.forEach(n => {
+              if (n !== dragNode) {
+                const d = Math.sqrt(Math.pow(n.x - e.clientX, 2) + Math.pow(n.y - e.clientY, 2));
+                if (d < minDist) {
+                  minDist = d;
+                  closest = n;
+                }
+              }
+            });
+            
+            if (closest) {
+              params = {
+                person_i: dragNode.id,
+                person_j: closest.id,
+                weight_delta: distance / 100
+              };
+            }
+          } else if (dragType === 'swap') {
+            params = {
+              person_out: dragNode.id,
+              team: state.kpi_predicted?.best_team || []
+            };
+          }
+          
+          sendDragInput(dragType, params);
+        }
+        
+        dragNode = null;
+      }
+      
+      isDragging = false;
+      isPanning = false;
+      canvas.classList.remove('dragging');
+    });
+    
+    canvas.addEventListener('click', e => {
+      const node = getNodeAt(e.clientX, e.clientY);
+      
+      if (node) {
+        showNodeInfo(node, e.clientX, e.clientY);
+      } else {
+        document.getElementById('node-info').classList.remove('visible');
+      }
+    });
+    
+    function showNodeInfo(node, x, y) {
+      const infoEl = document.getElementById('node-info');
+      
+      document.getElementById('node-name').textContent = node.name;
+      document.getElementById('node-id').textContent = node.id;
+      document.getElementById('node-coin').textContent = formatMoney(node.coin);
+      document.getElementById('node-rate').textContent = formatMoney(node.coin_rate) + '/min';
+      
+      // 링크 수
+      const linkCount = (state.links || []).filter(l => 
+        l.source === node.id || l.target === node.id
+      ).length;
+      document.getElementById('node-links').textContent = linkCount;
+      
+      // 위치
+      infoEl.style.left = Math.min(x + 20, width - 250) + 'px';
+      infoEl.style.top = Math.min(y + 20, height - 200) + 'px';
+      infoEl.classList.add('visible');
+    }
+    
+    // 드래그 타입 선택
+    document.querySelectorAll('.drag-type-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.drag-type-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        dragType = btn.dataset.type;
+        
+        const hints = {
+          allocation: '노드를 드래그하면 시간 배분(Minutes)이 변경됩니다.\n드래그 거리 → 물리 입력 변환 → 예측 즉시 갱신',
+          link: '노드를 다른 노드 방향으로 드래그하면 링크 강도가 변경됩니다.\n가까이 드래그 = 연결 강화',
+          swap: '노드를 드래그하면 팀에서 교체 후보가 됩니다.\nBest Team 재계산됨'
+        };
+        document.getElementById('drag-hint').textContent = hints[dragType];
+      });
+    });
+    
+    // 컨트롤 버튼
+    document.getElementById('btn-links').addEventListener('click', function() {
+      showLinks = !showLinks;
+      this.classList.toggle('active', showLinks);
+    });
+    
+    document.getElementById('btn-animate').addEventListener('click', function() {
+      showParticles = !showParticles;
+      this.classList.toggle('active', showParticles);
+    });
+    
+    document.getElementById('btn-center').addEventListener('click', () => {
+      panOffset = { x: 0, y: 0 };
+      state.nodes.forEach(n => {
+        n.x = undefined;
+        n.y = undefined;
+      });
+      positionNodes();
+    });
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 유틸리티
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      if (!value) return '₩0';
+      if (Math.abs(value) >= 100000000) return '₩' + (value / 100000000).toFixed(2) + '억';
+      if (Math.abs(value) >= 10000) return '₩' + Math.round(value / 10000).toLocaleString() + '만';
+      return '₩' + Math.round(value).toLocaleString();
+    }
+    
+    function formatMoneyShort(value) {
+      if (!value) return '0';
+      if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(1) + '억';
+      if (Math.abs(value) >= 10000) return Math.round(value / 10000) + '만';
+      return Math.round(value).toLocaleString();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 초기화
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    window.addEventListener('resize', resize);
+    resize();
+    animate();
+    connectWebSocket();
+    
+    console.log('⚛️ AUTUS Physics Map - SehoOS EP10 initialized');
+  </script>
+</body>
+</html>

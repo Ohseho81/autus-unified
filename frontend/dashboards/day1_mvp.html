@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚛️ AUTUS Physics Map - Day 1 MVP</title>
+  
+  <!-- Mapbox GL JS -->
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #000;
+      color: #fff;
+      overflow: hidden;
+    }
+    
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* 오버레이 캔버스 */
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+    
+    /* 헤더 - 숫자 3개 */
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, transparent 100%);
+      padding: 20px 24px;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    .header-left h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #00ff88;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .header-left .philosophy {
+      color: #444;
+      font-size: 9px;
+      margin-top: 4px;
+      letter-spacing: 1px;
+    }
+    
+    .kpi-row {
+      display: flex;
+      gap: 32px;
+    }
+    
+    .kpi-item {
+      text-align: right;
+    }
+    
+    .kpi-label {
+      color: #555;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .kpi-value {
+      font-size: 24px;
+      font-weight: 700;
+      margin-top: 2px;
+      font-variant-numeric: tabular-nums;
+    }
+    
+    .positive { color: #00ff88; }
+    .negative { color: #ff4466; }
+    .neutral { color: #ffcc00; }
+    
+    /* 2버튼 패널 (CUT / LINK) */
+    .action-panel {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+      z-index: 100;
+    }
+    
+    .action-btn {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      border: 3px solid;
+      background: rgba(0, 0, 0, 0.9);
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    
+    .action-btn.cut {
+      border-color: #ff4466;
+      color: #ff4466;
+    }
+    
+    .action-btn.cut:hover,
+    .action-btn.cut.active {
+      background: rgba(255, 68, 102, 0.3);
+      box-shadow: 0 0 30px rgba(255, 68, 102, 0.5);
+    }
+    
+    .action-btn.link {
+      border-color: #00ff88;
+      color: #00ff88;
+    }
+    
+    .action-btn.link:hover,
+    .action-btn.link.active {
+      background: rgba(0, 255, 136, 0.3);
+      box-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+    }
+    
+    .action-btn .icon {
+      font-size: 28px;
+    }
+    
+    .action-btn .label {
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+    
+    /* BestTeam 패널 */
+    .team-panel {
+      position: absolute;
+      top: 100px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 100;
+      width: 200px;
+    }
+    
+    .team-title {
+      color: #555;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+    }
+    
+    .team-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .team-member {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: rgba(0, 255, 136, 0.1);
+      border-radius: 8px;
+    }
+    
+    .team-rank {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(0, 255, 136, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+    }
+    
+    .team-name {
+      flex: 1;
+      font-size: 13px;
+    }
+    
+    .team-value {
+      font-size: 11px;
+      color: #00ff88;
+    }
+    
+    /* 드래그 힌트 */
+    .drag-hint {
+      position: absolute;
+      bottom: 220px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: #666;
+      z-index: 100;
+    }
+    
+    /* 상태 바 */
+    .status-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.9);
+      padding: 8px 20px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #444;
+      z-index: 50;
+    }
+    
+    /* 노드 마커 */
+    .node-marker {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(0, 255, 136, 0.8);
+      border: 3px solid #fff;
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+      transition: all 0.2s;
+    }
+    
+    .node-marker:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 30px rgba(0, 255, 136, 0.8);
+    }
+    
+    .node-marker.selected {
+      background: rgba(255, 204, 0, 0.8);
+      box-shadow: 0 0 30px rgba(255, 204, 0, 0.8);
+    }
+    
+    .node-marker.cut-target {
+      background: rgba(255, 68, 102, 0.8);
+      box-shadow: 0 0 30px rgba(255, 68, 102, 0.8);
+    }
+    
+    .node-label {
+      position: absolute;
+      bottom: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: 11px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 10px #000;
+    }
+    
+    .node-money {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: 10px;
+      color: #00ff88;
+      text-shadow: 0 0 10px #000;
+    }
+    
+    /* 선택 정보 */
+    .selection-info {
+      position: absolute;
+      top: 100px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(255, 204, 0, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 100;
+      width: 220px;
+      display: none;
+    }
+    
+    .selection-info.visible {
+      display: block;
+    }
+    
+    .selection-title {
+      color: #ffcc00;
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+    
+    .selection-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    
+    .selection-row .label { color: #666; }
+    .selection-row .value { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <canvas id="overlay"></canvas>
+  
+  <!-- 헤더 - 숫자 3개 -->
+  <div class="header">
+    <div class="header-left">
+      <h1>⚛️ AUTUS Physics Map</h1>
+      <div class="philosophy">사람 + 돈만 | 해석 금지 | CUT or LINK</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-item">
+        <div class="kpi-label">NetCoin (7D)</div>
+        <div class="kpi-value positive" id="kpi-net">₩289M</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">Entropy</div>
+        <div class="kpi-value neutral" id="kpi-entropy">0.02</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">Velocity</div>
+        <div class="kpi-value" style="color: #00ccff;" id="kpi-velocity">₩61K/min</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- BestTeam 패널 -->
+  <div class="team-panel">
+    <div class="team-title">🏆 Best Team</div>
+    <div class="team-list" id="team-list"></div>
+  </div>
+  
+  <!-- 선택 정보 -->
+  <div class="selection-info" id="selection-info">
+    <div class="selection-title" id="selection-name">선택 없음</div>
+    <div class="selection-row">
+      <span class="label">Total Coin</span>
+      <span class="value positive" id="selection-coin">₩0</span>
+    </div>
+    <div class="selection-row">
+      <span class="label">Rate</span>
+      <span class="value" style="color: #00ccff;" id="selection-rate">₩0/min</span>
+    </div>
+    <div class="selection-row">
+      <span class="label">Links</span>
+      <span class="value" style="color: #9966ff;" id="selection-links">0</span>
+    </div>
+  </div>
+  
+  <!-- 드래그 힌트 -->
+  <div class="drag-hint" id="drag-hint">
+    노드를 드래그하여 CUT(밖으로) 또는 LINK(노드로)
+  </div>
+  
+  <!-- 2버튼 패널 -->
+  <div class="action-panel">
+    <button class="action-btn cut" id="btn-cut">
+      <span class="icon">✂️</span>
+      <span class="label">CUT</span>
+    </button>
+    <button class="action-btn link" id="btn-link">
+      <span class="icon">🔗</span>
+      <span class="label">LINK</span>
+    </button>
+  </div>
+  
+  <!-- 상태 바 -->
+  <div class="status-bar">
+    <span>AUTUS Day 1 MVP • 사람 10개 • 돈 화살표 5개</span>
+    <span>V(t) = Σ Φ_ij • 의미 해석 금지</span>
+  </div>
+  
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 데이터 (사람 10개 + 돈 화살표 5개)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const nodes = [
+      { id: 'P01', name: '오세호', lat: 37.5400, lng: 127.0440, coin: 96154, color: '#00ff88' },
+      { id: 'P02', name: '김경희', lat: 37.5380, lng: 127.0420, coin: 55556, color: '#00ff88' },
+      { id: 'P03', name: '오선우', lat: 37.5420, lng: 127.0460, coin: 50000, color: '#00ff88' },
+      { id: 'P04', name: '오연우', lat: 37.5360, lng: 127.0400, coin: 41667, color: '#00ff88' },
+      { id: 'P05', name: '오은우', lat: 37.5440, lng: 127.0480, coin: 38889, color: '#00ff88' },
+      { id: 'P06', name: '박코치', lat: 37.5350, lng: 127.0500, coin: 35000, color: '#00ccff' },
+      { id: 'P07', name: '이튜터', lat: 37.5450, lng: 127.0380, coin: 32000, color: '#00ccff' },
+      { id: 'P08', name: '최매니저', lat: 37.5320, lng: 127.0450, coin: 28000, color: '#00ccff' },
+      { id: 'P09', name: '정어시', lat: 37.5480, lng: 127.0420, coin: 25000, color: '#9966ff' },
+      { id: 'P10', name: '한헬퍼', lat: 37.5300, lng: 127.0520, coin: 22000, color: '#9966ff' },
+    ];
+    
+    const flows = [
+      { from: 'P01', to: 'P03', amount: 35000000, type: 'mint' },
+      { from: 'P01', to: 'P02', amount: 28000000, type: 'mint' },
+      { from: 'P02', to: 'P04', amount: 18000000, type: 'mint' },
+      { from: 'P03', to: 'P05', amount: 15000000, type: 'mint' },
+      { from: 'P06', to: 'P07', amount: 12000000, type: 'mint' },
+    ];
+    
+    let kpi = {
+      net: 289000000,
+      entropy: 0.02,
+      velocity: 61458
+    };
+    
+    let bestTeam = ['P01', 'P02', 'P03'];
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 상태
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let selectedNode = null;
+    let actionMode = null; // 'cut' or 'link'
+    let markers = {};
+    let map = null;
+    let overlay = null;
+    let ctx = null;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 맵 초기화
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function initMap() {
+      // Mapbox 토큰 (데모용 - 실제 운영시 교체 필요)
+      mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
+      
+      map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+        center: [127.044, 37.538],
+        zoom: 15,
+        pitch: 45,
+        bearing: -17.6,
+      });
+      
+      map.on('load', () => {
+        // 노드 마커 생성
+        nodes.forEach(node => {
+          createNodeMarker(node);
+        });
+        
+        // 오버레이 초기화
+        initOverlay();
+        
+        // BestTeam 업데이트
+        updateBestTeam();
+        
+        // 애니메이션 시작
+        animate();
+      });
+      
+      map.on('move', updateOverlay);
+      map.on('zoom', updateOverlay);
+    }
+    
+    function createNodeMarker(node) {
+      const el = document.createElement('div');
+      el.className = 'node-marker';
+      el.innerHTML = '👤';
+      el.style.background = `rgba(${hexToRgb(node.color)}, 0.8)`;
+      el.style.boxShadow = `0 0 20px ${node.color}`;
+      
+      // 이름 라벨
+      const label = document.createElement('div');
+      label.className = 'node-label';
+      label.textContent = node.name;
+      el.appendChild(label);
+      
+      // 돈 라벨
+      const money = document.createElement('div');
+      money.className = 'node-money';
+      money.textContent = formatMoney(node.coin);
+      el.appendChild(money);
+      
+      // 클릭 이벤트
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectNode(node);
+      });
+      
+      // 드래그 이벤트
+      el.addEventListener('mousedown', (e) => {
+        if (selectedNode && actionMode) {
+          handleDragStart(node, e);
+        }
+      });
+      
+      const marker = new mapboxgl.Marker({
+        element: el,
+        draggable: false
+      })
+        .setLngLat([node.lng, node.lat])
+        .addTo(map);
+      
+      markers[node.id] = { marker, element: el, node };
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 오버레이 (돈 화살표)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function initOverlay() {
+      overlay = document.getElementById('overlay');
+      ctx = overlay.getContext('2d');
+      resizeOverlay();
+      window.addEventListener('resize', resizeOverlay);
+    }
+    
+    function resizeOverlay() {
+      overlay.width = window.innerWidth;
+      overlay.height = window.innerHeight;
+      updateOverlay();
+    }
+    
+    function updateOverlay() {
+      if (!ctx || !map) return;
+      
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      
+      // 돈 화살표 그리기
+      flows.forEach(flow => {
+        const fromNode = nodes.find(n => n.id === flow.from);
+        const toNode = nodes.find(n => n.id === flow.to);
+        if (!fromNode || !toNode) return;
+        
+        const fromPx = map.project([fromNode.lng, fromNode.lat]);
+        const toPx = map.project([toNode.lng, toNode.lat]);
+        
+        drawMoneyArrow(fromPx, toPx, flow.amount, flow.type);
+      });
+    }
+    
+    function drawMoneyArrow(from, to, amount, type) {
+      const color = type === 'mint' ? '#00ff88' : '#ff4466';
+      const width = Math.max(2, Math.min(8, amount / 5000000));
+      
+      // 곡선 중간점
+      const midX = (from.x + to.x) / 2;
+      const midY = (from.y + to.y) / 2 - 30;
+      
+      // 곡선 그리기
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.quadraticCurveTo(midX, midY, to.x, to.y);
+      
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.6;
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+      
+      // 화살표 머리
+      const angle = Math.atan2(to.y - midY, to.x - midX);
+      const arrowSize = 10;
+      
+      ctx.beginPath();
+      ctx.moveTo(to.x, to.y);
+      ctx.lineTo(
+        to.x - arrowSize * Math.cos(angle - Math.PI / 6),
+        to.y - arrowSize * Math.sin(angle - Math.PI / 6)
+      );
+      ctx.lineTo(
+        to.x - arrowSize * Math.cos(angle + Math.PI / 6),
+        to.y - arrowSize * Math.sin(angle + Math.PI / 6)
+      );
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      
+      // 금액 표시
+      ctx.font = 'bold 10px sans-serif';
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      ctx.fillText(formatMoney(amount), midX, midY - 5);
+    }
+    
+    let particles = [];
+    
+    function animate() {
+      updateOverlay();
+      
+      // 파티클 애니메이션
+      animateParticles();
+      
+      requestAnimationFrame(animate);
+    }
+    
+    function animateParticles() {
+      // 파티클 생성 (간헐적)
+      if (Math.random() < 0.05) {
+        flows.forEach(flow => {
+          const fromNode = nodes.find(n => n.id === flow.from);
+          const toNode = nodes.find(n => n.id === flow.to);
+          if (!fromNode || !toNode) return;
+          
+          particles.push({
+            from: { lng: fromNode.lng, lat: fromNode.lat },
+            to: { lng: toNode.lng, lat: toNode.lat },
+            progress: 0,
+            speed: 0.02 + Math.random() * 0.02,
+            color: flow.type === 'mint' ? '#00ff88' : '#ff4466'
+          });
+        });
+      }
+      
+      // 파티클 업데이트 및 렌더링
+      particles = particles.filter(p => {
+        p.progress += p.speed;
+        if (p.progress > 1) return false;
+        
+        const fromPx = map.project([p.from.lng, p.from.lat]);
+        const toPx = map.project([p.to.lng, p.to.lat]);
+        
+        const midX = (fromPx.x + toPx.x) / 2;
+        const midY = (fromPx.y + toPx.y) / 2 - 30;
+        
+        const t = p.progress;
+        const x = Math.pow(1-t, 2) * fromPx.x + 2 * (1-t) * t * midX + Math.pow(t, 2) * toPx.x;
+        const y = Math.pow(1-t, 2) * fromPx.y + 2 * (1-t) * t * midY + Math.pow(t, 2) * toPx.y;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        return true;
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 노드 선택 / 액션
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function selectNode(node) {
+      // 이전 선택 해제
+      Object.values(markers).forEach(m => {
+        m.element.classList.remove('selected', 'cut-target');
+      });
+      
+      selectedNode = node;
+      markers[node.id].element.classList.add('selected');
+      
+      // 선택 정보 표시
+      const info = document.getElementById('selection-info');
+      info.classList.add('visible');
+      document.getElementById('selection-name').textContent = node.name;
+      document.getElementById('selection-coin').textContent = formatMoney(node.coin * 1000);
+      document.getElementById('selection-rate').textContent = formatMoney(node.coin) + '/min';
+      
+      const linkCount = flows.filter(f => f.from === node.id || f.to === node.id).length;
+      document.getElementById('selection-links').textContent = linkCount;
+      
+      updateDragHint();
+    }
+    
+    function updateDragHint() {
+      const hint = document.getElementById('drag-hint');
+      if (selectedNode && actionMode === 'cut') {
+        hint.textContent = `${selectedNode.name}을(를) 밖으로 드래그하여 CUT`;
+        hint.style.color = '#ff4466';
+      } else if (selectedNode && actionMode === 'link') {
+        hint.textContent = `${selectedNode.name}을(를) 다른 노드로 드래그하여 LINK`;
+        hint.style.color = '#00ff88';
+      } else if (selectedNode) {
+        hint.textContent = `CUT 또는 LINK 버튼을 선택하세요`;
+        hint.style.color = '#ffcc00';
+      } else {
+        hint.textContent = '노드를 선택하세요';
+        hint.style.color = '#666';
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CUT / LINK 버튼
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    document.getElementById('btn-cut').addEventListener('click', () => {
+      actionMode = actionMode === 'cut' ? null : 'cut';
+      document.getElementById('btn-cut').classList.toggle('active', actionMode === 'cut');
+      document.getElementById('btn-link').classList.remove('active');
+      updateDragHint();
+    });
+    
+    document.getElementById('btn-link').addEventListener('click', () => {
+      actionMode = actionMode === 'link' ? null : 'link';
+      document.getElementById('btn-link').classList.toggle('active', actionMode === 'link');
+      document.getElementById('btn-cut').classList.remove('active');
+      updateDragHint();
+    });
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 드래그 액션
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function handleDragStart(node, e) {
+      if (!selectedNode || !actionMode) return;
+      
+      const startX = e.clientX;
+      const startY = e.clientY;
+      
+      const onMove = (e) => {
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (actionMode === 'link') {
+          // 가장 가까운 노드 하이라이트
+          let closest = null;
+          let minDist = Infinity;
+          
+          Object.values(markers).forEach(m => {
+            if (m.node.id === selectedNode.id) return;
+            
+            const rect = m.element.getBoundingClientRect();
+            const mx = rect.left + rect.width / 2;
+            const my = rect.top + rect.height / 2;
+            const d = Math.sqrt(Math.pow(e.clientX - mx, 2) + Math.pow(e.clientY - my, 2));
+            
+            if (d < minDist && d < 100) {
+              minDist = d;
+              closest = m;
+            }
+          });
+          
+          Object.values(markers).forEach(m => {
+            m.element.classList.remove('cut-target');
+          });
+          if (closest) {
+            closest.element.classList.add('cut-target');
+          }
+        }
+      };
+      
+      const onUp = (e) => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist > 30) {
+          if (actionMode === 'cut') {
+            executeCut(selectedNode, dist);
+          } else if (actionMode === 'link') {
+            // 타겟 노드 찾기
+            let target = null;
+            Object.values(markers).forEach(m => {
+              if (m.element.classList.contains('cut-target')) {
+                target = m.node;
+              }
+              m.element.classList.remove('cut-target');
+            });
+            
+            if (target) {
+              executeLink(selectedNode, target, dist);
+            }
+          }
+        }
+      };
+      
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    }
+    
+    function executeCut(node, distance) {
+      console.log(`CUT: ${node.name}, distance: ${distance}`);
+      
+      // 연결 제거 (시뮬레이션)
+      const removedFlows = flows.filter(f => f.from === node.id || f.to === node.id);
+      const burnAmount = removedFlows.reduce((sum, f) => sum + f.amount, 0) * 0.1;
+      
+      // KPI 업데이트
+      kpi.net -= burnAmount;
+      kpi.entropy = Math.min(0.99, kpi.entropy + 0.05);
+      
+      updateKPIDisplay();
+      
+      // 피드백
+      showFeedback(`CUT: ${formatMoney(burnAmount)} Burn 감소 예상`, 'cut');
+    }
+    
+    function executeLink(from, to, distance) {
+      console.log(`LINK: ${from.name} → ${to.name}, distance: ${distance}`);
+      
+      // 새 연결 추가 (시뮬레이션)
+      const mintAmount = (from.coin + to.coin) * 0.1 * 60; // 예상 시너지
+      
+      // KPI 업데이트
+      kpi.net += mintAmount;
+      kpi.velocity += mintAmount / 60;
+      
+      // 플로우 추가
+      flows.push({
+        from: from.id,
+        to: to.id,
+        amount: mintAmount,
+        type: 'mint'
+      });
+      
+      updateKPIDisplay();
+      
+      // 피드백
+      showFeedback(`LINK: ${formatMoney(mintAmount)} Mint 증가 예상`, 'link');
+    }
+    
+    function showFeedback(message, type) {
+      const hint = document.getElementById('drag-hint');
+      hint.textContent = message;
+      hint.style.color = type === 'cut' ? '#ff4466' : '#00ff88';
+      
+      setTimeout(() => {
+        updateDragHint();
+      }, 2000);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UI 업데이트
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function updateKPIDisplay() {
+      document.getElementById('kpi-net').textContent = formatMoney(kpi.net);
+      document.getElementById('kpi-entropy').textContent = kpi.entropy.toFixed(2);
+      document.getElementById('kpi-velocity').textContent = formatMoney(kpi.velocity) + '/min';
+      
+      // Entropy 색상
+      const entropyEl = document.getElementById('kpi-entropy');
+      if (kpi.entropy > 0.5) {
+        entropyEl.className = 'kpi-value negative';
+      } else if (kpi.entropy > 0.2) {
+        entropyEl.className = 'kpi-value neutral';
+      } else {
+        entropyEl.className = 'kpi-value positive';
+      }
+    }
+    
+    function updateBestTeam() {
+      const list = document.getElementById('team-list');
+      list.innerHTML = '';
+      
+      bestTeam.forEach((id, i) => {
+        const node = nodes.find(n => n.id === id);
+        if (!node) return;
+        
+        const el = document.createElement('div');
+        el.className = 'team-member';
+        el.innerHTML = `
+          <div class="team-rank">${i + 1}</div>
+          <div class="team-name">${node.name}</div>
+          <div class="team-value">${formatMoney(node.coin)}</div>
+        `;
+        list.appendChild(el);
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 유틸리티
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      if (!value) return '₩0';
+      if (Math.abs(value) >= 100000000) return '₩' + (value / 100000000).toFixed(0) + 'M';
+      if (Math.abs(value) >= 1000000) return '₩' + (value / 1000000).toFixed(0) + 'M';
+      if (Math.abs(value) >= 1000) return '₩' + Math.round(value / 1000) + 'K';
+      return '₩' + Math.round(value);
+    }
+    
+    function hexToRgb(hex) {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? 
+        `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : 
+        '0, 255, 136';
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 초기화
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    initMap();
+    
+    console.log('⚛️ AUTUS Day 1 MVP initialized');
+    console.log('   사람: 10개');
+    console.log('   돈 화살표: 5개');
+    console.log('   액션: CUT / LINK');
+  </script>
+</body>
+</html>

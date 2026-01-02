@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📈 AUTUS Physics Map - 복리 가속 시뮬레이션</title>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(ellipse at center, #0a1628 0%, #000 100%);
+      overflow: hidden;
+      color: #fff;
+    }
+    
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    
+    /* 헤더 */
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, transparent 100%);
+      padding: 20px 32px;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    .header-left h1 {
+      font-size: 22px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-shadow: 0 2px 20px rgba(0, 255, 136, 0.5);
+    }
+    
+    .header-left .subtitle {
+      color: #666;
+      font-size: 10px;
+      margin-top: 6px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    
+    .header-right {
+      display: flex;
+      gap: 30px;
+    }
+    
+    .stat { text-align: right; }
+    .stat-label { color: #555; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+    .stat-value { font-size: 20px; font-weight: 700; margin-top: 2px; }
+    
+    .green { color: #00ff88; text-shadow: 0 0 20px rgba(0, 255, 136, 0.7); }
+    .cyan { color: #00ccff; text-shadow: 0 0 20px rgba(0, 204, 255, 0.7); }
+    .gold { color: #ffcc00; text-shadow: 0 0 20px rgba(255, 204, 0, 0.7); }
+    .purple { color: #9966ff; text-shadow: 0 0 20px rgba(153, 102, 255, 0.7); }
+    
+    /* 수식 패널 */
+    .formula-panel {
+      position: absolute;
+      top: 100px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.95);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(20px);
+      z-index: 100;
+      width: 320px;
+    }
+    
+    .formula-title {
+      color: #555;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+    }
+    
+    .formula-main {
+      color: #00ccff;
+      font-family: 'Courier New', monospace;
+      font-size: 20px;
+      font-weight: bold;
+      text-shadow: 0 0 30px rgba(0, 204, 255, 0.8);
+      margin-bottom: 8px;
+    }
+    
+    .formula-sub {
+      color: #ffcc00;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+    
+    .formula-desc {
+      color: #666;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+    
+    .formula-desc strong { color: #888; }
+    
+    /* 복리 시뮬레이션 패널 */
+    .compound-panel {
+      position: absolute;
+      top: 100px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.95);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(20px);
+      z-index: 100;
+      width: 400px;
+    }
+    
+    .compound-chart {
+      height: 150px;
+      position: relative;
+      margin: 16px 0;
+      border-left: 1px solid rgba(255, 255, 255, 0.2);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .compound-bar {
+      position: absolute;
+      bottom: 0;
+      width: 40px;
+      background: linear-gradient(180deg, #00ff88, #00ccff);
+      border-radius: 4px 4px 0 0;
+      transition: height 0.5s ease;
+    }
+    
+    .compound-bar-label {
+      position: absolute;
+      bottom: -20px;
+      width: 40px;
+      text-align: center;
+      font-size: 10px;
+      color: #666;
+    }
+    
+    .compound-bar-value {
+      position: absolute;
+      top: -24px;
+      width: 40px;
+      text-align: center;
+      font-size: 10px;
+      color: #00ff88;
+      font-weight: bold;
+    }
+    
+    .compound-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    
+    .compound-table th {
+      color: #555;
+      font-size: 9px;
+      text-transform: uppercase;
+      text-align: left;
+      padding: 6px 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .compound-table td {
+      padding: 8px 4px;
+      font-size: 11px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    /* 메트칼프 패널 */
+    .metcalfe-panel {
+      position: absolute;
+      bottom: 100px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.95);
+      border: 1px solid rgba(153, 102, 255, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      z-index: 100;
+      width: 300px;
+    }
+    
+    .metcalfe-visual {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      margin: 16px 0;
+    }
+    
+    .metcalfe-node {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(153, 102, 255, 0.2);
+      border: 2px solid #9966ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    .metcalfe-connections {
+      color: #9966ff;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    
+    /* 지수승 예측 패널 */
+    .exponential-panel {
+      position: absolute;
+      bottom: 100px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.95);
+      border: 1px solid rgba(255, 204, 0, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      z-index: 100;
+      width: 400px;
+    }
+    
+    .exp-chart {
+      height: 120px;
+      position: relative;
+      margin: 16px 0;
+    }
+    
+    .exp-line {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 100%;
+    }
+    
+    /* 컨트롤 */
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 100;
+    }
+    
+    .control-btn {
+      padding: 10px 20px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(0, 204, 255, 0.4);
+      border-radius: 25px;
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .control-btn:hover {
+      background: rgba(0, 204, 255, 0.2);
+      border-color: #00ccff;
+    }
+    
+    .control-btn.active {
+      background: rgba(0, 255, 136, 0.2);
+      border-color: #00ff88;
+    }
+    
+    /* 슬라이더 */
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 10px 0;
+    }
+    
+    .slider-label {
+      font-size: 11px;
+      color: #888;
+      min-width: 80px;
+    }
+    
+    .slider {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      outline: none;
+    }
+    
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #00ccff;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    .slider-value {
+      font-size: 12px;
+      color: #00ccff;
+      min-width: 50px;
+      text-align: right;
+      font-weight: bold;
+    }
+    
+    /* 푸터 */
+    .footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: #444;
+      z-index: 50;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="header-left">
+      <h1>📈 AUTUS Physics Map - 복리 가속</h1>
+      <div class="subtitle">시너지 복리 • 메트칼프 법칙 • 지수승 성장</div>
+    </div>
+    <div class="header-right">
+      <div class="stat">
+        <div class="stat-label">현재 가치</div>
+        <div class="stat-value green" id="current-value">₩1.14억</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">12개월 예측</div>
+        <div class="stat-value gold" id="predicted-value">₩3.2억</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">증가율</div>
+        <div class="stat-value cyan" id="growth-rate">+181%</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 수식 패널 -->
+  <div class="formula-panel">
+    <div class="formula-title">핵심 수식</div>
+    <div class="formula-main">V = D - T + S</div>
+    <div class="formula-sub">미래V = V × (1 + s)^t</div>
+    <div class="formula-sub" style="color: #9966ff;">연결가치 = n(n-1)/2 ≈ n²</div>
+    <div class="formula-desc">
+      <strong>V</strong>: 종합 가치<br>
+      <strong>D</strong>: 직접 돈 | <strong>T</strong>: 시간 비용 | <strong>S</strong>: 시너지<br>
+      <strong>s</strong>: 시너지율 (0.15~0.3)<br>
+      <strong>t</strong>: 자동화 기간 (월)<br>
+      <strong>n</strong>: 사람 수 (메트칼프)
+    </div>
+  </div>
+  
+  <!-- 복리 시뮬레이션 -->
+  <div class="compound-panel">
+    <div class="formula-title">📊 복리 가속 시뮬레이션</div>
+    
+    <div class="slider-group">
+      <span class="slider-label">시너지율 (s)</span>
+      <input type="range" class="slider" id="synergy-slider" min="5" max="50" value="20">
+      <span class="slider-value" id="synergy-value">0.20</span>
+    </div>
+    
+    <div class="slider-group">
+      <span class="slider-label">기간 (t)</span>
+      <input type="range" class="slider" id="time-slider" min="1" max="24" value="12">
+      <span class="slider-value" id="time-value">12개월</span>
+    </div>
+    
+    <div class="compound-chart" id="compound-chart"></div>
+    
+    <table class="compound-table">
+      <thead>
+        <tr>
+          <th>기간</th>
+          <th>가치</th>
+          <th>증가율</th>
+          <th>복리 공식</th>
+        </tr>
+      </thead>
+      <tbody id="compound-table-body"></tbody>
+    </table>
+  </div>
+  
+  <!-- 메트칼프 법칙 -->
+  <div class="metcalfe-panel">
+    <div class="formula-title" style="color: #9966ff;">🔗 메트칼프 법칙</div>
+    
+    <div class="metcalfe-visual">
+      <div class="metcalfe-node">👥</div>
+      <div>
+        <div style="color: #888; font-size: 11px;">n = <span id="metcalfe-n">5</span>명</div>
+        <div class="metcalfe-connections" id="metcalfe-connections">10</div>
+        <div style="color: #666; font-size: 10px;">연결 수</div>
+      </div>
+      <div>
+        <div style="color: #888; font-size: 11px;">V ∝ n²</div>
+        <div class="metcalfe-connections" style="color: #00ff88;" id="metcalfe-value">25</div>
+        <div style="color: #666; font-size: 10px;">네트워크 가치</div>
+      </div>
+    </div>
+    
+    <div class="slider-group">
+      <span class="slider-label">사람 수 (n)</span>
+      <input type="range" class="slider" id="people-slider" min="2" max="50" value="5">
+      <span class="slider-value" id="people-value">5명</span>
+    </div>
+    
+    <div style="margin-top: 12px; padding: 12px; background: rgba(153, 102, 255, 0.1); border-radius: 8px;">
+      <div style="font-size: 11px; color: #888;">
+        <strong style="color: #9966ff;">연결 수</strong> = n(n-1)/2 = <span id="calc-connections">10</span><br>
+        <strong style="color: #00ff88;">네트워크 가치</strong> = n² = <span id="calc-value">25</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 지수승 예측 -->
+  <div class="exponential-panel">
+    <div class="formula-title" style="color: #ffcc00;">⚡ 지수승 성장 예측</div>
+    
+    <canvas id="exp-canvas" width="360" height="120"></canvas>
+    
+    <div style="display: flex; justify-content: space-between; margin-top: 12px;">
+      <div style="text-align: center;">
+        <div style="color: #666; font-size: 10px;">현재</div>
+        <div style="color: #00ccff; font-size: 16px; font-weight: bold;" id="exp-current">₩1.14억</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="color: #666; font-size: 10px;">6개월</div>
+        <div style="color: #9966ff; font-size: 16px; font-weight: bold;" id="exp-6month">₩2.0억</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="color: #666; font-size: 10px;">12개월</div>
+        <div style="color: #ffcc00; font-size: 16px; font-weight: bold;" id="exp-12month">₩3.2억</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="color: #666; font-size: 10px;">24개월</div>
+        <div style="color: #00ff88; font-size: 16px; font-weight: bold;" id="exp-24month">₩8.9억</div>
+      </div>
+    </div>
+    
+    <div style="margin-top: 12px; padding: 10px; background: rgba(255, 204, 0, 0.1); border-radius: 8px; font-size: 11px; color: #888;">
+      💡 시너지율 0.2 유지 시 <strong style="color: #ffcc00;">12개월 후 3배</strong>, <strong style="color: #00ff88;">24개월 후 8배</strong> 성장
+    </div>
+  </div>
+  
+  <!-- 컨트롤 -->
+  <div class="controls">
+    <button class="control-btn active" id="btn-animate">✨ 별똥별</button>
+    <button class="control-btn" id="btn-reset">🔄 초기화</button>
+  </div>
+  
+  <!-- 푸터 -->
+  <div class="footer">
+    <span>시너지율 복리: V × (1+s)^t | 메트칼프: n²</span>
+    <span>AUTUS Physics Map • 복리 가속 시뮬레이션</span>
+  </div>
+  
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 실제 데이터 (옥수동 5명)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const INITIAL_VALUE = 114000000; // ₩1.14억
+    let synergyRate = 0.20;
+    let timePeriod = 12;
+    let peopleCount = 5;
+    
+    const nodes = [
+      { id: 'P01', name: '오세호', value: 53000000, color: '#00ff88', icon: '👑' },
+      { id: 'P02', name: '김경희', value: 23000000, color: '#00ccff', icon: '👤' },
+      { id: 'P03', name: '오선우', value: 21000000, color: '#00ccff', icon: '👤' },
+      { id: 'P04', name: '오연우', value: 10000000, color: '#ffcc00', icon: '👤' },
+      { id: 'P05', name: '오은우', value: 7000000, color: '#9966ff', icon: '👤' }
+    ];
+    
+    const flows = [
+      { from: 0, to: 1, type: 'inflow' },
+      { from: 1, to: 2, type: 'inflow' },
+      { from: 2, to: 3, type: 'inflow' },
+      { from: 3, to: 4, type: 'inflow' },
+      { from: 0, to: 2, type: 'synergy' },
+      { from: 1, to: 3, type: 'synergy' },
+      { from: 0, to: 4, type: 'prediction' }
+    ];
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 캔버스 초기화
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let particles = [];
+    let isAnimating = true;
+    
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      positionNodes();
+    }
+    
+    function positionNodes() {
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.min(width, height) * 0.2;
+      
+      nodes[0].x = centerX;
+      nodes[0].y = centerY;
+      
+      for (let i = 1; i < nodes.length; i++) {
+        const angle = ((i - 1) / (nodes.length - 1)) * Math.PI * 2 - Math.PI / 2;
+        nodes[i].x = centerX + Math.cos(angle) * radius;
+        nodes[i].y = centerY + Math.sin(angle) * radius;
+      }
+    }
+    
+    window.addEventListener('resize', resize);
+    resize();
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 복리 계산
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function calculateCompound(initial, rate, time) {
+      return initial * Math.pow(1 + rate, time);
+    }
+    
+    function calculateMetcalfe(n) {
+      return {
+        connections: n * (n - 1) / 2,
+        value: n * n
+      };
+    }
+    
+    function updateSimulation() {
+      // 복리 예측
+      const predicted12 = calculateCompound(INITIAL_VALUE, synergyRate, timePeriod);
+      const growthPct = ((predicted12 / INITIAL_VALUE) - 1) * 100;
+      
+      document.getElementById('predicted-value').textContent = formatMoney(predicted12);
+      document.getElementById('growth-rate').textContent = '+' + growthPct.toFixed(0) + '%';
+      
+      // 복리 테이블 업데이트
+      updateCompoundTable();
+      updateCompoundChart();
+      
+      // 메트칼프 업데이트
+      const metcalfe = calculateMetcalfe(peopleCount);
+      document.getElementById('metcalfe-n').textContent = peopleCount;
+      document.getElementById('metcalfe-connections').textContent = metcalfe.connections;
+      document.getElementById('metcalfe-value').textContent = metcalfe.value;
+      document.getElementById('calc-connections').textContent = metcalfe.connections;
+      document.getElementById('calc-value').textContent = metcalfe.value;
+      
+      // 지수승 예측 업데이트
+      updateExponentialChart();
+    }
+    
+    function updateCompoundTable() {
+      const tbody = document.getElementById('compound-table-body');
+      const periods = [0, 3, 6, 12];
+      
+      tbody.innerHTML = periods.map(t => {
+        const value = calculateCompound(INITIAL_VALUE, synergyRate, t);
+        const growth = ((value / INITIAL_VALUE) - 1) * 100;
+        return `
+          <tr>
+            <td>${t}개월</td>
+            <td style="color: #00ff88; font-weight: bold;">${formatMoney(value)}</td>
+            <td style="color: ${growth > 0 ? '#00ccff' : '#ff6666'};">+${growth.toFixed(1)}%</td>
+            <td style="color: #888; font-size: 10px;">${formatMoney(INITIAL_VALUE)} × (1+${synergyRate})^${t}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+    
+    function updateCompoundChart() {
+      const chart = document.getElementById('compound-chart');
+      const periods = [0, 3, 6, 12];
+      const values = periods.map(t => calculateCompound(INITIAL_VALUE, synergyRate, t));
+      const maxValue = Math.max(...values);
+      
+      chart.innerHTML = periods.map((t, i) => {
+        const height = (values[i] / maxValue) * 130;
+        const left = 20 + i * 90;
+        return `
+          <div class="compound-bar" style="left: ${left}px; height: ${height}px;">
+            <div class="compound-bar-value">${formatMoneyShort(values[i])}</div>
+            <div class="compound-bar-label">${t}개월</div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function updateExponentialChart() {
+      const expCanvas = document.getElementById('exp-canvas');
+      const expCtx = expCanvas.getContext('2d');
+      
+      expCtx.clearRect(0, 0, 360, 120);
+      
+      // 그리드
+      expCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      expCtx.lineWidth = 1;
+      for (let y = 0; y <= 120; y += 30) {
+        expCtx.beginPath();
+        expCtx.moveTo(0, y);
+        expCtx.lineTo(360, y);
+        expCtx.stroke();
+      }
+      
+      // 지수 곡선
+      const points = [];
+      for (let t = 0; t <= 24; t++) {
+        const value = calculateCompound(INITIAL_VALUE, synergyRate, t);
+        points.push({ t, value });
+      }
+      
+      const maxVal = points[points.length - 1].value;
+      
+      expCtx.beginPath();
+      points.forEach((p, i) => {
+        const x = (p.t / 24) * 340 + 10;
+        const y = 110 - (p.value / maxVal) * 100;
+        if (i === 0) expCtx.moveTo(x, y);
+        else expCtx.lineTo(x, y);
+      });
+      
+      const gradient = expCtx.createLinearGradient(0, 0, 360, 0);
+      gradient.addColorStop(0, '#00ccff');
+      gradient.addColorStop(0.5, '#9966ff');
+      gradient.addColorStop(1, '#ffcc00');
+      expCtx.strokeStyle = gradient;
+      expCtx.lineWidth = 3;
+      expCtx.stroke();
+      
+      // 포인트
+      [0, 6, 12, 24].forEach(t => {
+        const value = calculateCompound(INITIAL_VALUE, synergyRate, t);
+        const x = (t / 24) * 340 + 10;
+        const y = 110 - (value / maxVal) * 100;
+        
+        expCtx.beginPath();
+        expCtx.arc(x, y, 5, 0, Math.PI * 2);
+        expCtx.fillStyle = t === 24 ? '#00ff88' : t === 12 ? '#ffcc00' : t === 6 ? '#9966ff' : '#00ccff';
+        expCtx.fill();
+      });
+      
+      // 값 업데이트
+      document.getElementById('exp-current').textContent = formatMoney(INITIAL_VALUE);
+      document.getElementById('exp-6month').textContent = formatMoney(calculateCompound(INITIAL_VALUE, synergyRate, 6));
+      document.getElementById('exp-12month').textContent = formatMoney(calculateCompound(INITIAL_VALUE, synergyRate, 12));
+      document.getElementById('exp-24month').textContent = formatMoney(calculateCompound(INITIAL_VALUE, synergyRate, 24));
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 파티클 시스템
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function initParticles() {
+      particles = [];
+      flows.forEach((flow, fi) => {
+        const count = flow.type === 'prediction' ? 8 : 5;
+        for (let i = 0; i < count; i++) {
+          particles.push({
+            flowIndex: fi,
+            progress: Math.random(),
+            speed: 0.005 + Math.random() * 0.005,
+            trail: []
+          });
+        }
+      });
+    }
+    
+    function updateParticles() {
+      particles.forEach(p => {
+        p.progress += p.speed;
+        if (p.progress > 1) {
+          p.progress = 0;
+          p.trail = [];
+        }
+        
+        const flow = flows[p.flowIndex];
+        const from = nodes[flow.from];
+        const to = nodes[flow.to];
+        
+        const midX = (from.x + to.x) / 2;
+        const midY = (from.y + to.y) / 2 - 30;
+        
+        const t = p.progress;
+        p.x = Math.pow(1-t, 2) * from.x + 2 * (1-t) * t * midX + Math.pow(t, 2) * to.x;
+        p.y = Math.pow(1-t, 2) * from.y + 2 * (1-t) * t * midY + Math.pow(t, 2) * to.y;
+        
+        p.trail.push({ x: p.x, y: p.y });
+        if (p.trail.length > 15) p.trail.shift();
+      });
+    }
+    
+    initParticles();
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 렌더링
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function render() {
+      ctx.fillStyle = 'rgba(10, 22, 40, 0.15)';
+      ctx.fillRect(0, 0, width, height);
+      
+      // 흐름
+      flows.forEach(flow => {
+        const from = nodes[flow.from];
+        const to = nodes[flow.to];
+        
+        const midX = (from.x + to.x) / 2;
+        const midY = (from.y + to.y) / 2 - 30;
+        
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.quadraticCurveTo(midX, midY, to.x, to.y);
+        
+        if (flow.type === 'inflow') ctx.strokeStyle = 'rgba(0, 255, 136, 0.4)';
+        else if (flow.type === 'synergy') ctx.strokeStyle = 'rgba(153, 102, 255, 0.4)';
+        else ctx.strokeStyle = 'rgba(255, 204, 0, 0.4)';
+        
+        ctx.lineWidth = 2;
+        if (flow.type === 'prediction') ctx.setLineDash([8, 8]);
+        else ctx.setLineDash([]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      });
+      
+      // 파티클
+      if (isAnimating) {
+        particles.forEach(p => {
+          if (!p.x || !p.y) return;
+          
+          const flow = flows[p.flowIndex];
+          let color;
+          if (flow.type === 'inflow') color = '#00ff88';
+          else if (flow.type === 'synergy') color = '#9966ff';
+          else color = '#ffcc00';
+          
+          // 트레일
+          if (p.trail.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(p.trail[0].x, p.trail[0].y);
+            for (let i = 1; i < p.trail.length; i++) {
+              ctx.lineTo(p.trail[i].x, p.trail[i].y);
+            }
+            const trailGrad = ctx.createLinearGradient(p.trail[0].x, p.trail[0].y, p.x, p.y);
+            trailGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            trailGrad.addColorStop(1, color);
+            ctx.strokeStyle = trailGrad;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+          
+          // 파티클
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 15;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        });
+      }
+      
+      // 노드
+      nodes.forEach(node => {
+        const size = Math.max(20, Math.sqrt(node.value) / 1000);
+        
+        // 글로우
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, size * 2, 0, Math.PI * 2);
+        ctx.fillStyle = node.color + '15';
+        ctx.fill();
+        
+        // 메인
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = node.color;
+        ctx.shadowColor = node.color;
+        ctx.shadowBlur = 20;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        // 테두리
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // 아이콘
+        ctx.font = `${size * 0.8}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(node.icon, node.x, node.y);
+        
+        // 이름
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(node.name, node.x, node.y + size + 16);
+        
+        // 가치
+        ctx.font = '10px sans-serif';
+        ctx.fillStyle = node.color;
+        ctx.fillText(formatMoneyShort(node.value), node.x, node.y - size - 10);
+      });
+    }
+    
+    function animate() {
+      updateParticles();
+      render();
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 이벤트
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    document.getElementById('synergy-slider').addEventListener('input', function() {
+      synergyRate = this.value / 100;
+      document.getElementById('synergy-value').textContent = synergyRate.toFixed(2);
+      updateSimulation();
+    });
+    
+    document.getElementById('time-slider').addEventListener('input', function() {
+      timePeriod = parseInt(this.value);
+      document.getElementById('time-value').textContent = timePeriod + '개월';
+      updateSimulation();
+    });
+    
+    document.getElementById('people-slider').addEventListener('input', function() {
+      peopleCount = parseInt(this.value);
+      document.getElementById('people-value').textContent = peopleCount + '명';
+      updateSimulation();
+    });
+    
+    document.getElementById('btn-animate').addEventListener('click', function() {
+      isAnimating = !isAnimating;
+      this.classList.toggle('active', isAnimating);
+      this.textContent = isAnimating ? '✨ 별똥별' : '✨ 정지';
+    });
+    
+    document.getElementById('btn-reset').addEventListener('click', function() {
+      synergyRate = 0.20;
+      timePeriod = 12;
+      peopleCount = 5;
+      
+      document.getElementById('synergy-slider').value = 20;
+      document.getElementById('synergy-value').textContent = '0.20';
+      document.getElementById('time-slider').value = 12;
+      document.getElementById('time-value').textContent = '12개월';
+      document.getElementById('people-slider').value = 5;
+      document.getElementById('people-value').textContent = '5명';
+      
+      updateSimulation();
+    });
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 유틸리티
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      if (Math.abs(value) >= 100000000) return '₩' + (value / 100000000).toFixed(2) + '억';
+      if (Math.abs(value) >= 10000) return '₩' + Math.round(value / 10000).toLocaleString() + '만';
+      return '₩' + value.toLocaleString();
+    }
+    
+    function formatMoneyShort(value) {
+      if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(1) + '억';
+      if (Math.abs(value) >= 10000000) return (value / 10000000).toFixed(1) + '천만';
+      if (Math.abs(value) >= 10000) return Math.round(value / 10000) + '만';
+      return value.toLocaleString();
+    }
+    
+    // 초기화
+    updateSimulation();
+    
+    console.log('📈 AUTUS 복리 가속 시뮬레이션 initialized');
+  </script>
+</body>
+</html>

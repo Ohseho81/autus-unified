@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌌 AUTUS Physics Map Ultimate - Cosmograph Style</title>
+  
+  <!-- Mapbox GL JS -->
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #000;
+      overflow: hidden;
+    }
+    
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    #canvas-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    
+    /* 헤더 */
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0) 100%);
+      padding: 24px 32px;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    .header-left h1 {
+      color: #fff;
+      font-size: 24px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-shadow: 0 2px 20px rgba(0, 204, 255, 0.5);
+    }
+    
+    .header-left .subtitle {
+      color: #666;
+      font-size: 11px;
+      margin-top: 8px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    
+    .header-right {
+      display: flex;
+      gap: 40px;
+    }
+    
+    .stat {
+      text-align: right;
+    }
+    
+    .stat-label {
+      color: #555;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    
+    .green { color: #00ff88; text-shadow: 0 0 20px rgba(0, 255, 136, 0.7); }
+    .cyan { color: #00ccff; text-shadow: 0 0 20px rgba(0, 204, 255, 0.7); }
+    .gold { color: #ffcc00; text-shadow: 0 0 20px rgba(255, 204, 0, 0.7); }
+    .red { color: #ff4466; text-shadow: 0 0 20px rgba(255, 68, 102, 0.7); }
+    .purple { color: #9966ff; text-shadow: 0 0 20px rgba(153, 102, 255, 0.7); }
+    
+    /* 수식 패널 */
+    .formula-panel {
+      position: absolute;
+      top: 120px;
+      right: 32px;
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(20px);
+      z-index: 100;
+      min-width: 220px;
+    }
+    
+    .formula-title {
+      color: #555;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+    }
+    
+    .formula-main {
+      color: #00ccff;
+      font-family: 'Courier New', monospace;
+      font-size: 28px;
+      font-weight: bold;
+      text-shadow: 0 0 30px rgba(0, 204, 255, 0.8);
+      margin-bottom: 16px;
+    }
+    
+    .formula-desc {
+      color: #666;
+      font-size: 11px;
+      line-height: 1.8;
+    }
+    
+    .formula-desc strong {
+      color: #888;
+    }
+    
+    /* 노드 정보 패널 */
+    .info-panel {
+      position: absolute;
+      top: 120px;
+      left: 32px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(20px);
+      z-index: 100;
+      min-width: 300px;
+      display: none;
+    }
+    
+    .info-panel.visible { display: block; }
+    
+    .info-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 16px;
+    }
+    
+    .info-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      box-shadow: 0 0 30px currentColor;
+    }
+    
+    .info-name {
+      color: #fff;
+      font-weight: bold;
+      font-size: 20px;
+    }
+    
+    .info-type {
+      color: #888;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    
+    .info-location {
+      color: #00ccff;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    
+    .info-row-label { color: #666; }
+    .info-row-value { font-weight: bold; }
+    
+    .info-status {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .status-optimal {
+      background: rgba(0, 255, 136, 0.15);
+      border: 1px solid rgba(0, 255, 136, 0.4);
+      color: #00ff88;
+    }
+    
+    .status-warning {
+      background: rgba(255, 204, 0, 0.15);
+      border: 1px solid rgba(255, 204, 0, 0.4);
+      color: #ffcc00;
+    }
+    
+    .status-bottleneck {
+      background: rgba(255, 68, 102, 0.15);
+      border: 1px solid rgba(255, 68, 102, 0.4);
+      color: #ff4466;
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    
+    /* 범례 */
+    .legend-panel {
+      position: absolute;
+      bottom: 100px;
+      right: 32px;
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 100;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+      font-size: 11px;
+      color: #888;
+    }
+    
+    .legend-line {
+      width: 40px;
+      height: 4px;
+      border-radius: 2px;
+    }
+    
+    .legend-line.inflow { 
+      background: linear-gradient(90deg, #00ff88, #00ccff); 
+      box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+    }
+    .legend-line.outflow { 
+      background: linear-gradient(90deg, #ff4466, #ff6600); 
+      box-shadow: 0 0 10px rgba(255, 68, 102, 0.5);
+    }
+    .legend-line.prediction { 
+      background: linear-gradient(90deg, #ffcc00, #ff6600);
+      height: 3px;
+    }
+    .legend-line.synergy { 
+      background: linear-gradient(90deg, #9966ff, #00ccff);
+      box-shadow: 0 0 10px rgba(153, 102, 255, 0.5);
+    }
+    
+    /* 컨트롤 */
+    .controls {
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      z-index: 100;
+    }
+    
+    .control-btn {
+      padding: 12px 24px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(0, 204, 255, 0.4);
+      border-radius: 25px;
+      color: #fff;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .control-btn:hover {
+      background: rgba(0, 204, 255, 0.2);
+      border-color: #00ccff;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(0, 204, 255, 0.3);
+    }
+    
+    .control-btn.active {
+      background: rgba(0, 255, 136, 0.2);
+      border-color: #00ff88;
+    }
+    
+    /* 푸터 */
+    .footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0) 100%);
+      padding: 20px 32px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #444;
+      z-index: 50;
+    }
+    
+    /* 로딩 */
+    .loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #00ccff;
+      font-size: 14px;
+      z-index: 200;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(0, 204, 255, 0.2);
+      border-top-color: #00ccff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Mapbox 컨트롤 숨김 */
+    .mapboxgl-ctrl-logo,
+    .mapboxgl-ctrl-attrib {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <canvas id="canvas-overlay"></canvas>
+  
+  <!-- 로딩 -->
+  <div class="loading" id="loading">
+    <div class="loading-spinner"></div>
+    <div>Physics Map 초기화 중...</div>
+  </div>
+  
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="header-left">
+      <h1>🌌 AUTUS Physics Map</h1>
+      <div class="subtitle">모든 개체는 사람 • 피시스 해답은 돈 • Cosmograph Style</div>
+    </div>
+    <div class="header-right">
+      <div class="stat">
+        <div class="stat-label">Total Value</div>
+        <div class="stat-value green" id="stat-value">₩0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Inflow</div>
+        <div class="stat-value cyan" id="stat-inflow">₩0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Outflow</div>
+        <div class="stat-value red" id="stat-outflow">₩0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Synergy</div>
+        <div class="stat-value purple" id="stat-synergy">₩0</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 수식 패널 -->
+  <div class="formula-panel">
+    <div class="formula-title">Physics Formula</div>
+    <div class="formula-main">V = D - T + S</div>
+    <div class="formula-desc">
+      <strong>D</strong>: Direct Money (Inflow - Outflow)<br>
+      <strong>T</strong>: Time Cost = T × Hourly Value<br>
+      <strong>S</strong>: Synergy = k(N₁×N₂)/d²<br>
+      <strong>F</strong>: Forecast = P × (1+g)^t
+    </div>
+  </div>
+  
+  <!-- 노드 정보 패널 -->
+  <div class="info-panel" id="info-panel">
+    <div class="info-header">
+      <div class="info-icon" id="info-icon" style="background: #00ff88;">👤</div>
+      <div>
+        <div class="info-name" id="info-name">-</div>
+        <div class="info-type" id="info-type">-</div>
+        <div class="info-location" id="info-location">-</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Total Value (V)</span>
+      <span class="info-row-value green" id="info-value">₩0</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Inflow (유입)</span>
+      <span class="info-row-value cyan" id="info-inflow">₩0</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Outflow (유출)</span>
+      <span class="info-row-value red" id="info-outflow">₩0</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Time Cost (T)</span>
+      <span class="info-row-value" style="color: #ff6666" id="info-time">-₩0</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Synergy (S)</span>
+      <span class="info-row-value purple" id="info-synergy">+₩0</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">12M Forecast</span>
+      <span class="info-row-value gold" id="info-forecast">₩0</span>
+    </div>
+    <div class="info-status status-optimal" id="info-status">
+      ✅ OPTIMAL
+    </div>
+  </div>
+  
+  <!-- 범례 -->
+  <div class="legend-panel">
+    <div class="formula-title" style="margin-bottom: 14px;">Flow Types</div>
+    <div class="legend-item">
+      <div class="legend-line inflow"></div>
+      <span>돈 유입 (Inflow) ← 돈이 들어옴</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line outflow"></div>
+      <span>돈 유출 (Outflow) → 돈이 나감</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line synergy"></div>
+      <span>시너지 (Synergy) ↔ 상호 이익</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line prediction"></div>
+      <span>예측 경로 ⭐ 미래 연결</span>
+    </div>
+  </div>
+  
+  <!-- 컨트롤 -->
+  <div class="controls">
+    <button class="control-btn" id="btn-korea">🇰🇷 한국</button>
+    <button class="control-btn" id="btn-asia">🌏 아시아</button>
+    <button class="control-btn" id="btn-world">🌍 세계</button>
+    <button class="control-btn" id="btn-animate">✨ 별똥별</button>
+    <button class="control-btn" id="btn-bottleneck">⚠️ 병목</button>
+  </div>
+  
+  <!-- 푸터 -->
+  <div class="footer">
+    <span>🖱️ 드래그: 이동 | 스크롤: 줌 | 노드 클릭: 상세 정보</span>
+    <span>AUTUS Physics Map Ultimate v3.0 • Cosmograph Style • 1억명 확장 가능</span>
+  </div>
+  
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // AUTUS Physics Map - Ultimate Cosmograph Style
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    // Mapbox 토큰 (무료 발급: https://mapbox.com)
+    // 토큰 없이도 기본 dark 스타일 작동
+    mapboxgl.accessToken = 'pk.eyJ1IjoiYXV0dXMtbWFwIiwiYSI6ImNsdTAwMDAwMDAwMDAifQ.demo-token';
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Physics Map 데이터 (아우투스 철학: 모든 개체는 사람, 피시스 해답은 돈)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const nodes = [
+      { 
+        id: '당신', label: '대표', role: 'CONTROLLER',
+        lat: 37.5085, lon: 127.0634, location: '서울 강남구',
+        value: 182886563, inflow: 214000000, outflow: 38500000,
+        time: 4000000, synergy: 11406562, forecast: 210000000,
+        color: '#00ff88', status: 'optimal', icon: '👑'
+      },
+      {
+        id: '매니저', label: '매니저', role: 'OPERATOR',
+        lat: 37.4979, lon: 127.0276, location: '서울 서초구',
+        value: 75000000, inflow: 85000000, outflow: 10000000,
+        time: 3000000, synergy: 3000000, forecast: 90000000,
+        color: '#00ccff', status: 'optimal', icon: '👤'
+      },
+      {
+        id: '헤드코치', label: '헤드코치', role: 'EXECUTOR',
+        lat: 37.5172, lon: 127.0473, location: '서울 성동구',
+        value: 68000000, inflow: 78000000, outflow: 10000000,
+        time: 3500000, synergy: 3500000, forecast: 85000000,
+        color: '#00ccff', status: 'optimal', icon: '👤'
+      },
+      {
+        id: '학생군', label: '학생군', role: 'CUSTOMER',
+        lat: 37.5326, lon: 127.0246, location: '서울 중구',
+        value: 55000000, inflow: 0, outflow: 55000000,
+        time: 0, synergy: 8000000, forecast: 65000000,
+        color: '#ffcc00', status: 'optimal', icon: '👥'
+      },
+      {
+        id: '학부모군', label: '학부모군', role: 'SPONSOR',
+        lat: 37.5662, lon: 126.9779, location: '서울 종로구',
+        value: 120000000, inflow: 120000000, outflow: 0,
+        time: 0, synergy: 5000000, forecast: 140000000,
+        color: '#ff6600', status: 'optimal', icon: '💰'
+      },
+      {
+        id: '파트너A', label: '미국 파트너', role: 'PARTNER',
+        lat: 40.7128, lon: -74.006, location: 'New York, USA',
+        value: 50000000, inflow: 45000000, outflow: 15000000,
+        time: 4000000, synergy: -6000000, forecast: 65000000,
+        color: '#9966ff', status: 'bottleneck', icon: '⚠️'
+      },
+      {
+        id: '고객B', label: '일본 고객', role: 'CUSTOMER',
+        lat: 35.6762, lon: 139.6503, location: 'Tokyo, Japan',
+        value: 35000000, inflow: 35000000, outflow: 0,
+        time: 2000000, synergy: 2000000, forecast: 42000000,
+        color: '#00ccff', status: 'optimal', icon: '👤'
+      },
+      {
+        id: '스폰서C', label: '사우디 스폰서', role: 'INVESTOR',
+        lat: 24.7136, lon: 46.6753, location: 'Riyadh, Saudi Arabia',
+        value: 0, inflow: 0, outflow: 0,
+        time: 0, synergy: 0, forecast: 500000000,
+        color: '#ffcc00', status: 'prediction', icon: '⭐'
+      }
+    ];
+    
+    const flows = [
+      // 돈 유입 (Inflow) - 초록/시안
+      { from: '학부모군', to: '당신', value: 120000000, type: 'inflow' },
+      { from: '당신', to: '매니저', value: 25000000, type: 'inflow' },
+      { from: '당신', to: '헤드코치', value: 23000000, type: 'inflow' },
+      { from: '고객B', to: '당신', value: 35000000, type: 'inflow' },
+      
+      // 시너지 (Synergy) - 보라
+      { from: '매니저', to: '헤드코치', value: 11406562, type: 'synergy' },
+      { from: '헤드코치', to: '학생군', value: 8000000, type: 'synergy' },
+      
+      // 돈 유출 (Outflow) - 빨강
+      { from: '당신', to: '파트너A', value: 15000000, type: 'outflow' },
+      
+      // 예측 (Prediction) - 주황 점선
+      { from: '당신', to: '스폰서C', value: 100000000, type: 'prediction' },
+      { from: '학생군', to: '학부모군', value: 8000000, type: 'prediction' }
+    ];
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 상태 변수
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let map;
+    let canvas, ctx;
+    let particles = [];
+    let isAnimating = true;
+    let showBottlenecks = true;
+    let screenNodes = [];
+    let animationId;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 초기화
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function init() {
+      // Mapbox 초기화 (토큰 없이도 작동하는 스타일 사용)
+      try {
+        map = new mapboxgl.Map({
+          container: 'map',
+          style: {
+            version: 8,
+            sources: {
+              'carto-dark': {
+                type: 'raster',
+                tiles: [
+                  'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
+                  'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
+                  'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'
+                ],
+                tileSize: 256,
+                attribution: '© CartoDB © OpenStreetMap'
+              }
+            },
+            layers: [{
+              id: 'carto-dark-layer',
+              type: 'raster',
+              source: 'carto-dark',
+              minzoom: 0,
+              maxzoom: 20
+            }]
+          },
+          center: [100, 20],
+          zoom: 2,
+          pitch: 0,
+          bearing: 0
+        });
+      } catch (e) {
+        // Mapbox 실패 시 기본 배경
+        document.getElementById('map').style.background = 
+          'radial-gradient(ellipse at center, #1a1a2e 0%, #000 100%)';
+      }
+      
+      // Canvas 초기화
+      canvas = document.getElementById('canvas-overlay');
+      ctx = canvas.getContext('2d');
+      resizeCanvas();
+      
+      // 이벤트
+      window.addEventListener('resize', resizeCanvas);
+      if (map) {
+        map.on('load', onMapLoad);
+        map.on('move', updateScreenPositions);
+        map.on('zoom', updateScreenPositions);
+      } else {
+        onMapLoad();
+      }
+      
+      // 버튼 이벤트
+      setupControls();
+      
+      // 통계 업데이트
+      updateStats();
+      
+      // 로딩 완료
+      setTimeout(() => {
+        document.getElementById('loading').style.display = 'none';
+      }, 1500);
+    }
+    
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    
+    function onMapLoad() {
+      updateScreenPositions();
+      initParticles();
+      animate();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 화면 좌표 변환
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function updateScreenPositions() {
+      screenNodes = nodes.map(node => {
+        let x, y;
+        
+        if (map) {
+          const point = map.project([node.lon, node.lat]);
+          x = point.x;
+          y = point.y;
+        } else {
+          // Mapbox 없을 때 기본 배치
+          x = canvas.width / 2 + (node.lon - 100) * 5;
+          y = canvas.height / 2 - (node.lat - 20) * 8;
+        }
+        
+        return { ...node, x, y };
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 파티클 시스템 (별똥별 효과)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function initParticles() {
+      particles = [];
+      
+      flows.forEach(flow => {
+        const count = flow.type === 'prediction' ? 8 : 5;
+        
+        for (let i = 0; i < count; i++) {
+          particles.push({
+            flowFrom: flow.from,
+            flowTo: flow.to,
+            flowType: flow.type,
+            flowValue: flow.value,
+            progress: Math.random(),
+            speed: 0.002 + Math.random() * 0.003,
+            size: flow.type === 'prediction' ? 4 : 3,
+            trail: []
+          });
+        }
+      });
+    }
+    
+    function updateParticles() {
+      particles.forEach(p => {
+        // 진행도 업데이트
+        p.progress += p.speed;
+        if (p.progress > 1) {
+          p.progress = 0;
+          p.trail = [];
+        }
+        
+        // 위치 계산
+        const fromNode = screenNodes.find(n => n.id === p.flowFrom);
+        const toNode = screenNodes.find(n => n.id === p.flowTo);
+        if (!fromNode || !toNode) return;
+        
+        // 베지어 곡선 중간점
+        const midX = (fromNode.x + toNode.x) / 2;
+        const midY = (fromNode.y + toNode.y) / 2 - 80;  // 곡선 높이
+        
+        // 베지어 보간
+        const t = p.progress;
+        p.x = Math.pow(1-t, 2) * fromNode.x + 2 * (1-t) * t * midX + Math.pow(t, 2) * toNode.x;
+        p.y = Math.pow(1-t, 2) * fromNode.y + 2 * (1-t) * t * midY + Math.pow(t, 2) * toNode.y;
+        
+        // 트레일 추가
+        p.trail.push({ x: p.x, y: p.y });
+        if (p.trail.length > 30) p.trail.shift();
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 렌더링
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // 돈 흐름 렌더링
+      renderFlows();
+      
+      // 파티클 (별똥별) 렌더링
+      if (isAnimating) {
+        renderParticles();
+      }
+      
+      // 노드 렌더링
+      renderNodes();
+    }
+    
+    function renderFlows() {
+      flows.forEach(flow => {
+        const fromNode = screenNodes.find(n => n.id === flow.from);
+        const toNode = screenNodes.find(n => n.id === flow.to);
+        if (!fromNode || !toNode) return;
+        
+        // 중간점 (곡선)
+        const midX = (fromNode.x + toNode.x) / 2;
+        const midY = (fromNode.y + toNode.y) / 2 - 80;
+        
+        // 그라데이션
+        const gradient = ctx.createLinearGradient(fromNode.x, fromNode.y, toNode.x, toNode.y);
+        
+        if (flow.type === 'inflow') {
+          gradient.addColorStop(0, 'rgba(0, 255, 136, 0.6)');
+          gradient.addColorStop(1, 'rgba(0, 204, 255, 0.6)');
+        } else if (flow.type === 'outflow') {
+          gradient.addColorStop(0, 'rgba(255, 68, 102, 0.6)');
+          gradient.addColorStop(1, 'rgba(255, 102, 0, 0.6)');
+        } else if (flow.type === 'synergy') {
+          gradient.addColorStop(0, 'rgba(153, 102, 255, 0.6)');
+          gradient.addColorStop(1, 'rgba(0, 204, 255, 0.6)');
+        } else if (flow.type === 'prediction') {
+          gradient.addColorStop(0, 'rgba(255, 204, 0, 0.5)');
+          gradient.addColorStop(1, 'rgba(255, 102, 0, 0.5)');
+        }
+        
+        // 선 두께
+        const width = Math.max(2, Math.sqrt(flow.value) / 2000);
+        
+        ctx.beginPath();
+        ctx.moveTo(fromNode.x, fromNode.y);
+        ctx.quadraticCurveTo(midX, midY, toNode.x, toNode.y);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = width;
+        
+        if (flow.type === 'prediction') {
+          ctx.setLineDash([10, 10]);
+        } else {
+          ctx.setLineDash([]);
+        }
+        
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // 글로우 효과
+        ctx.shadowColor = flow.type === 'outflow' ? '#ff4466' : 
+                          flow.type === 'prediction' ? '#ffcc00' : '#00ff88';
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      });
+    }
+    
+    function renderParticles() {
+      particles.forEach(p => {
+        if (!p.x || !p.y) return;
+        
+        // 색상
+        let color;
+        if (p.flowType === 'inflow') color = '#00ff88';
+        else if (p.flowType === 'outflow') color = '#ff4466';
+        else if (p.flowType === 'synergy') color = '#9966ff';
+        else if (p.flowType === 'prediction') color = '#ffcc00';
+        
+        // 트레일 렌더링
+        if (p.trail.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(p.trail[0].x, p.trail[0].y);
+          
+          for (let i = 1; i < p.trail.length; i++) {
+            ctx.lineTo(p.trail[i].x, p.trail[i].y);
+          }
+          
+          const trailGradient = ctx.createLinearGradient(
+            p.trail[0].x, p.trail[0].y,
+            p.x, p.y
+          );
+          trailGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+          trailGradient.addColorStop(1, color);
+          
+          ctx.strokeStyle = trailGradient;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+        
+        // 파티클 본체
+        const opacity = 0.5 + 0.5 * Math.sin(p.progress * Math.PI);
+        
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 15;
+        ctx.globalAlpha = opacity;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+      });
+    }
+    
+    function renderNodes() {
+      screenNodes.forEach(node => {
+        const size = Math.max(20, Math.sqrt(node.value || node.forecast) / 3000);
+        
+        // 글로우 (외부 원)
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, size * 2, 0, Math.PI * 2);
+        ctx.fillStyle = node.color + '20';
+        ctx.fill();
+        
+        // 병목 경고 링
+        if (node.status === 'bottleneck' && showBottlenecks) {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, size * 2.5, 0, Math.PI * 2);
+          ctx.strokeStyle = '#ff4466';
+          ctx.lineWidth = 3;
+          ctx.shadowColor = '#ff4466';
+          ctx.shadowBlur = 20;
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        }
+        
+        // 예측 노드 점선 테두리
+        if (node.status === 'prediction') {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, size * 2, 0, Math.PI * 2);
+          ctx.setLineDash([5, 5]);
+          ctx.strokeStyle = '#ffcc00';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        
+        // 메인 노드
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = node.color;
+        ctx.shadowColor = node.color;
+        ctx.shadowBlur = 15;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        // 테두리
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // 아이콘
+        ctx.font = `${size * 0.8}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(node.icon, node.x, node.y);
+        
+        // 라벨
+        ctx.font = '12px sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(node.id, node.x, node.y + size + 16);
+        
+        // 가치 표시
+        ctx.font = '10px sans-serif';
+        ctx.fillStyle = '#888';
+        ctx.fillText(formatMoney(node.value || node.forecast), node.x, node.y + size + 30);
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 애니메이션 루프
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function animate() {
+      updateParticles();
+      render();
+      animationId = requestAnimationFrame(animate);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 컨트롤
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function setupControls() {
+      document.getElementById('btn-korea').addEventListener('click', () => {
+        if (map) map.flyTo({ center: [127, 37.5], zoom: 9, duration: 2000 });
+      });
+      
+      document.getElementById('btn-asia').addEventListener('click', () => {
+        if (map) map.flyTo({ center: [110, 30], zoom: 3, duration: 2000 });
+      });
+      
+      document.getElementById('btn-world').addEventListener('click', () => {
+        if (map) map.flyTo({ center: [100, 20], zoom: 2, duration: 2000 });
+      });
+      
+      document.getElementById('btn-animate').addEventListener('click', function() {
+        isAnimating = !isAnimating;
+        this.classList.toggle('active', isAnimating);
+        this.textContent = isAnimating ? '✨ 별똥별 ON' : '✨ 별똥별 OFF';
+      });
+      
+      document.getElementById('btn-bottleneck').addEventListener('click', function() {
+        showBottlenecks = !showBottlenecks;
+        this.classList.toggle('active', showBottlenecks);
+        this.textContent = showBottlenecks ? '⚠️ 병목 ON' : '⚠️ 병목 OFF';
+      });
+      
+      // Canvas 클릭 이벤트
+      canvas.style.pointerEvents = 'auto';
+      canvas.addEventListener('click', handleCanvasClick);
+    }
+    
+    function handleCanvasClick(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      // 클릭된 노드 찾기
+      let clickedNode = null;
+      let minDist = Infinity;
+      
+      screenNodes.forEach(node => {
+        const dist = Math.sqrt(Math.pow(node.x - x, 2) + Math.pow(node.y - y, 2));
+        const size = Math.max(20, Math.sqrt(node.value || node.forecast) / 3000);
+        
+        if (dist < size * 2 && dist < minDist) {
+          minDist = dist;
+          clickedNode = node;
+        }
+      });
+      
+      if (clickedNode) {
+        showNodeInfo(clickedNode);
+      } else {
+        document.getElementById('info-panel').classList.remove('visible');
+      }
+    }
+    
+    function showNodeInfo(node) {
+      const panel = document.getElementById('info-panel');
+      panel.classList.add('visible');
+      
+      document.getElementById('info-icon').textContent = node.icon;
+      document.getElementById('info-icon').style.background = node.color;
+      document.getElementById('info-name').textContent = node.id;
+      document.getElementById('info-type').textContent = `${node.role} • ${node.label}`;
+      document.getElementById('info-location').textContent = `📍 ${node.location}`;
+      document.getElementById('info-value').textContent = formatMoney(node.value);
+      document.getElementById('info-inflow').textContent = formatMoney(node.inflow);
+      document.getElementById('info-outflow').textContent = formatMoney(node.outflow);
+      document.getElementById('info-time').textContent = '-' + formatMoney(node.time);
+      document.getElementById('info-synergy').textContent = (node.synergy >= 0 ? '+' : '') + formatMoney(node.synergy);
+      document.getElementById('info-forecast').textContent = formatMoney(node.forecast);
+      
+      const statusEl = document.getElementById('info-status');
+      if (node.status === 'optimal') {
+        statusEl.className = 'info-status status-optimal';
+        statusEl.textContent = '✅ OPTIMAL - 돈 흐름 최적';
+      } else if (node.status === 'bottleneck') {
+        statusEl.className = 'info-status status-bottleneck';
+        statusEl.textContent = '⚠️ BOTTLENECK - 돈 유출 과다!';
+      } else if (node.status === 'prediction') {
+        statusEl.className = 'info-status status-warning';
+        statusEl.textContent = '⭐ PREDICTION - 미래 연결 예측';
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 통계 업데이트
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function updateStats() {
+      const totalValue = nodes.reduce((sum, n) => sum + n.value, 0);
+      const totalInflow = nodes.reduce((sum, n) => sum + n.inflow, 0);
+      const totalOutflow = nodes.reduce((sum, n) => sum + n.outflow, 0);
+      const totalSynergy = nodes.reduce((sum, n) => sum + n.synergy, 0);
+      
+      document.getElementById('stat-value').textContent = formatMoney(totalValue);
+      document.getElementById('stat-inflow').textContent = formatMoney(totalInflow);
+      document.getElementById('stat-outflow').textContent = formatMoney(totalOutflow);
+      document.getElementById('stat-synergy').textContent = formatMoney(totalSynergy);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 유틸리티
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      if (Math.abs(value) >= 100000000) return '₩' + (value / 100000000).toFixed(2) + '억';
+      if (Math.abs(value) >= 10000) return '₩' + Math.round(value / 10000).toLocaleString() + '만';
+      return '₩' + value.toLocaleString();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 시작
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    init();
+    
+    console.log('🌌 AUTUS Physics Map Ultimate initialized');
+    console.log('📊 Nodes:', nodes.length);
+    console.log('💰 Flows:', flows.length);
+    console.log('✨ Particles:', particles.length);
+  </script>
+</body>
+</html>

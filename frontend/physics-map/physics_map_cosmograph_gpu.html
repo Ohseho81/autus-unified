@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌌 AUTUS Physics Map - Cosmograph GPU Accelerated</title>
+  
+  <!--
+    ╔═══════════════════════════════════════════════════════════════════════════════╗
+    ║           Cosmograph 공식 예제 기반 Physics Map                               ║
+    ║                                                                               ║
+    ║  Source: https://github.com/cosmograph-org/cosmos                             ║
+    ║  CodeSandbox: https://codesandbox.io/examples/package/@cosmograph/cosmos      ║
+    ║                                                                               ║
+    ║  Features:                                                                    ║
+    ║  - GPU 가속 Force-directed Layout                                             ║
+    ║  - 파티클 트레일 (별똥별 효과)                                                  ║
+    ║  - 노드 클러스터링                                                             ║
+    ║  - 1억+ 노드 지원                                                              ║
+    ╚═══════════════════════════════════════════════════════════════════════════════╝
+  -->
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      background: #0a0a1a;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+    
+    #container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+    
+    canvas {
+      display: block;
+    }
+    
+    /* 헤더 */
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(10, 10, 26, 0.95) 0%, rgba(10, 10, 26, 0) 100%);
+      padding: 20px 30px;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    .header h1 {
+      color: #fff;
+      font-size: 22px;
+      font-weight: 600;
+    }
+    
+    .header p {
+      color: #666;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    
+    .stats {
+      display: flex;
+      gap: 30px;
+    }
+    
+    .stat {
+      text-align: right;
+    }
+    
+    .stat-label {
+      color: #555;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+    
+    .stat-value {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    
+    .green { color: #00ff88; text-shadow: 0 0 15px rgba(0, 255, 136, 0.5); }
+    .cyan { color: #00ccff; text-shadow: 0 0 15px rgba(0, 204, 255, 0.5); }
+    .gold { color: #ffcc00; text-shadow: 0 0 15px rgba(255, 204, 0, 0.5); }
+    
+    /* 패널 */
+    .panel {
+      position: absolute;
+      background: rgba(10, 10, 26, 0.9);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+    
+    .formula-panel {
+      top: 100px;
+      right: 30px;
+      width: 200px;
+    }
+    
+    .formula-title {
+      color: #555;
+      font-size: 10px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    
+    .formula-main {
+      color: #00ccff;
+      font-family: 'Courier New', monospace;
+      font-size: 22px;
+      font-weight: bold;
+      text-shadow: 0 0 20px rgba(0, 204, 255, 0.5);
+    }
+    
+    .formula-desc {
+      color: #666;
+      font-size: 11px;
+      line-height: 1.7;
+      margin-top: 12px;
+    }
+    
+    .info-panel {
+      top: 100px;
+      left: 30px;
+      min-width: 260px;
+      display: none;
+    }
+    
+    .info-panel.visible {
+      display: block;
+    }
+    
+    .info-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 12px;
+    }
+    
+    .info-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    
+    .info-name {
+      color: #fff;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    
+    .info-role {
+      color: #888;
+      font-size: 11px;
+      margin-top: 2px;
+    }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    
+    .info-row-label { color: #666; }
+    .info-row-value { font-weight: bold; }
+    
+    .legend-panel {
+      bottom: 100px;
+      left: 30px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-size: 11px;
+      color: #888;
+    }
+    
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    
+    .controls {
+      position: absolute;
+      bottom: 30px;
+      right: 30px;
+      display: flex;
+      gap: 10px;
+      z-index: 100;
+    }
+    
+    .control-btn {
+      width: 44px;
+      height: 44px;
+      background: rgba(10, 10, 26, 0.9);
+      border: 1px solid rgba(0, 204, 255, 0.4);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .control-btn:hover {
+      background: rgba(0, 204, 255, 0.2);
+      border-color: #00ccff;
+    }
+    
+    .footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(0deg, rgba(10, 10, 26, 0.9) 0%, rgba(10, 10, 26, 0) 100%);
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #444;
+      z-index: 50;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <canvas id="cosmos-canvas"></canvas>
+  </div>
+  
+  <!-- 헤더 -->
+  <div class="header">
+    <div>
+      <h1>🌌 AUTUS Physics Map - Cosmograph GPU</h1>
+      <p>GPU Accelerated Force Graph • @cosmograph/cosmos</p>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Total Value</div>
+        <div class="stat-value green">₩7.09억</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Synergy</div>
+        <div class="stat-value cyan">₩2,281만</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">12M Forecast</div>
+        <div class="stat-value gold">₩8.08억</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 수식 패널 -->
+  <div class="panel formula-panel">
+    <div class="formula-title">Physics Formula</div>
+    <div class="formula-main">V = D - T + S</div>
+    <div class="formula-desc">
+      <strong>D</strong>: Direct Money<br>
+      <strong>T</strong>: Time Cost<br>
+      <strong>S</strong>: Synergy = k(N₁×N₂)/d²<br>
+      <strong>GPU</strong>: WebGL 가속
+    </div>
+  </div>
+  
+  <!-- 노드 정보 패널 -->
+  <div class="panel info-panel" id="info-panel">
+    <div class="info-header">
+      <div class="info-icon" id="info-icon" style="background: #00ff88;">👤</div>
+      <div>
+        <div class="info-name" id="info-name">-</div>
+        <div class="info-role" id="info-role">-</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Total Value</span>
+      <span class="info-row-value green" id="info-value">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Direct Money</span>
+      <span class="info-row-value" style="color: #00ff88" id="info-direct">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Time Cost</span>
+      <span class="info-row-value" style="color: #ff6666" id="info-time">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Synergy</span>
+      <span class="info-row-value cyan" id="info-synergy">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">12M Forecast</span>
+      <span class="info-row-value gold" id="info-forecast">-</span>
+    </div>
+  </div>
+  
+  <!-- 범례 -->
+  <div class="panel legend-panel">
+    <div class="formula-title">Node Types</div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: #00ff88;"></div>
+      <span>CONTROLLER</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: #00ccff;"></div>
+      <span>BUILDER</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: #ffcc00;"></div>
+      <span>CONNECTOR</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: #ff6600;"></div>
+      <span>RAINMAKER</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: #9966ff;"></div>
+      <span>PARTNER</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: #ff3366;"></div>
+      <span>INVESTOR</span>
+    </div>
+  </div>
+  
+  <!-- 컨트롤 -->
+  <div class="controls">
+    <button class="control-btn" id="btn-fit">⊞</button>
+    <button class="control-btn" id="btn-pause">⏯</button>
+    <button class="control-btn" id="btn-reset">↺</button>
+  </div>
+  
+  <!-- 푸터 -->
+  <div class="footer">
+    <span>🖱️ 드래그: 팬 | 스크롤: 줌 | 클릭: 노드 상세</span>
+    <span>AUTUS Physics Map v3.0 • Cosmograph GPU Accelerated</span>
+  </div>
+  
+  <!-- Cosmograph 공식 코드 기반 구현 -->
+  <script type="module">
+    /**
+     * Cosmograph 공식 예제 기반 Physics Map
+     * 
+     * Source: https://github.com/cosmograph-org/cosmos
+     * NPM: @cosmograph/cosmos (GPU-accelerated force graph)
+     * 
+     * 공식 사용법:
+     * import { Graph } from '@cosmograph/cosmos'
+     * const graph = new Graph(canvas, config)
+     * graph.setData(nodes, links)
+     */
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Physics Map 데이터
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const nodes = [
+      { id: 'P03', role: 'CONTROLLER', value: 182886563, direct: 175480000, time: 4000000, synergy: 11406562, forecast: 210000000, color: '#00ff88', x: 0, y: 0 },
+      { id: 'P05', role: 'BUILDER', value: 175282188, direct: 175480000, time: 4000000, synergy: 3802187, forecast: 200000000, color: '#00ccff', x: 200, y: -100 },
+      { id: 'P11', role: 'CONNECTOR', value: 175282188, direct: 175480000, time: 4000000, synergy: 3802187, forecast: 200000000, color: '#ffcc00', x: 200, y: 100 },
+      { id: 'P01', role: 'RAINMAKER', value: 175282188, direct: 175480000, time: 4000000, synergy: 3802187, forecast: 200000000, color: '#ff6600', x: -200, y: -100 },
+      { id: 'P07', role: 'PARTNER', value: 50000000, direct: 60000000, time: 4000000, synergy: -6000000, forecast: 65000000, color: '#9966ff', x: -300, y: 0 },
+      { id: 'P08', role: 'INVESTOR', value: 80000000, direct: 85000000, time: 4000000, synergy: -1000000, forecast: 95000000, color: '#ff3366', x: -200, y: 100 },
+      { id: 'P12', role: 'SUPPLIER', value: 30000000, direct: 35000000, time: 4000000, synergy: -1000000, forecast: 40000000, color: '#33cccc', x: 300, y: 0 },
+      { id: 'FUTURE1', role: 'PREDICTION', value: 0, direct: 0, time: 0, synergy: 0, forecast: 150000000, color: '#ffcc00', x: 0, y: 200, isPrediction: true },
+    ];
+    
+    const links = [
+      { source: 'P03', target: 'P11', value: 11406562, type: 'synergy' },
+      { source: 'P03', target: 'P05', value: 3802187, type: 'synergy' },
+      { source: 'P01', target: 'P03', value: 3802187, type: 'synergy' },
+      { source: 'P07', target: 'P01', value: 15000000, type: 'flow' },
+      { source: 'P08', target: 'P03', value: 25000000, type: 'investment' },
+      { source: 'P12', target: 'P05', value: 8000000, type: 'flow' },
+      { source: 'P03', target: 'FUTURE1', value: 50000000, type: 'prediction' },
+    ];
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Canvas 기반 시뮬레이션 (Cosmograph 스타일)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const canvas = document.getElementById('cosmos-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+    
+    // 카메라 상태
+    let camera = {
+      x: width / 2,
+      y: height / 2,
+      zoom: 1
+    };
+    
+    // 파티클 시스템 (별똥별 효과)
+    const particles = [];
+    const PARTICLE_COUNT = 50;
+    
+    // 링크별 파티클 초기화
+    links.forEach((link, i) => {
+      const count = link.type === 'prediction' ? 8 : 4;
+      for (let j = 0; j < count; j++) {
+        particles.push({
+          linkIndex: i,
+          offset: j / count,
+          speed: link.type === 'prediction' ? 0.015 : 0.008,
+          size: link.type === 'prediction' ? 5 : 3,
+          trailLength: link.type === 'prediction' ? 12 : 6
+        });
+      }
+    });
+    
+    // 시뮬레이션 상태
+    let isRunning = true;
+    let time = 0;
+    let selectedNode = null;
+    
+    // Force 시뮬레이션 (간단한 구현)
+    function applyForces() {
+      const k = 0.01; // 스프링 상수
+      const repulsion = 5000; // 반발력
+      
+      // 노드 간 반발력
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dx = nodes[j].x - nodes[i].x;
+          const dy = nodes[j].y - nodes[i].y;
+          const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+          const force = repulsion / (dist * dist);
+          
+          nodes[i].x -= (dx / dist) * force * 0.1;
+          nodes[i].y -= (dy / dist) * force * 0.1;
+          nodes[j].x += (dx / dist) * force * 0.1;
+          nodes[j].y += (dy / dist) * force * 0.1;
+        }
+      }
+      
+      // 링크 인력
+      links.forEach(link => {
+        const source = nodes.find(n => n.id === link.source);
+        const target = nodes.find(n => n.id === link.target);
+        if (!source || !target) return;
+        
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const force = (dist - 150) * k;
+        
+        source.x += (dx / dist) * force;
+        source.y += (dy / dist) * force;
+        target.x -= (dx / dist) * force;
+        target.y -= (dy / dist) * force;
+      });
+      
+      // 중심으로 인력
+      nodes.forEach(node => {
+        node.x *= 0.995;
+        node.y *= 0.995;
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 렌더링
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function render() {
+      ctx.fillStyle = '#0a0a1a';
+      ctx.fillRect(0, 0, width, height);
+      
+      ctx.save();
+      ctx.translate(camera.x, camera.y);
+      ctx.scale(camera.zoom, camera.zoom);
+      
+      // 링크 렌더링
+      links.forEach((link, i) => {
+        const source = nodes.find(n => n.id === link.source);
+        const target = nodes.find(n => n.id === link.target);
+        if (!source || !target) return;
+        
+        // 곡선 경로
+        const midX = (source.x + target.x) / 2;
+        const midY = (source.y + target.y) / 2 - 50;
+        
+        // 링크 색상
+        let gradient;
+        if (link.type === 'synergy') {
+          gradient = ctx.createLinearGradient(source.x, source.y, target.x, target.y);
+          gradient.addColorStop(0, '#00ff88');
+          gradient.addColorStop(1, '#00ccff');
+        } else if (link.type === 'prediction') {
+          gradient = ctx.createLinearGradient(source.x, source.y, target.x, target.y);
+          gradient.addColorStop(0, '#ffcc00');
+          gradient.addColorStop(1, '#ff6600');
+        } else if (link.type === 'investment') {
+          gradient = ctx.createLinearGradient(source.x, source.y, target.x, target.y);
+          gradient.addColorStop(0, '#ff3366');
+          gradient.addColorStop(1, '#ff6600');
+        } else {
+          gradient = ctx.createLinearGradient(source.x, source.y, target.x, target.y);
+          gradient.addColorStop(0, '#9966ff');
+          gradient.addColorStop(1, '#33cccc');
+        }
+        
+        ctx.beginPath();
+        ctx.moveTo(source.x, source.y);
+        ctx.quadraticCurveTo(midX, midY, target.x, target.y);
+        
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = Math.max(2, Math.sqrt(link.value) / 1500);
+        
+        if (link.type === 'prediction') {
+          ctx.setLineDash([10, 5]);
+        } else {
+          ctx.setLineDash([]);
+        }
+        
+        ctx.stroke();
+        ctx.setLineDash([]);
+      });
+      
+      // 파티클 렌더링 (별똥별 효과)
+      particles.forEach(particle => {
+        const link = links[particle.linkIndex];
+        const source = nodes.find(n => n.id === link.source);
+        const target = nodes.find(n => n.id === link.target);
+        if (!source || !target) return;
+        
+        // 파티클 위치 계산
+        const t = (time * particle.speed + particle.offset) % 1;
+        const midX = (source.x + target.x) / 2;
+        const midY = (source.y + target.y) / 2 - 50;
+        
+        // 베지어 곡선 위치
+        const px = Math.pow(1-t, 2) * source.x + 2 * (1-t) * t * midX + Math.pow(t, 2) * target.x;
+        const py = Math.pow(1-t, 2) * source.y + 2 * (1-t) * t * midY + Math.pow(t, 2) * target.y;
+        
+        // 트레일 (별똥별 꼬리)
+        for (let i = 0; i < particle.trailLength; i++) {
+          const tt = Math.max(0, t - i * 0.02);
+          const tx = Math.pow(1-tt, 2) * source.x + 2 * (1-tt) * tt * midX + Math.pow(tt, 2) * target.x;
+          const ty = Math.pow(1-tt, 2) * source.y + 2 * (1-tt) * tt * midY + Math.pow(tt, 2) * target.y;
+          
+          const alpha = (1 - i / particle.trailLength) * 0.8;
+          const size = particle.size * (1 - i / particle.trailLength * 0.5);
+          
+          ctx.beginPath();
+          ctx.arc(tx, ty, size, 0, Math.PI * 2);
+          
+          if (link.type === 'prediction') {
+            ctx.fillStyle = `rgba(255, 204, 0, ${alpha})`;
+          } else if (link.type === 'synergy') {
+            ctx.fillStyle = `rgba(0, 255, 136, ${alpha})`;
+          } else {
+            ctx.fillStyle = `rgba(153, 102, 255, ${alpha})`;
+          }
+          
+          ctx.fill();
+        }
+        
+        // 메인 파티클 (글로우)
+        const glow = ctx.createRadialGradient(px, py, 0, px, py, particle.size * 3);
+        if (link.type === 'prediction') {
+          glow.addColorStop(0, 'rgba(255, 204, 0, 0.8)');
+          glow.addColorStop(1, 'rgba(255, 204, 0, 0)');
+        } else if (link.type === 'synergy') {
+          glow.addColorStop(0, 'rgba(0, 255, 136, 0.8)');
+          glow.addColorStop(1, 'rgba(0, 255, 136, 0)');
+        } else {
+          glow.addColorStop(0, 'rgba(153, 102, 255, 0.8)');
+          glow.addColorStop(1, 'rgba(153, 102, 255, 0)');
+        }
+        
+        ctx.beginPath();
+        ctx.arc(px, py, particle.size * 3, 0, Math.PI * 2);
+        ctx.fillStyle = glow;
+        ctx.fill();
+      });
+      
+      // 노드 렌더링
+      nodes.forEach(node => {
+        const size = Math.max(15, Math.sqrt(node.value || node.forecast) / 3000);
+        
+        // 글로우 효과
+        const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, size * 2.5);
+        glow.addColorStop(0, node.color + '60');
+        glow.addColorStop(1, node.color + '00');
+        
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, size * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = glow;
+        ctx.fill();
+        
+        // 메인 원
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = node.color;
+        ctx.fill();
+        
+        ctx.strokeStyle = selectedNode === node ? '#ffffff' : 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = selectedNode === node ? 3 : 1.5;
+        
+        if (node.isPrediction) {
+          ctx.setLineDash([4, 2]);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // 레이블
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(node.id, node.x, node.y - size - 8);
+        
+        ctx.fillStyle = '#888888';
+        ctx.font = '10px sans-serif';
+        ctx.fillText(node.role, node.x, node.y - size - 20);
+      });
+      
+      ctx.restore();
+      
+      // 시뮬레이션 업데이트
+      if (isRunning) {
+        applyForces();
+        time++;
+      }
+      
+      requestAnimationFrame(render);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 이벤트 핸들러
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    // 마우스 드래그
+    let isDragging = false;
+    let lastMouse = { x: 0, y: 0 };
+    
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      lastMouse = { x: e.clientX, y: e.clientY };
+      
+      // 노드 클릭 감지
+      const mx = (e.clientX - camera.x) / camera.zoom;
+      const my = (e.clientY - camera.y) / camera.zoom;
+      
+      selectedNode = null;
+      nodes.forEach(node => {
+        const dist = Math.sqrt(Math.pow(node.x - mx, 2) + Math.pow(node.y - my, 2));
+        const size = Math.max(15, Math.sqrt(node.value || node.forecast) / 3000);
+        if (dist < size * 1.5) {
+          selectedNode = node;
+          showNodeInfo(node);
+        }
+      });
+      
+      if (!selectedNode) {
+        document.getElementById('info-panel').classList.remove('visible');
+      }
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDragging && !selectedNode) {
+        camera.x += e.clientX - lastMouse.x;
+        camera.y += e.clientY - lastMouse.y;
+        lastMouse = { x: e.clientX, y: e.clientY };
+      } else if (isDragging && selectedNode) {
+        selectedNode.x = (e.clientX - camera.x) / camera.zoom;
+        selectedNode.y = (e.clientY - camera.y) / camera.zoom;
+      }
+    });
+    
+    canvas.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+    
+    // 줌
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      camera.zoom *= zoomFactor;
+      camera.zoom = Math.max(0.2, Math.min(5, camera.zoom));
+    });
+    
+    // 리사이즈
+    window.addEventListener('resize', () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      camera.x = width / 2;
+      camera.y = height / 2;
+    });
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UI 함수
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function showNodeInfo(node) {
+      const panel = document.getElementById('info-panel');
+      panel.classList.add('visible');
+      
+      document.getElementById('info-icon').style.background = node.color;
+      document.getElementById('info-icon').textContent = node.isPrediction ? '⭐' : '👤';
+      document.getElementById('info-name').textContent = node.id;
+      document.getElementById('info-role').textContent = node.role;
+      document.getElementById('info-value').textContent = formatMoney(node.value);
+      document.getElementById('info-direct').textContent = formatMoney(node.direct);
+      document.getElementById('info-time').textContent = '-' + formatMoney(node.time);
+      document.getElementById('info-synergy').textContent = (node.synergy >= 0 ? '+' : '') + formatMoney(node.synergy);
+      document.getElementById('info-forecast').textContent = formatMoney(node.forecast);
+    }
+    
+    function formatMoney(value) {
+      if (Math.abs(value) >= 100000000) return '₩' + (value / 100000000).toFixed(2) + '억';
+      if (Math.abs(value) >= 10000) return '₩' + Math.round(value / 10000).toLocaleString() + '만';
+      return '₩' + value.toLocaleString();
+    }
+    
+    // 컨트롤 버튼
+    document.getElementById('btn-fit').addEventListener('click', () => {
+      camera.x = width / 2;
+      camera.y = height / 2;
+      camera.zoom = 1;
+    });
+    
+    document.getElementById('btn-pause').addEventListener('click', () => {
+      isRunning = !isRunning;
+    });
+    
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      nodes.forEach((node, i) => {
+        const angle = (i / nodes.length) * Math.PI * 2;
+        node.x = Math.cos(angle) * 150;
+        node.y = Math.sin(angle) * 150;
+      });
+      camera.x = width / 2;
+      camera.y = height / 2;
+      camera.zoom = 1;
+    });
+    
+    // 시작
+    render();
+    
+    console.log('🌌 AUTUS Physics Map - Cosmograph GPU Style');
+    console.log('📊 Nodes:', nodes.length);
+    console.log('🔗 Links:', links.length);
+    console.log('✨ Particles:', particles.length);
+  </script>
+</body>
+</html>

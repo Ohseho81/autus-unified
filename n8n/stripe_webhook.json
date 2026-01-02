@@ -1,0 +1,102 @@
+{
+  "name": "AUTUS Stripe Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stripe-webhook",
+        "responseMode": "responseNode"
+      },
+      "id": "stripe_webhook",
+      "name": "Stripe Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Stripe 이벤트 파싱\nconst event = $input.item.json.body;\nconst eventType = event.type;\nconst obj = event.data?.object || {};\n\n// Zero Meaning 정제 (센트 → 원)\nconst cleaned = {\n  node_id: String(obj.customer || obj.id),\n  value: (obj.amount || obj.amount_paid || 0) / 100,\n  event_type: eventType,\n  source: 'stripe',\n  timestamp: new Date().toISOString()\n};\n\n// Flow 타입 결정\nif (eventType.includes('refund') || eventType.includes('dispute')) {\n  cleaned.flow_type = 'outflow';\n} else if (eventType.includes('succeeded') || eventType.includes('paid')) {\n  cleaned.flow_type = 'inflow';\n} else if (eventType.includes('customer.created')) {\n  cleaned.flow_type = 'node_create';\n} else {\n  cleaned.flow_type = 'unknown';\n}\n\nreturn [{ json: cleaned }];"
+      },
+      "id": "stripe_parser",
+      "name": "Stripe 파싱 + Zero Meaning",
+      "type": "n8n-nodes-base.function",
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            { "value1": "={{ $json.flow_type }}", "operation": "equals", "value2": "inflow" }
+          ]
+        }
+      },
+      "id": "is_inflow",
+      "name": "Inflow?",
+      "type": "n8n-nodes-base.if",
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            { "value1": "={{ $json.flow_type }}", "operation": "equals", "value2": "outflow" }
+          ]
+        }
+      },
+      "id": "is_outflow",
+      "name": "Outflow?",
+      "type": "n8n-nodes-base.if",
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUTUS_API_URL }}/webhook/stripe",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ node_id: $json.node_id, value: $json.value, flow_type: 'inflow', source: 'stripe' }) }}"
+      },
+      "id": "send_inflow",
+      "name": "AUTUS Inflow API",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUTUS_API_URL }}/webhook/stripe",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ node_id: $json.node_id, value: $json.value, flow_type: 'outflow', source: 'stripe' }) }}"
+      },
+      "id": "send_outflow",
+      "name": "AUTUS Outflow API",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { received: true, event: $json.event_type } }}"
+      },
+      "id": "response",
+      "name": "Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1100, 300]
+    }
+  ],
+  "connections": {
+    "Stripe Webhook": { "main": [[{ "node": "Stripe 파싱 + Zero Meaning", "type": "main", "index": 0 }]] },
+    "Stripe 파싱 + Zero Meaning": { 
+      "main": [
+        [
+          { "node": "Inflow?", "type": "main", "index": 0 },
+          { "node": "Outflow?", "type": "main", "index": 0 }
+        ]
+      ] 
+    },
+    "Inflow?": { "main": [[{ "node": "AUTUS Inflow API", "type": "main", "index": 0 }], []] },
+    "Outflow?": { "main": [[{ "node": "AUTUS Outflow API", "type": "main", "index": 0 }], []] },
+    "AUTUS Inflow API": { "main": [[{ "node": "Response", "type": "main", "index": 0 }]] },
+    "AUTUS Outflow API": { "main": [[{ "node": "Response", "type": "main", "index": 0 }]] }
+  }
+}

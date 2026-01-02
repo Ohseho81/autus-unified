@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AUTUS - Autonomous Twin Universal System</title>
+    <meta name="description" content="모든 개체는 사람, 모든 액션은 돈. Operating System of Reality.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♾️</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --border: #1e1e2e;
+            --text: #e0e0e0;
+            --text-dim: #888;
+            --accent: #00d4aa;
+            --accent-glow: rgba(0, 212, 170, 0.3);
+            --gold: #ffd700;
+            --red: #ff4757;
+            --blue: #4a9eff;
+            --purple: #a855f7;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle at 30% 30%, rgba(0, 212, 170, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 70%, rgba(74, 158, 255, 0.05) 0%, transparent 50%);
+            animation: bgFloat 20s ease-in-out infinite;
+        }
+
+        @keyframes bgFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(-5%, -5%) rotate(10deg); }
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 80px 20px 60px;
+            position: relative;
+        }
+
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-dim);
+            margin-bottom: 30px;
+        }
+
+        .philosophy {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, var(--accent-glow), transparent);
+            border: 1px solid var(--accent);
+            border-radius: 50px;
+            font-size: 1.1rem;
+            color: var(--accent);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 10px var(--accent-glow); }
+            to { box-shadow: 0 0 30px var(--accent-glow); }
+        }
+
+        /* Stats */
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 40px 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        /* Demos Section */
+        .demos {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: var(--text);
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .demo-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--blue));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .demo-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+            box-shadow: 0 10px 40px rgba(0, 212, 170, 0.1);
+        }
+
+        .demo-card:hover::before {
+            opacity: 1;
+        }
+
+        .demo-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .demo-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .demo-desc {
+            color: var(--text-dim);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .demo-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            padding: 4px 12px;
+            background: rgba(0, 212, 170, 0.1);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--accent);
+        }
+
+        .tag.gold { 
+            background: rgba(255, 215, 0, 0.1);
+            border-color: rgba(255, 215, 0, 0.3);
+            color: var(--gold);
+        }
+
+        .tag.blue {
+            background: rgba(74, 158, 255, 0.1);
+            border-color: rgba(74, 158, 255, 0.3);
+            color: var(--blue);
+        }
+
+        .tag.purple {
+            background: rgba(168, 85, 247, 0.1);
+            border-color: rgba(168, 85, 247, 0.3);
+            color: var(--purple);
+        }
+
+        /* Features Section */
+        .features {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 40px 20px;
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .feature-check {
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .feature-text {
+            font-size: 0.95rem;
+        }
+
+        /* Architecture */
+        .architecture {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 40px 20px;
+        }
+
+        .arch-diagram {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .arch-flow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            font-size: 1.1rem;
+        }
+
+        .arch-step {
+            padding: 15px 25px;
+            background: rgba(0, 212, 170, 0.1);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 8px;
+        }
+
+        .arch-arrow {
+            color: var(--accent);
+            font-size: 1.5rem;
+        }
+
+        /* CTA */
+        .cta {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #00b894);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px var(--accent-glow);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-secondary:hover {
+            background: var(--accent);
+            color: #000;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-dim);
+            border-top: 1px solid var(--border);
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            .logo { font-size: 3rem; }
+            .stats { gap: 20px; }
+            .stat-value { font-size: 1.8rem; }
+            .arch-flow { flex-direction: column; }
+            .arch-arrow { transform: rotate(90deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <header>
+        <div class="logo">♾️</div>
+        <h1>AUTUS</h1>
+        <p class="subtitle">Autonomous Twin Universal System</p>
+        <div class="philosophy">
+            모든 개체는 사람 👤 &nbsp;|&nbsp; 모든 액션은 돈 💰
+        </div>
+    </header>
+
+    <section class="stats">
+        <div class="stat">
+            <div class="stat-value">11</div>
+            <div class="stat-label">완성된 핵심 기능</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">5</div>
+            <div class="stat-label">n8n 워크플로</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">∞</div>
+            <div class="stat-label">자동화 루프</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">100%</div>
+            <div class="stat-label">배포 준비</div>
+        </div>
+    </section>
+
+    <section class="demos">
+        <h2 class="section-title">🎮 Live Demos</h2>
+        <div class="demo-grid">
+            <a href="physics_map_qcf.html" class="demo-card">
+                <div class="demo-icon">🗺️</div>
+                <h3 class="demo-title">Physics Map QCF Edition</h3>
+                <p class="demo-desc">
+                    Quantum Cluster Flow 기반 경제 물리 엔진.
+                    위성 지도 위에서 사람 노드와 돈 모션만 시각화.
+                    줌 레벨에 따른 클러스터링 + 1억명 스케일.
+                </p>
+                <div class="demo-tags">
+                    <span class="tag">WebSocket</span>
+                    <span class="tag gold">QCF Engine</span>
+                    <span class="tag blue">Real-time</span>
+                </div>
+            </a>
+
+            <a href="automation_dashboard.html" class="demo-card">
+                <div class="demo-icon">🎛️</div>
+                <h3 class="demo-title">Automation Dashboard</h3>
+                <p class="demo-desc">
+                    자동화 관리 대시보드 + 피드백 인터페이스.
+                    무한 순환 루프 시각화, 12개월 예측 차트,
+                    실시간 가치 계산 및 자동 삭제.
+                </p>
+                <div class="demo-tags">
+                    <span class="tag">n8n 연동</span>
+                    <span class="tag purple">AI Agent</span>
+                    <span class="tag gold">복리 가속</span>
+                </div>
+            </a>
+
+            <a href="day1_mvp.html" class="demo-card">
+                <div class="demo-icon">🚀</div>
+                <h3 class="demo-title">Day 1 MVP</h3>
+                <p class="demo-desc">
+                    최초 MVP 버전. 핵심 철학 검증용.
+                    사람 노드 + 돈 흐름 + 3버튼 시스템의
+                    기본 동작 확인.
+                </p>
+                <div class="demo-tags">
+                    <span class="tag">MVP</span>
+                    <span class="tag blue">Prototype</span>
+                </div>
+            </a>
+
+            <a href="https://github.com/your-username/autus" class="demo-card" target="_blank">
+                <div class="demo-icon">📦</div>
+                <h3 class="demo-title">Full Backend API</h3>
+                <p class="demo-desc">
+                    FastAPI 백엔드 + PostgreSQL + Redis.
+                    13개 API 엔드포인트, WebSocket 실시간 연동,
+                    CrewAI 멀티 에이전트 시스템.
+                </p>
+                <div class="demo-tags">
+                    <span class="tag">FastAPI</span>
+                    <span class="tag purple">CrewAI</span>
+                    <span class="tag gold">Production</span>
+                </div>
+            </a>
+        </div>
+    </section>
+
+    <section class="features">
+        <h2 class="section-title">✅ 완성된 기능</h2>
+        <div class="feature-list">
+            <div class="feature-item">
+                <span class="feature-check">✓</span>
+                <span class="feature-text">Physics Map 핵심 엔진 (의미·판단 완전 배제)</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-check">✓</span>
+                <span class="feature-text">가치 = 돈 - 시간 + 시너지 공식</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-check">✓</span>
+                <span class="feature-text">3버튼 시스템 (CUT / LINK / OUTSOURCE)</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-check">✓</span>
+                <span class="feature-text">Zero Meaning Lock (정치·규제 리스크 0)</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-check">✓</span>
+                <span class="feature-text">시너지 복리 가속 (별똥별 효과)</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-check">✓</span>
+                <span class="feature-text">Quantum Cluster Flow (1억명 스케일)</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-check">✓</span>
+                <span class="feature-text">Entropy Cut 자동 삭제</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-check">✓</span>
+                <span class="feature-text">CrewAI 멀티 에이전트 협업 분석</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-check">✓</span>
+                <span class="feature-text">역할 기반 자동화 제안</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-check">✓</span>
+                <span class="feature-text">예측·삭제·외주화 자동 실행</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-check">✓</span>
+                <span class="feature-text">자가 학습 피드백 루프</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="architecture">
+        <h2 class="section-title">♾️ 무한 순환 루프 아키텍처</h2>
+        <div class="arch-diagram">
+            <div class="arch-flow">
+                <div class="arch-step">👤 사용자 활동</div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-step">📊 데이터 수집</div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-step">🧠 학습·분석</div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-step">⚙️ 자동화 생성</div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-step">🔄 실행·피드백</div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-step">📈 보정·개선</div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-step">♾️</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta">
+        <h2 class="section-title" style="justify-content: center;">🚀 시작하기</h2>
+        <div class="cta-buttons">
+            <a href="physics_map_qcf.html" class="btn btn-primary">Live Demo 실행</a>
+            <a href="https://github.com/your-username/autus" class="btn btn-secondary" target="_blank">GitHub 소스코드</a>
+        </div>
+    </section>
+
+    <footer>
+        <p>AUTUS © 2025 | <a href="https://github.com/your-username/autus">GitHub</a></p>
+        <p style="margin-top: 10px; font-size: 0.9rem;">
+            "자동화가 자동화를 낳는다" - Operating System of Reality
+        </p>
+    </footer>
+
+    <script>
+        // Animate stats on scroll
+        const stats = document.querySelectorAll('.stat-value');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'pulse 0.5s ease-out';
+                }
+            });
+        });
+        stats.forEach(stat => observer.observe(stat));
+    </script>
+</body>
+</html>

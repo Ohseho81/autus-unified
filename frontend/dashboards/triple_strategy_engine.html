@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUTUS 3대 전략 엔진 - Bezos × Zuckerberg × 시너지</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --card: rgba(18, 18, 26, 0.95);
+      --border: #1e1e2e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --bezos: #ff9500;      /* Amazon Orange */
+      --zuck: #1877f2;       /* Facebook Blue */
+      --synergy: #00d4aa;    /* Mint */
+      --gold: #ffd700;
+      --pink: #ff00ff;
+      --red: #ff4757;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    
+    /* Header */
+    header {
+      text-align: center;
+      padding: 40px 20px;
+      background: linear-gradient(135deg, 
+        rgba(255,149,0,0.1) 0%, 
+        rgba(24,119,242,0.1) 50%, 
+        rgba(0,212,170,0.1) 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .logo {
+      font-size: 3rem;
+      margin-bottom: 10px;
+    }
+    
+    h1 {
+      font-size: 2.2rem;
+      background: linear-gradient(90deg, var(--bezos), var(--zuck), var(--synergy));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle {
+      color: var(--dim);
+      margin-top: 10px;
+    }
+    
+    /* 3 Strategy Badges */
+    .strategy-badges {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .badge {
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .badge-bezos {
+      background: rgba(255,149,0,0.2);
+      border: 1px solid var(--bezos);
+      color: var(--bezos);
+    }
+    
+    .badge-zuck {
+      background: rgba(24,119,242,0.2);
+      border: 1px solid var(--zuck);
+      color: var(--zuck);
+    }
+    
+    .badge-synergy {
+      background: rgba(0,212,170,0.2);
+      border: 1px solid var(--synergy);
+      color: var(--synergy);
+    }
+    
+    /* Container */
+    .container {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+    
+    /* Master Stats */
+    .master-stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    
+    @media (max-width: 1200px) {
+      .master-stats { grid-template-columns: repeat(3, 1fr); }
+    }
+    
+    @media (max-width: 700px) {
+      .master-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    .master-stat {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 25px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .master-stat::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+    }
+    
+    .master-stat.bezos::before { background: var(--bezos); }
+    .master-stat.zuck::before { background: var(--zuck); }
+    .master-stat.synergy::before { background: var(--synergy); }
+    .master-stat.combined::before { 
+      background: linear-gradient(90deg, var(--bezos), var(--zuck), var(--synergy)); 
+    }
+    
+    .master-value {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    
+    .master-stat.bezos .master-value { color: var(--bezos); }
+    .master-stat.zuck .master-value { color: var(--zuck); }
+    .master-stat.synergy .master-value { color: var(--synergy); }
+    .master-stat.combined .master-value { color: var(--gold); }
+    
+    .master-label {
+      color: var(--dim);
+      font-size: 0.9rem;
+      margin-top: 5px;
+    }
+    
+    .master-sub {
+      font-size: 0.8rem;
+      margin-top: 8px;
+      padding: 4px 10px;
+      border-radius: 10px;
+      display: inline-block;
+    }
+    
+    .master-sub.positive {
+      background: rgba(0,212,170,0.2);
+      color: var(--synergy);
+    }
+    
+    /* 3 Strategy Grid */
+    .strategy-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 25px;
+      margin-bottom: 40px;
+    }
+    
+    @media (max-width: 1000px) {
+      .strategy-grid { grid-template-columns: 1fr; }
+    }
+    
+    .strategy-card {
+      background: var(--card);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    
+    .strategy-header {
+      padding: 20px 25px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .strategy-header.bezos { background: linear-gradient(135deg, rgba(255,149,0,0.3), rgba(255,149,0,0.1)); }
+    .strategy-header.zuck { background: linear-gradient(135deg, rgba(24,119,242,0.3), rgba(24,119,242,0.1)); }
+    .strategy-header.synergy { background: linear-gradient(135deg, rgba(0,212,170,0.3), rgba(0,212,170,0.1)); }
+    
+    .strategy-icon {
+      font-size: 2.5rem;
+    }
+    
+    .strategy-title h3 {
+      font-size: 1.3rem;
+    }
+    
+    .strategy-title p {
+      color: var(--dim);
+      font-size: 0.85rem;
+    }
+    
+    .strategy-body {
+      padding: 25px;
+    }
+    
+    /* Flywheel Visual */
+    .flywheel-visual {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 20px;
+    }
+    
+    .flywheel-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border: 3px solid var(--bezos);
+      border-radius: 50%;
+      opacity: 0.3;
+    }
+    
+    .flywheel-ring.outer { width: 100%; height: 100%; }
+    .flywheel-ring.inner { width: 60%; height: 60%; }
+    
+    .flywheel-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px;
+      height: 60px;
+      background: var(--bezos);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #000;
+      box-shadow: 0 0 30px var(--bezos);
+    }
+    
+    .flywheel-node {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: var(--card);
+      border: 2px solid var(--bezos);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+    
+    .flywheel-node:nth-child(3) { top: 0; left: 50%; transform: translateX(-50%); }
+    .flywheel-node:nth-child(4) { top: 50%; right: 0; transform: translateY(-50%); }
+    .flywheel-node:nth-child(5) { bottom: 0; left: 50%; transform: translateX(-50%); }
+    .flywheel-node:nth-child(6) { top: 50%; left: 0; transform: translateY(-50%); }
+    
+    /* Network Visual */
+    .network-visual {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 20px;
+    }
+    
+    .network-node {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background: var(--zuck);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      box-shadow: 0 0 15px var(--zuck);
+    }
+    
+    .network-node.center {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 50px;
+      height: 50px;
+      z-index: 2;
+    }
+    
+    .network-node:nth-child(2) { top: 10%; left: 50%; transform: translateX(-50%); }
+    .network-node:nth-child(3) { top: 25%; right: 10%; }
+    .network-node:nth-child(4) { bottom: 25%; right: 10%; }
+    .network-node:nth-child(5) { bottom: 10%; left: 50%; transform: translateX(-50%); }
+    .network-node:nth-child(6) { bottom: 25%; left: 10%; }
+    .network-node:nth-child(7) { top: 25%; left: 10%; }
+    
+    .network-line {
+      position: absolute;
+      background: var(--zuck);
+      opacity: 0.3;
+      height: 2px;
+      transform-origin: left center;
+    }
+    
+    /* Synergy Visual */
+    .synergy-visual {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 20px;
+    }
+    
+    .synergy-bar {
+      position: absolute;
+      bottom: 0;
+      width: 30px;
+      background: linear-gradient(to top, var(--synergy), var(--gold));
+      border-radius: 5px 5px 0 0;
+      transition: height 0.5s;
+    }
+    
+    .synergy-bar:nth-child(1) { left: 10%; height: 30%; }
+    .synergy-bar:nth-child(2) { left: 25%; height: 45%; }
+    .synergy-bar:nth-child(3) { left: 40%; height: 65%; }
+    .synergy-bar:nth-child(4) { left: 55%; height: 85%; }
+    .synergy-bar:nth-child(5) { left: 70%; height: 100%; box-shadow: 0 0 20px var(--gold); }
+    
+    .synergy-label {
+      position: absolute;
+      bottom: -25px;
+      font-size: 0.7rem;
+      color: var(--dim);
+      width: 30px;
+      text-align: center;
+    }
+    
+    /* Strategy Stats */
+    .strategy-stats {
+      margin-top: 20px;
+    }
+    
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .stat-row:last-child { border-bottom: none; }
+    
+    .stat-label { color: var(--dim); }
+    .stat-value { font-weight: 600; }
+    
+    /* Formula Cards */
+    .formula-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    
+    @media (max-width: 900px) {
+      .formula-grid { grid-template-columns: 1fr; }
+    }
+    
+    .formula-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .formula-name {
+      font-size: 0.9rem;
+      color: var(--dim);
+      margin-bottom: 10px;
+    }
+    
+    .formula-eq {
+      font-family: 'Courier New', monospace;
+      font-size: 1.2rem;
+      padding: 15px;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    
+    .formula-card.bezos .formula-eq { color: var(--bezos); }
+    .formula-card.zuck .formula-eq { color: var(--zuck); }
+    .formula-card.synergy .formula-eq { color: var(--synergy); }
+    
+    .formula-desc {
+      font-size: 0.85rem;
+      color: var(--dim);
+    }
+    
+    /* Combined Chart */
+    .chart-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 40px;
+    }
+    
+    .chart-title {
+      font-size: 1.3rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .chart-container {
+      height: 400px;
+    }
+    
+    /* Simulator */
+    .simulator {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 40px;
+    }
+    
+    .sim-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    @media (max-width: 900px) {
+      .sim-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    .sim-input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 15px;
+    }
+    
+    .sim-input label {
+      display: block;
+      color: var(--dim);
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
+    
+    .sim-input input {
+      width: 100%;
+      padding: 10px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1.1rem;
+    }
+    
+    .sim-input input:focus {
+      outline: none;
+      border-color: var(--synergy);
+    }
+    
+    .sim-input .value-display {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--synergy);
+      margin-top: 5px;
+    }
+    
+    /* Result Table */
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    
+    .result-table th,
+    .result-table td {
+      padding: 15px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .result-table th {
+      color: var(--dim);
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    
+    .result-table .highlight {
+      background: rgba(0,212,170,0.1);
+    }
+    
+    .result-table .value {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    
+    .result-table .bezos-col { color: var(--bezos); }
+    .result-table .zuck-col { color: var(--zuck); }
+    .result-table .synergy-col { color: var(--synergy); }
+    .result-table .combined-col { color: var(--gold); }
+    
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+    
+    .btn {
+      padding: 15px 40px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn:hover { transform: translateY(-3px); }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--bezos), var(--zuck), var(--synergy));
+      color: #fff;
+      box-shadow: 0 10px 30px rgba(0,212,170,0.3);
+    }
+    
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      border-top: 1px solid var(--border);
+      color: var(--dim);
+    }
+    
+    .founder-quotes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto 30px;
+    }
+    
+    @media (max-width: 800px) {
+      .founder-quotes { grid-template-columns: 1fr; }
+    }
+    
+    .quote-card {
+      padding: 20px;
+      background: var(--card);
+      border-radius: 12px;
+      border-left: 4px solid;
+    }
+    
+    .quote-card.bezos { border-color: var(--bezos); }
+    .quote-card.zuck { border-color: var(--zuck); }
+    .quote-card.synergy { border-color: var(--synergy); }
+    
+    .quote-text {
+      font-style: italic;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+    
+    .quote-author {
+      font-weight: 600;
+    }
+    
+    .quote-card.bezos .quote-author { color: var(--bezos); }
+    .quote-card.zuck .quote-author { color: var(--zuck); }
+    .quote-card.synergy .quote-author { color: var(--synergy); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">🔺</div>
+    <h1>AUTUS 3대 전략 엔진</h1>
+    <p class="subtitle">세계 최고 기업가들의 성장 전략을 하나로</p>
+    
+    <div class="strategy-badges">
+      <div class="badge badge-bezos">🔄 Bezos Flywheel</div>
+      <div class="badge badge-zuck">🕸️ Zuckerberg Network</div>
+      <div class="badge badge-synergy">⚡ 시너지 지수승</div>
+    </div>
+  </header>
+  
+  <div class="container">
+    <!-- Master Stats -->
+    <div class="master-stats">
+      <div class="master-stat bezos">
+        <div class="master-value" id="flywheel-speed">1.0x</div>
+        <div class="master-label">Flywheel 속도</div>
+        <div class="master-sub positive">선순환 가속</div>
+      </div>
+      <div class="master-stat zuck">
+        <div class="master-value" id="network-value">n²</div>
+        <div class="master-label">Network 가치</div>
+        <div class="master-sub positive">메트칼프 법칙</div>
+      </div>
+      <div class="master-stat synergy">
+        <div class="master-value" id="synergy-power">1.3^n</div>
+        <div class="master-label">시너지 지수</div>
+        <div class="master-sub positive">복리 폭발</div>
+      </div>
+      <div class="master-stat combined">
+        <div class="master-value" id="combined-multiple">28.4x</div>
+        <div class="master-label">통합 성장 배율</div>
+        <div class="master-sub positive">12개월 후</div>
+      </div>
+      <div class="master-stat combined">
+        <div class="master-value" id="final-value">₩17억</div>
+        <div class="master-label">최종 예측 가치</div>
+        <div class="master-sub positive">₩6천만 → ₩17억</div>
+      </div>
+    </div>
+    
+    <!-- 3 Strategy Cards -->
+    <div class="strategy-grid">
+      <!-- Bezos Flywheel -->
+      <div class="strategy-card">
+        <div class="strategy-header bezos">
+          <div class="strategy-icon">🔄</div>
+          <div class="strategy-title">
+            <h3>Bezos Flywheel</h3>
+            <p>선순환 가속 구조</p>
+          </div>
+        </div>
+        <div class="strategy-body">
+          <div class="flywheel-visual">
+            <div class="flywheel-ring outer"></div>
+            <div class="flywheel-ring inner"></div>
+            <div class="flywheel-center" id="fw-center">1.0x</div>
+            <div class="flywheel-node">⏱️</div>
+            <div class="flywheel-node">🔗</div>
+            <div class="flywheel-node">💰</div>
+            <div class="flywheel-node">⚡</div>
+          </div>
+          
+          <div class="strategy-stats">
+            <div class="stat-row">
+              <span class="stat-label">시간비용 감소</span>
+              <span class="stat-value" id="fw-time" style="color: var(--bezos)">-0%</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">실행 용이성</span>
+              <span class="stat-value" id="fw-exec" style="color: var(--bezos)">+0%</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">자동화 확장</span>
+              <span class="stat-value" id="fw-auto" style="color: var(--bezos)">5개</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Zuckerberg Network -->
+      <div class="strategy-card">
+        <div class="strategy-header zuck">
+          <div class="strategy-icon">🕸️</div>
+          <div class="strategy-title">
+            <h3>Zuckerberg Network</h3>
+            <p>메트칼프 법칙</p>
+          </div>
+        </div>
+        <div class="strategy-body">
+          <div class="network-visual">
+            <svg style="position: absolute; width: 100%; height: 100%; opacity: 0.3;">
+              <line x1="50%" y1="50%" x2="50%" y2="10%" stroke="#1877f2" stroke-width="2"/>
+              <line x1="50%" y1="50%" x2="90%" y2="25%" stroke="#1877f2" stroke-width="2"/>
+              <line x1="50%" y1="50%" x2="90%" y2="75%" stroke="#1877f2" stroke-width="2"/>
+              <line x1="50%" y1="50%" x2="50%" y2="90%" stroke="#1877f2" stroke-width="2"/>
+              <line x1="50%" y1="50%" x2="10%" y2="75%" stroke="#1877f2" stroke-width="2"/>
+              <line x1="50%" y1="50%" x2="10%" y2="25%" stroke="#1877f2" stroke-width="2"/>
+            </svg>
+            <div class="network-node center">👤</div>
+            <div class="network-node">👤</div>
+            <div class="network-node">👤</div>
+            <div class="network-node">👤</div>
+            <div class="network-node">👤</div>
+            <div class="network-node">👤</div>
+            <div class="network-node">👤</div>
+          </div>
+          
+          <div class="strategy-stats">
+            <div class="stat-row">
+              <span class="stat-label">노드 수 (n)</span>
+              <span class="stat-value" id="nw-nodes" style="color: var(--zuck)">5</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">연결 수 (n²)</span>
+              <span class="stat-value" id="nw-links" style="color: var(--zuck)">25</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">네트워크 가치</span>
+              <span class="stat-value" id="nw-value" style="color: var(--zuck)">25x</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Synergy Exponential -->
+      <div class="strategy-card">
+        <div class="strategy-header synergy">
+          <div class="strategy-icon">⚡</div>
+          <div class="strategy-title">
+            <h3>시너지 지수승</h3>
+            <p>복리 폭발 성장</p>
+          </div>
+        </div>
+        <div class="strategy-body">
+          <div class="synergy-visual">
+            <div class="synergy-bar"><span class="synergy-label">3M</span></div>
+            <div class="synergy-bar"><span class="synergy-label">6M</span></div>
+            <div class="synergy-bar"><span class="synergy-label">9M</span></div>
+            <div class="synergy-bar"><span class="synergy-label">12M</span></div>
+            <div class="synergy-bar"><span class="synergy-label">🚀</span></div>
+          </div>
+          
+          <div class="strategy-stats" style="margin-top: 40px;">
+            <div class="stat-row">
+              <span class="stat-label">시너지율</span>
+              <span class="stat-value" id="sy-rate" style="color: var(--synergy)">30%</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">복리 주기</span>
+              <span class="stat-value" id="sy-period" style="color: var(--synergy)">12개월</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">지수 승수</span>
+              <span class="stat-value" id="sy-exp" style="color: var(--synergy)">9.2x</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Formula Cards -->
+    <div class="formula-grid">
+      <div class="formula-card bezos">
+        <div class="formula-name">Bezos Flywheel 공식</div>
+        <div class="formula-eq">V = (1+C)(1+L)(1+O)</div>
+        <div class="formula-desc">C=CUT, L=LINK, O=OUTSOURCE</div>
+      </div>
+      <div class="formula-card zuck">
+        <div class="formula-name">Metcalfe's Law 공식</div>
+        <div class="formula-eq">V = k × n²</div>
+        <div class="formula-desc">n=노드 수, k=상수</div>
+      </div>
+      <div class="formula-card synergy">
+        <div class="formula-name">시너지 복리 공식</div>
+        <div class="formula-eq">V = V₀ × (1+S)^n</div>
+        <div class="formula-desc">S=시너지율, n=개월</div>
+      </div>
+    </div>
+    
+    <!-- Combined Chart -->
+    <div class="chart-section">
+      <h2 class="chart-title">📈 3대 전략 통합 성장 그래프</h2>
+      <div class="chart-container">
+        <canvas id="combinedChart"></canvas>
+      </div>
+    </div>
+    
+    <!-- Simulator -->
+    <div class="simulator">
+      <h2 class="chart-title">🎮 통합 시뮬레이터</h2>
+      
+      <div class="sim-grid">
+        <div class="sim-input">
+          <label>💵 초기 가치</label>
+          <input type="number" id="input-initial" value="60000000" onchange="runSimulation()">
+          <div class="value-display" id="display-initial">₩6천만</div>
+        </div>
+        <div class="sim-input">
+          <label>👥 초기 노드 수</label>
+          <input type="number" id="input-nodes" value="5" min="2" max="100" onchange="runSimulation()">
+          <div class="value-display" id="display-nodes">5명</div>
+        </div>
+        <div class="sim-input">
+          <label>⚡ 시너지율</label>
+          <input type="range" id="input-synergy" min="10" max="50" value="30" oninput="runSimulation()">
+          <div class="value-display" id="display-synergy">30%</div>
+        </div>
+        <div class="sim-input">
+          <label>🔄 Flywheel 액션</label>
+          <input type="range" id="input-actions" min="0" max="20" value="5" oninput="runSimulation()">
+          <div class="value-display" id="display-actions">5개</div>
+        </div>
+      </div>
+      
+      <!-- Result Table -->
+      <table class="result-table">
+        <thead>
+          <tr>
+            <th>기간</th>
+            <th>Flywheel 효과</th>
+            <th>Network 효과</th>
+            <th>시너지 복리</th>
+            <th>통합 가치</th>
+          </tr>
+        </thead>
+        <tbody id="result-body">
+        </tbody>
+      </table>
+      
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="resetSimulation()">🔄 리셋</button>
+        <button class="btn btn-primary" onclick="maximizeGrowth()">🚀 최대 성장 시뮬레이션</button>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <div class="founder-quotes">
+      <div class="quote-card bezos">
+        <div class="quote-text">"Your margin is my opportunity. Flywheel을 돌려라."</div>
+        <div class="quote-author">— Jeff Bezos</div>
+      </div>
+      <div class="quote-card zuck">
+        <div class="quote-text">"Network connects everything. 연결이 가치다."</div>
+        <div class="quote-author">— Mark Zuckerberg</div>
+      </div>
+      <div class="quote-card synergy">
+        <div class="quote-text">"복리는 세계 8번째 불가사의. 시너지로 가속하라."</div>
+        <div class="quote-author">— AUTUS</div>
+      </div>
+    </div>
+    <p>AUTUS 3대 전략 엔진 © 2025</p>
+  </footer>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CONFIG
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let config = {
+      initialValue: 60000000,
+      nodes: 5,
+      synergyRate: 0.30,
+      flywheelActions: 5,
+      months: 12
+    };
+    
+    let chart;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CALCULATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    // Bezos Flywheel: 선순환 가속
+    function calcFlywheel(actions) {
+      const cutEffect = Math.min(actions * 0.05, 0.3);
+      const linkEffect = Math.min(actions * 0.03, 0.25);
+      const outsourceEffect = Math.min(actions * 0.02, 0.15);
+      return (1 + cutEffect) * (1 + linkEffect) * (1 + outsourceEffect);
+    }
+    
+    // Zuckerberg Network: 메트칼프 법칙 n²
+    function calcNetwork(nodes) {
+      return nodes * nodes;
+    }
+    
+    // 시너지 복리: (1+S)^n
+    function calcSynergyCompound(rate, months) {
+      return Math.pow(1 + rate, months);
+    }
+    
+    // 통합 성장
+    function calcCombinedGrowth(initial, nodes, synergyRate, actions, month) {
+      const flywheel = calcFlywheel(actions * (month / 12));
+      const network = Math.sqrt(calcNetwork(nodes + month)); // 노드도 성장
+      const compound = calcSynergyCompound(synergyRate, month);
+      
+      // 통합 공식: 초기값 × Flywheel × √Network × 복리
+      return initial * flywheel * (network / Math.sqrt(calcNetwork(nodes))) * compound;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SIMULATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function runSimulation() {
+      // Get inputs
+      config.initialValue = parseInt(document.getElementById('input-initial').value) || 60000000;
+      config.nodes = parseInt(document.getElementById('input-nodes').value) || 5;
+      config.synergyRate = parseInt(document.getElementById('input-synergy').value) / 100;
+      config.flywheelActions = parseInt(document.getElementById('input-actions').value);
+      
+      // Update displays
+      document.getElementById('display-initial').textContent = formatMoneyShort(config.initialValue);
+      document.getElementById('display-nodes').textContent = config.nodes + '명';
+      document.getElementById('display-synergy').textContent = (config.synergyRate * 100).toFixed(0) + '%';
+      document.getElementById('display-actions').textContent = config.flywheelActions + '개';
+      
+      // Calculate final values
+      const flywheel = calcFlywheel(config.flywheelActions);
+      const network = calcNetwork(config.nodes + 12); // 12개월 후 예상 노드
+      const compound = calcSynergyCompound(config.synergyRate, 12);
+      const finalValue = calcCombinedGrowth(config.initialValue, config.nodes, config.synergyRate, config.flywheelActions, 12);
+      const multiple = finalValue / config.initialValue;
+      
+      // Update master stats
+      document.getElementById('flywheel-speed').textContent = flywheel.toFixed(2) + 'x';
+      document.getElementById('network-value').textContent = 'n²=' + network;
+      document.getElementById('synergy-power').textContent = compound.toFixed(1) + 'x';
+      document.getElementById('combined-multiple').textContent = multiple.toFixed(1) + 'x';
+      document.getElementById('final-value').textContent = formatMoneyShort(finalValue);
+      
+      // Update strategy cards
+      document.getElementById('fw-center').textContent = flywheel.toFixed(1) + 'x';
+      document.getElementById('fw-time').textContent = '-' + (config.flywheelActions * 3) + '%';
+      document.getElementById('fw-exec').textContent = '+' + (config.flywheelActions * 5) + '%';
+      document.getElementById('fw-auto').textContent = (5 + config.flywheelActions) + '개';
+      
+      document.getElementById('nw-nodes').textContent = config.nodes;
+      document.getElementById('nw-links').textContent = calcNetwork(config.nodes);
+      document.getElementById('nw-value').textContent = calcNetwork(config.nodes) + 'x';
+      
+      document.getElementById('sy-rate').textContent = (config.synergyRate * 100).toFixed(0) + '%';
+      document.getElementById('sy-exp').textContent = compound.toFixed(1) + 'x';
+      
+      // Update table
+      updateResultTable();
+      
+      // Update chart
+      updateChart();
+    }
+    
+    function updateResultTable() {
+      const tbody = document.getElementById('result-body');
+      const milestones = [0, 3, 6, 9, 12];
+      
+      tbody.innerHTML = milestones.map(month => {
+        const fw = calcFlywheel(config.flywheelActions * (month / 12));
+        const nw = calcNetwork(config.nodes + month);
+        const cp = calcSynergyCompound(config.synergyRate, month);
+        const combined = calcCombinedGrowth(config.initialValue, config.nodes, config.synergyRate, config.flywheelActions, month);
+        
+        const isHighlight = month === 12 ? 'highlight' : '';
+        
+        return `
+          <tr class="${isHighlight}">
+            <td>${month}개월</td>
+            <td class="bezos-col value">${fw.toFixed(2)}x</td>
+            <td class="zuck-col value">${nw}</td>
+            <td class="synergy-col value">${cp.toFixed(1)}x</td>
+            <td class="combined-col value">${formatMoneyShort(combined)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CHART
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function initChart() {
+      const ctx = document.getElementById('combinedChart').getContext('2d');
+      
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Flywheel Only',
+              data: [],
+              borderColor: '#ff9500',
+              backgroundColor: 'rgba(255,149,0,0.1)',
+              tension: 0.4,
+              pointRadius: 0
+            },
+            {
+              label: 'Network Only',
+              data: [],
+              borderColor: '#1877f2',
+              backgroundColor: 'rgba(24,119,242,0.1)',
+              tension: 0.4,
+              pointRadius: 0
+            },
+            {
+              label: '시너지 복리 Only',
+              data: [],
+              borderColor: '#00d4aa',
+              backgroundColor: 'rgba(0,212,170,0.1)',
+              tension: 0.4,
+              pointRadius: 0
+            },
+            {
+              label: '🔺 3대 전략 통합',
+              data: [],
+              borderColor: '#ffd700',
+              backgroundColor: 'rgba(255,215,0,0.2)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 4,
+              pointBackgroundColor: '#ffd700'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#888' }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.dataset.label + ': ' + formatMoneyShort(context.raw);
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#1e1e2e' },
+              ticks: { color: '#888' }
+            },
+            y: {
+              grid: { color: '#1e1e2e' },
+              ticks: {
+                color: '#888',
+                callback: function(value) {
+                  return formatMoneyShort(value);
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function updateChart() {
+      const labels = [];
+      const fwData = [];
+      const nwData = [];
+      const syData = [];
+      const combinedData = [];
+      
+      for (let m = 0; m <= 12; m++) {
+        labels.push(m + '개월');
+        
+        // Flywheel only
+        const fw = config.initialValue * calcFlywheel(config.flywheelActions * (m / 12));
+        fwData.push(fw);
+        
+        // Network only (normalized)
+        const nwRatio = calcNetwork(config.nodes + m) / calcNetwork(config.nodes);
+        nwData.push(config.initialValue * nwRatio);
+        
+        // Synergy only
+        const sy = config.initialValue * calcSynergyCompound(config.synergyRate, m);
+        syData.push(sy);
+        
+        // Combined
+        combinedData.push(calcCombinedGrowth(config.initialValue, config.nodes, config.synergyRate, config.flywheelActions, m));
+      }
+      
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = fwData;
+      chart.data.datasets[1].data = nwData;
+      chart.data.datasets[2].data = syData;
+      chart.data.datasets[3].data = combinedData;
+      chart.update();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UTILITIES
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoneyShort(value) {
+      if (value >= 100000000) {
+        return '₩' + (value / 100000000).toFixed(1) + '억';
+      }
+      if (value >= 10000000) {
+        return '₩' + (value / 10000000).toFixed(0) + '천만';
+      }
+      if (value >= 1000000) {
+        return '₩' + Math.round(value / 1000000) + 'M';
+      }
+      return '₩' + Math.round(value / 10000) + '만';
+    }
+    
+    function resetSimulation() {
+      document.getElementById('input-initial').value = 60000000;
+      document.getElementById('input-nodes').value = 5;
+      document.getElementById('input-synergy').value = 30;
+      document.getElementById('input-actions').value = 5;
+      runSimulation();
+    }
+    
+    function maximizeGrowth() {
+      document.getElementById('input-nodes').value = 20;
+      document.getElementById('input-synergy').value = 40;
+      document.getElementById('input-actions').value = 15;
+      runSimulation();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      initChart();
+      runSimulation();
+      console.log('🔺 AUTUS 3대 전략 엔진 로드 완료');
+    });
+  </script>
+</body>
+</html>

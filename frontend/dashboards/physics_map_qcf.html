@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚛️ AUTUS Economic Physics Engine - QCF Edition</title>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --quantum-glow: rgba(0, 255, 136, 0.8);
+      --chaos-glow: rgba(255, 204, 0, 0.8);
+      --entangle-glow: rgba(153, 102, 255, 0.8);
+      --entropy-glow: rgba(255, 68, 102, 0.8);
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #000011;
+      color: #fff;
+      overflow: hidden;
+    }
+    
+    /* 메인 캔버스 */
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      cursor: grab;
+    }
+    
+    #canvas.dragging { cursor: grabbing; }
+    #canvas.selecting { cursor: crosshair; }
+    
+    /* 헤더 - Economic Physics Engine */
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 17, 0.98) 0%, transparent 100%);
+      padding: 16px 24px;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    .header-left h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #00ff88;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .header-left .philosophy {
+      color: #444;
+      font-size: 9px;
+      margin-top: 4px;
+      letter-spacing: 1px;
+      font-style: italic;
+    }
+    
+    .header-left .musk-quote {
+      color: #666;
+      font-size: 10px;
+      margin-top: 6px;
+      max-width: 400px;
+      line-height: 1.4;
+      border-left: 2px solid #333;
+      padding-left: 10px;
+    }
+    
+    /* KPI 패널 */
+    .kpi-panel {
+      display: flex;
+      gap: 20px;
+    }
+    
+    .kpi-item {
+      text-align: right;
+      min-width: 100px;
+    }
+    
+    .kpi-label {
+      color: #555;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .kpi-value {
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    
+    .positive { color: #00ff88; }
+    .negative { color: #ff4466; }
+    .neutral { color: #ffcc00; }
+    .quantum { color: #9966ff; }
+    
+    /* QCF 컨트롤 패널 */
+    .qcf-panel {
+      position: absolute;
+      top: 120px;
+      left: 20px;
+      background: rgba(0, 0, 17, 0.95);
+      border: 1px solid rgba(153, 102, 255, 0.4);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 100;
+      width: 260px;
+    }
+    
+    .panel-title {
+      color: #9966ff;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .qcf-state {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .state-btn {
+      flex: 1;
+      padding: 8px 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: #888;
+      font-size: 9px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    
+    .state-btn:hover { background: rgba(255, 255, 255, 0.1); }
+    .state-btn.active {
+      background: rgba(153, 102, 255, 0.2);
+      border-color: #9966ff;
+      color: #9966ff;
+    }
+    
+    .zoom-info {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 12px;
+    }
+    
+    .zoom-label {
+      color: #666;
+      font-size: 10px;
+    }
+    
+    .zoom-value {
+      font-size: 14px;
+      font-weight: bold;
+      color: #00ccff;
+    }
+    
+    .zoom-level {
+      font-size: 10px;
+      color: #888;
+      margin-top: 4px;
+    }
+    
+    /* 물리 효과 패널 */
+    .physics-panel {
+      position: absolute;
+      top: 120px;
+      right: 20px;
+      background: rgba(0, 0, 17, 0.95);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 100;
+      width: 280px;
+    }
+    
+    .physics-effect {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .physics-effect:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    
+    .physics-effect.active {
+      border: 1px solid rgba(0, 255, 136, 0.4);
+    }
+    
+    .effect-icon {
+      font-size: 20px;
+      width: 32px;
+      text-align: center;
+    }
+    
+    .effect-info {
+      flex: 1;
+    }
+    
+    .effect-name {
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .effect-desc {
+      font-size: 9px;
+      color: #666;
+      margin-top: 2px;
+    }
+    
+    .effect-toggle {
+      width: 36px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      position: relative;
+      transition: all 0.2s;
+    }
+    
+    .effect-toggle::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: #666;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: all 0.2s;
+    }
+    
+    .physics-effect.active .effect-toggle {
+      background: rgba(0, 255, 136, 0.3);
+    }
+    
+    .physics-effect.active .effect-toggle::after {
+      background: #00ff88;
+      left: 18px;
+    }
+    
+    /* 예측 패널 */
+    .predict-panel {
+      position: absolute;
+      bottom: 100px;
+      right: 20px;
+      background: rgba(0, 0, 17, 0.95);
+      border: 1px solid rgba(255, 204, 0, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 100;
+      width: 260px;
+    }
+    
+    .predict-item {
+      margin-bottom: 12px;
+    }
+    
+    .predict-label {
+      color: #888;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+    
+    .predict-value {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    
+    .predict-delta {
+      font-size: 11px;
+      margin-top: 2px;
+    }
+    
+    .best-team {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    
+    .team-badge {
+      background: rgba(0, 255, 136, 0.2);
+      border: 1px solid rgba(0, 255, 136, 0.4);
+      border-radius: 12px;
+      padding: 4px 10px;
+      font-size: 10px;
+      color: #00ff88;
+    }
+    
+    /* 드래그 입력 패널 */
+    .drag-panel {
+      position: absolute;
+      bottom: 100px;
+      left: 20px;
+      background: rgba(0, 0, 17, 0.95);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 100;
+      width: 260px;
+    }
+    
+    .input-type-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .input-btn {
+      flex: 1;
+      padding: 10px 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: #888;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .input-btn:hover { background: rgba(255, 255, 255, 0.1); }
+    .input-btn.active {
+      background: rgba(0, 204, 255, 0.2);
+      border-color: #00ccff;
+      color: #00ccff;
+    }
+    
+    .input-hint {
+      color: #666;
+      font-size: 10px;
+      line-height: 1.5;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 6px;
+    }
+    
+    /* 클러스터 액션 */
+    .cluster-actions {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 100;
+    }
+    
+    .action-btn {
+      padding: 12px 24px;
+      background: rgba(0, 0, 17, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 24px;
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .action-btn.primary {
+      background: rgba(0, 255, 136, 0.2);
+      border-color: rgba(0, 255, 136, 0.5);
+    }
+    
+    .action-btn.danger {
+      background: rgba(255, 68, 102, 0.2);
+      border-color: rgba(255, 68, 102, 0.5);
+    }
+    
+    /* 상태 바 */
+    .status-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 17, 0.95);
+      padding: 8px 20px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #444;
+      z-index: 50;
+    }
+    
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ff4466;
+    }
+    
+    .status-dot.connected {
+      background: #00ff88;
+      box-shadow: 0 0 6px #00ff88;
+    }
+    
+    /* 노드 정보 팝업 */
+    .node-popup {
+      position: absolute;
+      display: none;
+      background: rgba(0, 0, 17, 0.98);
+      border: 1px solid rgba(0, 255, 136, 0.5);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 200;
+      min-width: 220px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    
+    .node-popup.visible { display: block; }
+    
+    .popup-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 12px;
+    }
+    
+    .popup-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(0, 255, 136, 0.3), rgba(0, 204, 255, 0.3));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    .popup-name {
+      font-size: 16px;
+      font-weight: bold;
+    }
+    
+    .popup-type {
+      font-size: 10px;
+      color: #666;
+    }
+    
+    .popup-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    
+    .popup-row .label { color: #666; }
+    .popup-row .value { font-weight: bold; }
+    
+    /* 양자 효과 시각화 */
+    @keyframes quantum-pulse {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.2); }
+    }
+    
+    @keyframes chaos-flutter {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(2px, -2px); }
+      50% { transform: translate(-2px, 2px); }
+      75% { transform: translate(2px, 2px); }
+    }
+    
+    @keyframes entangle-sync {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    /* 선택 박스 */
+    .selection-box {
+      position: absolute;
+      border: 2px dashed rgba(0, 204, 255, 0.8);
+      background: rgba(0, 204, 255, 0.1);
+      pointer-events: none;
+      z-index: 150;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div class="selection-box" id="selection-box"></div>
+  
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="header-left">
+      <h1>⚛️ AUTUS Economic Physics Engine</h1>
+      <div class="philosophy">QCF Edition • First Principles • 사람+돈만 • 의미 제거 = 스케일 극대화</div>
+      <div class="musk-quote">
+        "이건 시각화가 아니라 실시간 물리 시뮬레이션 엔진이다. 
+        지구를 노드와 엣지로 환원했다." — Elon Style
+      </div>
+    </div>
+    <div class="kpi-panel">
+      <div class="kpi-item">
+        <div class="kpi-label">Net Coin (7D)</div>
+        <div class="kpi-value positive" id="kpi-net">₩289M</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">Entropy</div>
+        <div class="kpi-value neutral" id="kpi-entropy">0.02</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">Velocity</div>
+        <div class="kpi-value" style="color: #00ccff;" id="kpi-velocity">₩61K/m</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">Nodes</div>
+        <div class="kpi-value quantum" id="kpi-nodes">5</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- QCF 컨트롤 -->
+  <div class="qcf-panel">
+    <div class="panel-title">🌌 Quantum Cluster Flow</div>
+    <div class="qcf-state">
+      <button class="state-btn" data-state="quantum">
+        🌀<br>Quantum
+      </button>
+      <button class="state-btn active" data-state="observe">
+        👁️<br>Observe
+      </button>
+      <button class="state-btn" data-state="cluster">
+        🔷<br>Cluster
+      </button>
+    </div>
+    <div style="font-size: 10px; color: #666; line-height: 1.5;">
+      <strong>Quantum</strong>: 미관측 상태 (메타데이터만)<br>
+      <strong>Observe</strong>: 관측 영역 실체화<br>
+      <strong>Cluster</strong>: 클러스터 붕괴 모드
+    </div>
+    <div class="zoom-info">
+      <div class="zoom-label">현재 줌 레벨</div>
+      <div class="zoom-value" id="zoom-value">Level 3</div>
+      <div class="zoom-level" id="zoom-level">개인 레벨 (1-30 노드)</div>
+    </div>
+  </div>
+  
+  <!-- 물리 효과 패널 -->
+  <div class="physics-panel">
+    <div class="panel-title" style="color: #00ff88;">⚡ Physics Effects</div>
+    
+    <div class="physics-effect active" data-effect="superposition">
+      <span class="effect-icon">🌀</span>
+      <div class="effect-info">
+        <div class="effect-name">Quantum Superposition</div>
+        <div class="effect-desc">다중 상태 중첩 → 액션 시 붕괴</div>
+      </div>
+      <div class="effect-toggle"></div>
+    </div>
+    
+    <div class="physics-effect active" data-effect="chaos">
+      <span class="effect-icon">🦋</span>
+      <div class="effect-info">
+        <div class="effect-name">Chaos (Butterfly)</div>
+        <div class="effect-desc">작은 변화 → 지수적 돈 변동</div>
+      </div>
+      <div class="effect-toggle"></div>
+    </div>
+    
+    <div class="physics-effect" data-effect="entropy">
+      <span class="effect-icon">🔥</span>
+      <div class="effect-info">
+        <div class="effect-name">Entropy Correction</div>
+        <div class="effect-desc">시너지 낮으면 비율 하락</div>
+      </div>
+      <div class="effect-toggle"></div>
+    </div>
+    
+    <div class="physics-effect" data-effect="entangle">
+      <span class="effect-icon">🔗</span>
+      <div class="effect-info">
+        <div class="effect-name">Quantum Entanglement</div>
+        <div class="effect-desc">거리 무관 즉시 동기화</div>
+      </div>
+      <div class="effect-toggle"></div>
+    </div>
+    
+    <div class="physics-effect" data-effect="relativity">
+      <span class="effect-icon">🌊</span>
+      <div class="effect-info">
+        <div class="effect-name">Action Relativity</div>
+        <div class="effect-desc">연결 상대에 따라 비율 다름</div>
+      </div>
+      <div class="effect-toggle"></div>
+    </div>
+  </div>
+  
+  <!-- 예측 패널 -->
+  <div class="predict-panel">
+    <div class="panel-title" style="color: #ffcc00;">🔮 Rolling Prediction (7D)</div>
+    
+    <div class="predict-item">
+      <div class="predict-label">Predicted Net</div>
+      <div class="predict-value positive" id="pred-net">₩289M</div>
+      <div class="predict-delta positive" id="pred-net-delta">↑ +15%</div>
+    </div>
+    
+    <div class="predict-item">
+      <div class="predict-label">Predicted Entropy</div>
+      <div class="predict-value neutral" id="pred-entropy">0.02</div>
+    </div>
+    
+    <div class="predict-item">
+      <div class="predict-label">Best Team</div>
+      <div class="best-team" id="pred-team">
+        <span class="team-badge">오세호</span>
+        <span class="team-badge">김경희</span>
+        <span class="team-badge">오선우</span>
+      </div>
+      <div style="margin-top: 8px; font-size: 11px; color: #888;">
+        Score: <span id="pred-score" style="color: #00ff88;">₩12.1M</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 드래그 입력 -->
+  <div class="drag-panel">
+    <div class="panel-title" style="color: #00ccff;">🖱️ Physics Input (Drag)</div>
+    <div class="input-type-row">
+      <button class="input-btn active" data-input="swap">
+        👥 SWAP<br><span style="font-size: 8px;">팀 교체</span>
+      </button>
+      <button class="input-btn" data-input="alloc">
+        ⏱️ ALLOC<br><span style="font-size: 8px;">시간 배분</span>
+      </button>
+      <button class="input-btn" data-input="group">
+        🔷 GROUP<br><span style="font-size: 8px;">클러스터</span>
+      </button>
+    </div>
+    <div class="input-hint" id="input-hint">
+      노드를 드래그하여 팀 교체.<br>
+      드래그 거리 = 물리 입력 크기.<br>
+      예측 즉시 갱신 (1초 내).
+    </div>
+  </div>
+  
+  <!-- 클러스터 액션 -->
+  <div class="cluster-actions">
+    <button class="action-btn" id="btn-select">
+      ✨ 선택 모드
+    </button>
+    <button class="action-btn primary" id="btn-group">
+      🔷 그룹 생성
+    </button>
+    <button class="action-btn" id="btn-ungroup">
+      📤 그룹 해제
+    </button>
+    <button class="action-btn danger" id="btn-delete">
+      🗑️ CUT (삭제)
+    </button>
+    <button class="action-btn" id="btn-automate">
+      ⚡ LINK (자동화)
+    </button>
+  </div>
+  
+  <!-- 상태 바 -->
+  <div class="status-bar">
+    <div class="status-item">
+      <div class="status-dot" id="ws-dot"></div>
+      <span id="ws-status">연결 중...</span>
+    </div>
+    <div class="status-item">
+      <span>QCF State: <span id="qcf-state-text">OBSERVE</span></span>
+    </div>
+    <div class="status-item">
+      <span>Loaded: <span id="loaded-nodes">5</span> nodes / <span id="loaded-links">8</span> links</span>
+    </div>
+    <div class="status-item">
+      <span>AUTUS Economic Physics Engine v1.0 • First Principles • V = Σ Φ_ij</span>
+    </div>
+  </div>
+  
+  <!-- 노드 팝업 -->
+  <div class="node-popup" id="node-popup">
+    <div class="popup-header">
+      <div class="popup-avatar" id="popup-avatar">👤</div>
+      <div>
+        <div class="popup-name" id="popup-name">Name</div>
+        <div class="popup-type" id="popup-type">Type</div>
+      </div>
+    </div>
+    <div class="popup-row">
+      <span class="label">Total Coin</span>
+      <span class="value positive" id="popup-coin">₩0</span>
+    </div>
+    <div class="popup-row">
+      <span class="label">Velocity</span>
+      <span class="value" style="color: #00ccff;" id="popup-velocity">₩0/min</span>
+    </div>
+    <div class="popup-row">
+      <span class="label">Quantum State</span>
+      <span class="value quantum" id="popup-quantum">Observed</span>
+    </div>
+    <div class="popup-row">
+      <span class="label">Synergy Links</span>
+      <span class="value" id="popup-links">0</span>
+    </div>
+    <div class="popup-row">
+      <span class="label">Chaos Factor</span>
+      <span class="value neutral" id="popup-chaos">1.0x</span>
+    </div>
+  </div>
+  
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 상태
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const state = {
+      // QCF 상태
+      qcfState: 'observe', // quantum | observe | cluster
+      zoom: 3,
+      
+      // 물리 효과
+      effects: {
+        superposition: true,
+        chaos: true,
+        entropy: false,
+        entangle: false,
+        relativity: false
+      },
+      
+      // 입력 타입
+      inputType: 'swap',
+      
+      // 노드/링크
+      nodes: [],
+      links: [],
+      clusters: [],
+      
+      // 선택
+      selectedNodes: new Set(),
+      isSelecting: false,
+      selectionStart: null,
+      
+      // 드래그
+      isDragging: false,
+      dragNode: null,
+      dragStart: { x: 0, y: 0 },
+      
+      // 팬/줌
+      pan: { x: 0, y: 0 },
+      scale: 1,
+      
+      // KPI
+      kpi: {
+        net_7d_pred: 289000000,
+        entropy_7d_pred: 0.02,
+        velocity_7d_pred: 61458,
+        best_team: ['오세호', '김경희', '오선우'],
+        best_team_score: 12112286
+      },
+      
+      // 파티클
+      particles: []
+    };
+    
+    // 캔버스
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    
+    // WebSocket
+    let ws = null;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 초기화
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function init() {
+      resize();
+      loadDemoData();
+      initParticles();
+      connectWebSocket();
+      setupEventListeners();
+      animate();
+    }
+    
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      positionNodes();
+    }
+    
+    function loadDemoData() {
+      // Economic Physics Engine 데모 데이터
+      state.nodes = [
+        { id: 'P01', name: '오세호', type: 'core', coin: 96154, velocity: 96154, x: 0, y: 0, quantum: 'observed', chaos: 1.2 },
+        { id: 'P02', name: '김경희', type: 'core', coin: 55556, velocity: 55556, x: 0, y: 0, quantum: 'observed', chaos: 1.0 },
+        { id: 'P03', name: '오선우', type: 'team', coin: 50000, velocity: 50000, x: 0, y: 0, quantum: 'observed', chaos: 1.1 },
+        { id: 'P04', name: '오연우', type: 'team', coin: 41667, velocity: 41667, x: 0, y: 0, quantum: 'superposed', chaos: 0.9 },
+        { id: 'P05', name: '오은우', type: 'team', coin: 38889, velocity: 38889, x: 0, y: 0, quantum: 'superposed', chaos: 0.8 },
+      ];
+      
+      state.links = [
+        { source: 'P01', target: 'P02', value: 28000000, type: 'synergy', phi: 1345336 },
+        { source: 'P01', target: 'P03', value: 35000000, type: 'synergy', phi: 599516 },
+        { source: 'P02', target: 'P03', value: 45000000, type: 'synergy', phi: 1023411 },
+        { source: 'P02', target: 'P04', value: 18000000, type: 'flow', phi: 0 },
+        { source: 'P03', target: 'P04', value: 22000000, type: 'flow', phi: 0 },
+        { source: 'P04', target: 'P05', value: 15000000, type: 'prediction', phi: 0 },
+        { source: 'P01', target: 'P05', value: 20000000, type: 'prediction', phi: 0 },
+      ];
+      
+      positionNodes();
+      updateUI();
+    }
+    
+    function positionNodes() {
+      const cx = width / 2 + state.pan.x;
+      const cy = height / 2 + state.pan.y;
+      const radius = Math.min(width, height) * 0.25 * state.scale;
+      
+      state.nodes.forEach((node, i) => {
+        const angle = (i / state.nodes.length) * Math.PI * 2 - Math.PI / 2;
+        node.x = cx + Math.cos(angle) * radius;
+        node.y = cy + Math.sin(angle) * radius;
+      });
+    }
+    
+    function initParticles() {
+      state.particles = [];
+      
+      state.links.forEach(link => {
+        const count = Math.min(Math.ceil(link.value / 5000000), 10);
+        for (let i = 0; i < count; i++) {
+          state.particles.push({
+            link: link,
+            progress: Math.random(),
+            speed: 0.002 + Math.random() * 0.003,
+            trail: [],
+            glow: link.type === 'prediction'
+          });
+        }
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // WebSocket
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function connectWebSocket() {
+      try {
+        ws = new WebSocket(`ws://${window.location.hostname}:8000/ws`);
+        
+        ws.onopen = () => {
+          document.getElementById('ws-dot').classList.add('connected');
+          document.getElementById('ws-status').textContent = '실시간 연결됨';
+        };
+        
+        ws.onmessage = (e) => {
+          const msg = JSON.parse(e.data);
+          handleWSMessage(msg);
+        };
+        
+        ws.onclose = () => {
+          document.getElementById('ws-dot').classList.remove('connected');
+          document.getElementById('ws-status').textContent = '연결 끊김 - 재연결 중...';
+          setTimeout(connectWebSocket, 3000);
+        };
+        
+        ws.onerror = () => {
+          document.getElementById('ws-status').textContent = '데모 모드';
+        };
+      } catch (e) {
+        document.getElementById('ws-status').textContent = '데모 모드';
+      }
+    }
+    
+    function handleWSMessage(msg) {
+      if (msg.type === 'STATE_SNAPSHOT') {
+        // 전체 상태 로드
+        console.log('STATE_SNAPSHOT received');
+      } else if (msg.type === 'PREDICT_RESULT') {
+        // 예측 결과 업데이트
+        if (msg.payload && msg.payload.kpi) {
+          state.kpi = msg.payload.kpi;
+          updatePrediction();
+        }
+      }
+    }
+    
+    function sendInput(inputType, params) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'INPUT_APPLY',
+          ts: new Date().toISOString(),
+          payload: {
+            input_type: inputType,
+            meta: { industry_id: 'GENERIC', customer_id: 'CUST-001', project_id: 'PROJ-ALPHA' },
+            ...params
+          }
+        }));
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 렌더링
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function render() {
+      // 배경
+      ctx.fillStyle = '#000011';
+      ctx.fillRect(0, 0, width, height);
+      
+      // 그리드
+      drawGrid();
+      
+      // QCF 상태에 따른 렌더링
+      if (state.qcfState === 'quantum') {
+        renderQuantumState();
+      } else if (state.qcfState === 'cluster') {
+        renderClusterState();
+      } else {
+        renderObserveState();
+      }
+    }
+    
+    function drawGrid() {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
+      ctx.lineWidth = 1;
+      
+      const gridSize = 50 * state.scale;
+      const offsetX = state.pan.x % gridSize;
+      const offsetY = state.pan.y % gridSize;
+      
+      for (let x = offsetX; x < width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      
+      for (let y = offsetY; y < height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+    }
+    
+    function renderQuantumState() {
+      // 양자 상태: 희미한 확률 분포만 표시
+      ctx.globalAlpha = 0.2;
+      
+      state.nodes.forEach(node => {
+        // 확률 분포 오라
+        const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, 100);
+        gradient.addColorStop(0, 'rgba(153, 102, 255, 0.3)');
+        gradient.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, 100, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      
+      ctx.globalAlpha = 1;
+      
+      // 중앙 텍스트
+      ctx.font = '24px sans-serif';
+      ctx.fillStyle = 'rgba(153, 102, 255, 0.5)';
+      ctx.textAlign = 'center';
+      ctx.fillText('🌀 Quantum State - 관측 대기 중', width / 2, height / 2);
+    }
+    
+    function renderClusterState() {
+      // 클러스터 상태: 요약 노드만 표시
+      const clusterNode = {
+        x: width / 2,
+        y: height / 2,
+        size: 80,
+        label: `클러스터 (${state.nodes.length}명)`,
+        value: state.nodes.reduce((sum, n) => sum + n.coin, 0)
+      };
+      
+      // 클러스터 노드
+      ctx.beginPath();
+      ctx.arc(clusterNode.x, clusterNode.y, clusterNode.size, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(153, 102, 255, 0.3)';
+      ctx.fill();
+      ctx.strokeStyle = '#9966ff';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      
+      // 라벨
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.fillText(clusterNode.label, clusterNode.x, clusterNode.y - 10);
+      ctx.font = '14px sans-serif';
+      ctx.fillStyle = '#00ff88';
+      ctx.fillText(formatMoney(clusterNode.value) + '/min', clusterNode.x, clusterNode.y + 15);
+    }
+    
+    function renderObserveState() {
+      // 관측 상태: 전체 렌더링
+      
+      // 링크 렌더링
+      state.links.forEach(link => {
+        const source = state.nodes.find(n => n.id === link.source);
+        const target = state.nodes.find(n => n.id === link.target);
+        if (!source || !target) return;
+        
+        drawLink(source, target, link);
+      });
+      
+      // 파티클 업데이트 및 렌더링
+      updateParticles();
+      renderParticles();
+      
+      // 노드 렌더링
+      state.nodes.forEach(node => {
+        drawNode(node);
+      });
+    }
+    
+    function drawLink(source, target, link) {
+      const midX = (source.x + target.x) / 2;
+      const midY = (source.y + target.y) / 2 - 30;
+      
+      ctx.beginPath();
+      ctx.moveTo(source.x, source.y);
+      ctx.quadraticCurveTo(midX, midY, target.x, target.y);
+      
+      // 링크 타입에 따른 스타일
+      if (link.type === 'prediction') {
+        ctx.setLineDash([12, 8]);
+        ctx.strokeStyle = 'rgba(255, 204, 0, 0.6)';
+        ctx.lineWidth = 2;
+      } else if (link.type === 'synergy' && link.phi > 0) {
+        ctx.setLineDash([]);
+        ctx.strokeStyle = `rgba(0, 255, 136, ${0.3 + link.phi / 2000000})`;
+        ctx.lineWidth = 2 + link.phi / 500000;
+      } else {
+        ctx.setLineDash([]);
+        ctx.strokeStyle = 'rgba(0, 204, 255, 0.3)';
+        ctx.lineWidth = 1 + link.value / 20000000;
+      }
+      
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // 얽힘 효과
+      if (state.effects.entangle && link.type === 'synergy') {
+        drawEntanglementEffect(source, target);
+      }
+    }
+    
+    function drawNode(node) {
+      const size = 25 + Math.sqrt(node.coin) / 100;
+      const isSelected = state.selectedNodes.has(node.id);
+      const isDragging = state.dragNode === node;
+      
+      // 양자 중첩 효과
+      if (state.effects.superposition && node.quantum === 'superposed') {
+        drawQuantumSuperposition(node, size);
+      }
+      
+      // 카오스 효과
+      let chaosOffset = { x: 0, y: 0 };
+      if (state.effects.chaos && node.chaos !== 1) {
+        const t = Date.now() / 1000;
+        chaosOffset.x = Math.sin(t * 5 + node.x) * (node.chaos - 1) * 5;
+        chaosOffset.y = Math.cos(t * 5 + node.y) * (node.chaos - 1) * 5;
+      }
+      
+      const x = node.x + chaosOffset.x;
+      const y = node.y + chaosOffset.y;
+      
+      // 글로우
+      if (isDragging || isSelected) {
+        ctx.beginPath();
+        ctx.arc(x, y, size * 2, 0, Math.PI * 2);
+        ctx.fillStyle = isDragging ? 'rgba(255, 204, 0, 0.2)' : 'rgba(0, 204, 255, 0.2)';
+        ctx.fill();
+      }
+      
+      // 외곽 글로우
+      ctx.beginPath();
+      ctx.arc(x, y, size * 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = getNodeGlowColor(node);
+      ctx.fill();
+      
+      // 메인 원
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fillStyle = getNodeColor(node);
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.shadowBlur = 15;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      // 테두리
+      ctx.strokeStyle = isSelected ? '#00ccff' : '#fff';
+      ctx.lineWidth = isSelected ? 3 : 2;
+      ctx.stroke();
+      
+      // 아이콘
+      ctx.font = `${size * 0.7}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#000';
+      ctx.fillText(getNodeIcon(node), x, y);
+      
+      // 이름
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.fillText(node.name, x, y + size + 14);
+      
+      // 돈 (coin)
+      ctx.font = '10px sans-serif';
+      ctx.fillStyle = '#00ff88';
+      ctx.fillText(formatMoneyShort(node.coin) + '/m', x, y - size - 8);
+      
+      // 양자 상태 표시
+      if (node.quantum === 'superposed') {
+        ctx.font = '8px sans-serif';
+        ctx.fillStyle = '#9966ff';
+        ctx.fillText('🌀 superposed', x, y + size + 28);
+      }
+    }
+    
+    function drawQuantumSuperposition(node, size) {
+      // 중첩 오라 (다중 색상)
+      const t = Date.now() / 1000;
+      const colors = ['rgba(153, 102, 255, 0.2)', 'rgba(0, 255, 136, 0.2)', 'rgba(255, 204, 0, 0.2)'];
+      
+      colors.forEach((color, i) => {
+        const offset = Math.sin(t * 2 + i * 2) * 10;
+        ctx.beginPath();
+        ctx.arc(node.x + offset, node.y, size * 2, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+      });
+    }
+    
+    function drawEntanglementEffect(source, target) {
+      const t = Date.now() / 500;
+      const midX = (source.x + target.x) / 2;
+      const midY = (source.y + target.y) / 2;
+      
+      // 얽힘 파티클
+      ctx.beginPath();
+      ctx.arc(midX + Math.sin(t) * 10, midY + Math.cos(t) * 10, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#9966ff';
+      ctx.shadowColor = '#9966ff';
+      ctx.shadowBlur = 10;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    
+    function getNodeColor(node) {
+      if (node.type === 'core') return '#00ff88';
+      if (node.quantum === 'superposed') return '#9966ff';
+      return '#00ccff';
+    }
+    
+    function getNodeGlowColor(node) {
+      if (node.type === 'core') return 'rgba(0, 255, 136, 0.15)';
+      if (node.quantum === 'superposed') return 'rgba(153, 102, 255, 0.15)';
+      return 'rgba(0, 204, 255, 0.15)';
+    }
+    
+    function getNodeIcon(node) {
+      if (node.type === 'core') return '👑';
+      if (node.quantum === 'superposed') return '🌀';
+      return '👤';
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 파티클
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function updateParticles() {
+      state.particles.forEach(p => {
+        p.progress += p.speed;
+        if (p.progress > 1) {
+          p.progress = 0;
+          p.trail = [];
+        }
+        
+        const source = state.nodes.find(n => n.id === p.link.source);
+        const target = state.nodes.find(n => n.id === p.link.target);
+        if (!source || !target) return;
+        
+        const midX = (source.x + target.x) / 2;
+        const midY = (source.y + target.y) / 2 - 30;
+        
+        const t = p.progress;
+        p.x = Math.pow(1-t, 2) * source.x + 2 * (1-t) * t * midX + Math.pow(t, 2) * target.x;
+        p.y = Math.pow(1-t, 2) * source.y + 2 * (1-t) * t * midY + Math.pow(t, 2) * target.y;
+        
+        p.trail.push({ x: p.x, y: p.y });
+        if (p.trail.length > 15) p.trail.shift();
+      });
+    }
+    
+    function renderParticles() {
+      state.particles.forEach(p => {
+        if (!p.x || !p.y) return;
+        
+        // 트레일
+        if (p.trail.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(p.trail[0].x, p.trail[0].y);
+          for (let i = 1; i < p.trail.length; i++) {
+            ctx.lineTo(p.trail[i].x, p.trail[i].y);
+          }
+          
+          const color = p.glow ? '#ffcc00' : '#00ff88';
+          const gradient = ctx.createLinearGradient(p.trail[0].x, p.trail[0].y, p.x, p.y);
+          gradient.addColorStop(0, 'transparent');
+          gradient.addColorStop(1, color);
+          
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = p.glow ? 3 : 2;
+          ctx.stroke();
+        }
+        
+        // 파티클
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.glow ? 4 : 3, 0, Math.PI * 2);
+        ctx.fillStyle = p.glow ? '#ffcc00' : '#00ff88';
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 이벤트 핸들러
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function setupEventListeners() {
+      // 캔버스 이벤트
+      canvas.addEventListener('mousedown', onMouseDown);
+      canvas.addEventListener('mousemove', onMouseMove);
+      canvas.addEventListener('mouseup', onMouseUp);
+      canvas.addEventListener('click', onClick);
+      canvas.addEventListener('wheel', onWheel);
+      
+      // QCF 상태 버튼
+      document.querySelectorAll('.state-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.qcfState = btn.dataset.state;
+          document.getElementById('qcf-state-text').textContent = state.qcfState.toUpperCase();
+          updateZoomInfo();
+        });
+      });
+      
+      // 물리 효과 토글
+      document.querySelectorAll('.physics-effect').forEach(el => {
+        el.addEventListener('click', () => {
+          el.classList.toggle('active');
+          const effect = el.dataset.effect;
+          state.effects[effect] = !state.effects[effect];
+        });
+      });
+      
+      // 입력 타입 버튼
+      document.querySelectorAll('.input-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.input-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.inputType = btn.dataset.input;
+          updateInputHint();
+        });
+      });
+      
+      // 액션 버튼
+      document.getElementById('btn-select').addEventListener('click', toggleSelectMode);
+      document.getElementById('btn-group').addEventListener('click', createGroup);
+      document.getElementById('btn-ungroup').addEventListener('click', ungroupSelected);
+      document.getElementById('btn-delete').addEventListener('click', deleteSelected);
+      document.getElementById('btn-automate').addEventListener('click', automateSelected);
+      
+      // 윈도우 리사이즈
+      window.addEventListener('resize', resize);
+    }
+    
+    function getNodeAt(x, y) {
+      for (const node of state.nodes) {
+        const size = 25 + Math.sqrt(node.coin) / 100;
+        const dist = Math.sqrt(Math.pow(node.x - x, 2) + Math.pow(node.y - y, 2));
+        if (dist < size * 1.5) return node;
+      }
+      return null;
+    }
+    
+    function onMouseDown(e) {
+      const node = getNodeAt(e.clientX, e.clientY);
+      
+      if (state.isSelecting) {
+        state.selectionStart = { x: e.clientX, y: e.clientY };
+        canvas.classList.add('selecting');
+      } else if (node) {
+        state.isDragging = true;
+        state.dragNode = node;
+        state.dragStart = { x: e.clientX, y: e.clientY };
+        canvas.classList.add('dragging');
+      }
+    }
+    
+    function onMouseMove(e) {
+      if (state.isDragging && state.dragNode) {
+        state.dragNode.x = e.clientX;
+        state.dragNode.y = e.clientY;
+      } else if (state.isSelecting && state.selectionStart) {
+        drawSelectionBox(e.clientX, e.clientY);
+      }
+    }
+    
+    function onMouseUp(e) {
+      if (state.isDragging && state.dragNode) {
+        const dx = e.clientX - state.dragStart.x;
+        const dy = e.clientY - state.dragStart.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance > 10) {
+          handleDragInput(state.dragNode, distance, dx, dy);
+        }
+        
+        state.dragNode = null;
+      } else if (state.isSelecting && state.selectionStart) {
+        selectNodesInBox(e.clientX, e.clientY);
+        hideSelectionBox();
+        state.selectionStart = null;
+      }
+      
+      state.isDragging = false;
+      canvas.classList.remove('dragging');
+      canvas.classList.remove('selecting');
+    }
+    
+    function onClick(e) {
+      const node = getNodeAt(e.clientX, e.clientY);
+      
+      if (node) {
+        if (e.shiftKey) {
+          // Shift+클릭: 선택 토글
+          if (state.selectedNodes.has(node.id)) {
+            state.selectedNodes.delete(node.id);
+          } else {
+            state.selectedNodes.add(node.id);
+          }
+        } else {
+          showNodePopup(node, e.clientX, e.clientY);
+        }
+      } else {
+        hideNodePopup();
+        if (!e.shiftKey) {
+          state.selectedNodes.clear();
+        }
+      }
+    }
+    
+    function onWheel(e) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      state.scale = Math.max(0.3, Math.min(3, state.scale * delta));
+      
+      // 줌 레벨 업데이트
+      if (state.scale < 0.5) {
+        state.zoom = 1;
+      } else if (state.scale < 1) {
+        state.zoom = 2;
+      } else {
+        state.zoom = 3;
+      }
+      
+      updateZoomInfo();
+      positionNodes();
+    }
+    
+    function handleDragInput(node, distance, dx, dy) {
+      if (state.inputType === 'swap') {
+        // 가장 가까운 다른 노드 찾기
+        let closest = null;
+        let minDist = Infinity;
+        
+        state.nodes.forEach(n => {
+          if (n !== node) {
+            const d = Math.sqrt(Math.pow(n.x - node.x, 2) + Math.pow(n.y - node.y, 2));
+            if (d < minDist) {
+              minDist = d;
+              closest = n;
+            }
+          }
+        });
+        
+        if (closest && minDist < 150) {
+          sendInput('SWAP', {
+            swap: { out: node.id, in: closest.id }
+          });
+          
+          // 시뮬레이션 피드백
+          showFeedback(`SWAP: ${node.name} → ${closest.name}`);
+        }
+      } else if (state.inputType === 'alloc') {
+        const deltaMinutes = distance * 2;
+        
+        sendInput('ALLOC', {
+          alloc: [{ person_id: node.id, delta_minutes: deltaMinutes }]
+        });
+        
+        showFeedback(`ALLOC: ${node.name} +${Math.round(deltaMinutes)}분`);
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 선택 / 그룹
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function toggleSelectMode() {
+      state.isSelecting = !state.isSelecting;
+      document.getElementById('btn-select').classList.toggle('active', state.isSelecting);
+      canvas.style.cursor = state.isSelecting ? 'crosshair' : 'grab';
+    }
+    
+    function drawSelectionBox(x, y) {
+      const box = document.getElementById('selection-box');
+      const left = Math.min(state.selectionStart.x, x);
+      const top = Math.min(state.selectionStart.y, y);
+      const w = Math.abs(x - state.selectionStart.x);
+      const h = Math.abs(y - state.selectionStart.y);
+      
+      box.style.display = 'block';
+      box.style.left = left + 'px';
+      box.style.top = top + 'px';
+      box.style.width = w + 'px';
+      box.style.height = h + 'px';
+    }
+    
+    function hideSelectionBox() {
+      document.getElementById('selection-box').style.display = 'none';
+    }
+    
+    function selectNodesInBox(x, y) {
+      const left = Math.min(state.selectionStart.x, x);
+      const right = Math.max(state.selectionStart.x, x);
+      const top = Math.min(state.selectionStart.y, y);
+      const bottom = Math.max(state.selectionStart.y, y);
+      
+      state.nodes.forEach(node => {
+        if (node.x >= left && node.x <= right && node.y >= top && node.y <= bottom) {
+          state.selectedNodes.add(node.id);
+        }
+      });
+    }
+    
+    function createGroup() {
+      if (state.selectedNodes.size < 2) {
+        showFeedback('2개 이상 노드를 선택하세요');
+        return;
+      }
+      
+      const groupId = 'G' + Date.now();
+      const members = Array.from(state.selectedNodes);
+      
+      state.clusters.push({
+        id: groupId,
+        members: members,
+        label: `클러스터 ${state.clusters.length + 1}`
+      });
+      
+      showFeedback(`그룹 생성: ${members.length}명`);
+      state.selectedNodes.clear();
+    }
+    
+    function ungroupSelected() {
+      showFeedback('그룹 해제');
+    }
+    
+    function deleteSelected() {
+      if (state.selectedNodes.size === 0) {
+        showFeedback('노드를 선택하세요');
+        return;
+      }
+      
+      state.nodes = state.nodes.filter(n => !state.selectedNodes.has(n.id));
+      state.links = state.links.filter(l => 
+        !state.selectedNodes.has(l.source) && !state.selectedNodes.has(l.target)
+      );
+      
+      showFeedback(`CUT: ${state.selectedNodes.size}개 삭제`);
+      state.selectedNodes.clear();
+      initParticles();
+    }
+    
+    function automateSelected() {
+      showFeedback('LINK: 시너지 자동화 시작');
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UI 업데이트
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function updateUI() {
+      document.getElementById('kpi-net').textContent = formatMoney(state.kpi.net_7d_pred);
+      document.getElementById('kpi-entropy').textContent = state.kpi.entropy_7d_pred.toFixed(2);
+      document.getElementById('kpi-velocity').textContent = formatMoney(state.kpi.velocity_7d_pred) + '/m';
+      document.getElementById('kpi-nodes').textContent = state.nodes.length;
+      
+      document.getElementById('loaded-nodes').textContent = state.nodes.length;
+      document.getElementById('loaded-links').textContent = state.links.length;
+      
+      updatePrediction();
+      updateZoomInfo();
+    }
+    
+    function updatePrediction() {
+      document.getElementById('pred-net').textContent = formatMoney(state.kpi.net_7d_pred);
+      document.getElementById('pred-entropy').textContent = state.kpi.entropy_7d_pred.toFixed(2);
+      document.getElementById('pred-score').textContent = formatMoney(state.kpi.best_team_score);
+      
+      const teamEl = document.getElementById('pred-team');
+      teamEl.innerHTML = state.kpi.best_team.map(name => 
+        `<span class="team-badge">${name}</span>`
+      ).join('');
+    }
+    
+    function updateZoomInfo() {
+      const levels = {
+        1: { name: 'Level 1', desc: '국가 레벨 (클러스터)' },
+        2: { name: 'Level 2', desc: '도시 레벨 (그룹)' },
+        3: { name: 'Level 3', desc: '개인 레벨 (1-30 노드)' }
+      };
+      
+      const level = levels[state.zoom];
+      document.getElementById('zoom-value').textContent = level.name;
+      document.getElementById('zoom-level').textContent = level.desc;
+    }
+    
+    function updateInputHint() {
+      const hints = {
+        swap: '노드를 드래그하여 팀 교체.\n드래그 거리 = 물리 입력 크기.\n예측 즉시 갱신 (1초 내).',
+        alloc: '노드를 드래그하여 시간 배분.\n드래그 거리 = ΔMinutes.\nVelocity 변화 예측.',
+        group: 'Shift+클릭 또는 선택 모드로\n여러 노드 선택 후 그룹 생성.'
+      };
+      
+      document.getElementById('input-hint').textContent = hints[state.inputType];
+    }
+    
+    function showNodePopup(node, x, y) {
+      const popup = document.getElementById('node-popup');
+      
+      document.getElementById('popup-name').textContent = node.name;
+      document.getElementById('popup-type').textContent = node.type;
+      document.getElementById('popup-coin').textContent = formatMoney(node.coin) + '/min';
+      document.getElementById('popup-velocity').textContent = formatMoney(node.velocity) + '/min';
+      document.getElementById('popup-quantum').textContent = node.quantum;
+      document.getElementById('popup-chaos').textContent = node.chaos.toFixed(1) + 'x';
+      
+      const linkCount = state.links.filter(l => 
+        l.source === node.id || l.target === node.id
+      ).length;
+      document.getElementById('popup-links').textContent = linkCount;
+      
+      popup.style.left = Math.min(x + 20, width - 250) + 'px';
+      popup.style.top = Math.min(y + 20, height - 300) + 'px';
+      popup.classList.add('visible');
+    }
+    
+    function hideNodePopup() {
+      document.getElementById('node-popup').classList.remove('visible');
+    }
+    
+    function showFeedback(message) {
+      console.log('Feedback:', message);
+      // 간단한 피드백 (나중에 토스트로 대체)
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 유틸리티
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      if (!value) return '₩0';
+      if (Math.abs(value) >= 100000000) return '₩' + (value / 100000000).toFixed(1) + '억';
+      if (Math.abs(value) >= 1000000) return '₩' + (value / 1000000).toFixed(0) + 'M';
+      if (Math.abs(value) >= 10000) return '₩' + Math.round(value / 10000) + '만';
+      return '₩' + Math.round(value).toLocaleString();
+    }
+    
+    function formatMoneyShort(value) {
+      if (!value) return '0';
+      if (Math.abs(value) >= 100000) return (value / 10000).toFixed(0) + '만';
+      return Math.round(value).toLocaleString();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 애니메이션 루프
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function animate() {
+      render();
+      requestAnimationFrame(animate);
+    }
+    
+    // 시작
+    init();
+    
+    console.log('⚛️ AUTUS Economic Physics Engine - QCF Edition initialized');
+  </script>
+</body>
+</html>

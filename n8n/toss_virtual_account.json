@@ -1,0 +1,98 @@
+{
+  "name": "AUTUS 토스 가상계좌 (수수료 0%)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "toss-virtual-account",
+        "responseMode": "responseNode"
+      },
+      "id": "toss_webhook",
+      "name": "토스 입금 Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 토스 가상계좌 입금 확인\nconst data = $input.item.json.body;\n\n// 입금 완료 확인\nif (data.status !== 'DONE') {\n  return [{ json: { skip: true, reason: 'Not completed' } }];\n}\n\n// Zero Meaning 정제\nconst orderId = data.orderId || '';\nconst customerId = orderId.includes('_') ? orderId.split('_')[0] : orderId;\n\nconst cleaned = {\n  node_id: customerId,\n  value: parseFloat(data.totalAmount || 0),\n  method: 'virtual_account',\n  fee: 0,  // 수수료 0%!\n  fee_saved: parseFloat(data.totalAmount || 0) * 0.03,  // 카드 대비 절약\n  source: 'toss_va',\n  timestamp: data.approvedAt || new Date().toISOString()\n};\n\nreturn [{ json: cleaned }];"
+      },
+      "id": "toss_parser",
+      "name": "토스 파싱 (수수료 0%)",
+      "type": "n8n-nodes-base.function",
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{ $json.skip }}", "value2": true }
+          ]
+        }
+      },
+      "id": "skip_check",
+      "name": "완료 체크",
+      "type": "n8n-nodes-base.if",
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUTUS_API_URL }}/nodes/upsert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ external_id: $json.node_id, source: 'toss_va' }) }}"
+      },
+      "id": "create_node",
+      "name": "노드 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUTUS_API_URL }}/motions/create",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ source_id: $json.node_id, target_id: 'owner', amount: $json.value, direction: 'inflow', fee: 0 }) }}"
+      },
+      "id": "create_motion",
+      "name": "Inflow 모션 (수수료 0%)",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "channel": "#payments",
+        "text": "💰 가상계좌 입금 완료!\n금액: ₩{{ $json.value.toLocaleString() }}\n수수료: ₩0 (절약: ₩{{ Math.round($json.fee_saved).toLocaleString() }})",
+        "otherOptions": {}
+      },
+      "id": "slack_notify",
+      "name": "Slack 알림 (선택)",
+      "type": "n8n-nodes-base.slack",
+      "position": [1250, 200],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, node_id: $json.node_id, amount: $json.value, fee: 0, fee_saved: $json.fee_saved } }}"
+      },
+      "id": "response",
+      "name": "Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "토스 입금 Webhook": { "main": [[{ "node": "토스 파싱 (수수료 0%)", "type": "main", "index": 0 }]] },
+    "토스 파싱 (수수료 0%)": { "main": [[{ "node": "완료 체크", "type": "main", "index": 0 }]] },
+    "완료 체크": { 
+      "main": [
+        [{ "node": "Response", "type": "main", "index": 0 }],
+        [{ "node": "노드 생성", "type": "main", "index": 0 }]
+      ] 
+    },
+    "노드 생성": { "main": [[{ "node": "Inflow 모션 (수수료 0%)", "type": "main", "index": 0 }]] },
+    "Inflow 모션 (수수료 0%)": { "main": [[{ "node": "Response", "type": "main", "index": 0 }]] }
+  }
+}

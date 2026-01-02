@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUTUS 심층 보완 및 최적화 V2</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --card: rgba(18, 18, 26, 0.95);
+      --border: #1e1e2e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --critical: #ff6b6b;
+      --warning: #ffd700;
+      --good: #00d4aa;
+      --tech: #3b82f6;
+      --biz: #a855f7;
+      --ux: #00d4aa;
+      --security: #ff6b6b;
+      --scale: #ffd700;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    
+    header {
+      text-align: center;
+      padding: 40px 20px;
+      background: linear-gradient(180deg, rgba(0,212,170,0.15) 0%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 25px;
+      background: rgba(0,212,170,0.2);
+      border: 2px solid var(--good);
+      border-radius: 25px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(90deg, var(--good), var(--tech), var(--biz));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle { color: var(--dim); margin-top: 10px; }
+    
+    .container { max-width: 1600px; margin: 0 auto; padding: 40px 20px; }
+    
+    /* Gap Analysis */
+    .gap-section {
+      background: var(--card);
+      border: 2px solid var(--good);
+      border-radius: 20px;
+      padding: 35px;
+      margin-bottom: 40px;
+    }
+    
+    .section-title {
+      font-size: 1.4rem;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .gap-matrix {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    
+    @media (max-width: 1200px) { .gap-matrix { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 700px) { .gap-matrix { grid-template-columns: repeat(2, 1fr); } }
+    
+    .gap-item {
+      background: var(--bg);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      border: 2px solid var(--border);
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    
+    .gap-item:hover { transform: translateY(-3px); }
+    
+    .gap-item.critical { border-color: var(--critical); }
+    .gap-item.warning { border-color: var(--warning); }
+    .gap-item.good { border-color: var(--good); }
+    
+    .gap-icon { font-size: 2rem; margin-bottom: 10px; }
+    .gap-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; }
+    
+    .gap-score {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .gap-item.critical .gap-score { color: var(--critical); }
+    .gap-item.warning .gap-score { color: var(--warning); }
+    .gap-item.good .gap-score { color: var(--good); }
+    
+    .gap-target { font-size: 0.75rem; color: var(--dim); margin-top: 5px; }
+    
+    /* 5 Pillars */
+    .pillar-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+    
+    .pillar-tab {
+      padding: 12px 25px;
+      border: 2px solid var(--border);
+      border-radius: 25px;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+    }
+    
+    .pillar-tab:hover { border-color: var(--good); }
+    .pillar-tab.active { border-color: var(--good); background: rgba(0,212,170,0.2); }
+    
+    .pillar-content {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 40px;
+    }
+    
+    .pillar-content.active { display: block; }
+    
+    .pillar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .pillar-title-group h3 { font-size: 1.3rem; margin-bottom: 5px; }
+    .pillar-title-group p { color: var(--dim); font-size: 0.9rem; }
+    
+    .pillar-score {
+      text-align: right;
+    }
+    
+    .pillar-score-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--good);
+    }
+    
+    .pillar-score-label { color: var(--dim); font-size: 0.85rem; }
+    
+    /* Issue Cards */
+    .issue-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    
+    @media (max-width: 900px) { .issue-grid { grid-template-columns: 1fr; } }
+    
+    .issue-card {
+      background: var(--bg);
+      border-radius: 16px;
+      padding: 25px;
+      border-left: 4px solid var(--border);
+    }
+    
+    .issue-card.critical { border-left-color: var(--critical); }
+    .issue-card.warning { border-left-color: var(--warning); }
+    .issue-card.good { border-left-color: var(--good); }
+    
+    .issue-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 15px;
+    }
+    
+    .issue-title { font-weight: 700; font-size: 1.1rem; }
+    
+    .issue-priority {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    
+    .issue-priority.p1 { background: rgba(255,107,107,0.2); color: var(--critical); }
+    .issue-priority.p2 { background: rgba(255,215,0,0.2); color: var(--warning); }
+    .issue-priority.p3 { background: rgba(0,212,170,0.2); color: var(--good); }
+    
+    .issue-problem {
+      background: rgba(255,107,107,0.1);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+    }
+    
+    .issue-problem strong { color: var(--critical); }
+    
+    .issue-solution {
+      background: rgba(0,212,170,0.1);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+    }
+    
+    .issue-solution strong { color: var(--good); }
+    
+    .issue-code {
+      background: #1a1a2e;
+      border-radius: 10px;
+      padding: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      overflow-x: auto;
+      margin-bottom: 12px;
+    }
+    
+    .issue-metrics {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .metric {
+      background: var(--card);
+      padding: 8px 15px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+    }
+    
+    .metric-label { color: var(--dim); }
+    .metric-value { font-weight: 700; color: var(--good); margin-left: 5px; }
+    
+    /* Architecture */
+    .arch-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 35px;
+      margin-bottom: 40px;
+    }
+    
+    .arch-diagram {
+      background: var(--bg);
+      border-radius: 16px;
+      padding: 30px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    
+    .arch-legend {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+    }
+    
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    
+    .legend-dot.current { background: var(--critical); }
+    .legend-dot.target { background: var(--good); }
+    .legend-dot.new { background: var(--tech); }
+    
+    /* Roadmap */
+    .roadmap-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 35px;
+      margin-bottom: 40px;
+    }
+    
+    .roadmap-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    
+    @media (max-width: 1000px) { .roadmap-grid { grid-template-columns: repeat(2, 1fr); } }
+    
+    .roadmap-phase {
+      background: var(--bg);
+      border-radius: 16px;
+      padding: 25px;
+      border-top: 4px solid var(--border);
+    }
+    
+    .roadmap-phase.p1 { border-top-color: var(--critical); }
+    .roadmap-phase.p2 { border-top-color: var(--warning); }
+    .roadmap-phase.p3 { border-top-color: var(--tech); }
+    .roadmap-phase.p4 { border-top-color: var(--good); }
+    
+    .phase-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .phase-name { font-weight: 700; }
+    .phase-week { color: var(--dim); font-size: 0.85rem; }
+    
+    .phase-tasks { list-style: none; }
+    
+    .phase-tasks li {
+      padding: 8px 0;
+      padding-left: 20px;
+      position: relative;
+      font-size: 0.85rem;
+      color: var(--dim);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .phase-tasks li:last-child { border-bottom: none; }
+    
+    .phase-tasks li::before {
+      content: '○';
+      position: absolute;
+      left: 0;
+      color: var(--good);
+    }
+    
+    .phase-result {
+      margin-top: 15px;
+      padding: 12px;
+      background: var(--card);
+      border-radius: 10px;
+      text-align: center;
+    }
+    
+    .phase-result-label { font-size: 0.8rem; color: var(--dim); }
+    .phase-result-value { font-size: 1.2rem; font-weight: 700; color: var(--good); }
+    
+    /* Risk Matrix */
+    .risk-section {
+      background: linear-gradient(135deg, var(--card), rgba(255,107,107,0.1));
+      border: 2px solid var(--critical);
+      border-radius: 20px;
+      padding: 35px;
+      margin-bottom: 40px;
+    }
+    
+    .risk-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    
+    @media (max-width: 900px) { .risk-grid { grid-template-columns: 1fr; } }
+    
+    .risk-card {
+      background: var(--bg);
+      border-radius: 16px;
+      padding: 25px;
+    }
+    
+    .risk-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .risk-icon { font-size: 1.5rem; }
+    .risk-title { font-weight: 700; }
+    
+    .risk-level {
+      padding: 3px 10px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: auto;
+    }
+    
+    .risk-level.high { background: rgba(255,107,107,0.2); color: var(--critical); }
+    .risk-level.medium { background: rgba(255,215,0,0.2); color: var(--warning); }
+    .risk-level.low { background: rgba(0,212,170,0.2); color: var(--good); }
+    
+    .risk-desc { font-size: 0.85rem; color: var(--dim); margin-bottom: 12px; }
+    
+    .risk-mitigation {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 0.85rem;
+    }
+    
+    .risk-mitigation strong { color: var(--good); }
+    
+    /* KPIs */
+    .kpi-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 35px;
+      margin-bottom: 40px;
+    }
+    
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 20px;
+    }
+    
+    @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 600px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    
+    .kpi-card {
+      background: var(--bg);
+      border-radius: 16px;
+      padding: 25px;
+      text-align: center;
+    }
+    
+    .kpi-current {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--warning);
+    }
+    
+    .kpi-arrow { color: var(--dim); margin: 5px 0; }
+    
+    .kpi-target {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--good);
+    }
+    
+    .kpi-label {
+      color: var(--dim);
+      font-size: 0.85rem;
+      margin-top: 10px;
+    }
+    
+    /* Action */
+    .action-section {
+      background: linear-gradient(135deg, var(--card), rgba(0,212,170,0.1));
+      border: 2px solid var(--good);
+      border-radius: 24px;
+      padding: 50px;
+      text-align: center;
+    }
+    
+    .action-title { font-size: 2rem; margin-bottom: 15px; }
+    .action-subtitle { color: var(--dim); margin-bottom: 30px; }
+    
+    .btn-row {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: 16px 40px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn:hover { transform: translateY(-3px); }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--good), #00a88a);
+      color: #000;
+      box-shadow: 0 10px 30px rgba(0,212,170,0.3);
+    }
+    
+    .btn-secondary { background: var(--border); color: var(--text); }
+    
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      border-top: 1px solid var(--border);
+      color: var(--dim);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="badge">⚡ AUTUS DEEP OPTIMIZATION V2</div>
+    <h1>심층 보완 및 최적화</h1>
+    <p class="subtitle">5대 영역 × 20개 항목 × 구체적 실행 코드</p>
+  </header>
+  
+  <div class="container">
+    <!-- Gap Analysis Matrix -->
+    <div class="gap-section">
+      <h2 class="section-title">📊 Gap 분석 매트릭스</h2>
+      <div class="gap-matrix">
+        <div class="gap-item warning" onclick="showPillar('arch')">
+          <div class="gap-icon">🏗️</div>
+          <div class="gap-name">아키텍처</div>
+          <div class="gap-score">68</div>
+          <div class="gap-target">목표: 95</div>
+        </div>
+        <div class="gap-item critical" onclick="showPillar('scale')">
+          <div class="gap-icon">📈</div>
+          <div class="gap-name">확장성</div>
+          <div class="gap-score">55</div>
+          <div class="gap-target">목표: 90</div>
+        </div>
+        <div class="gap-item warning" onclick="showPillar('security')">
+          <div class="gap-icon">🔒</div>
+          <div class="gap-name">보안</div>
+          <div class="gap-score">70</div>
+          <div class="gap-target">목표: 95</div>
+        </div>
+        <div class="gap-item warning" onclick="showPillar('biz')">
+          <div class="gap-icon">💼</div>
+          <div class="gap-name">비즈니스</div>
+          <div class="gap-score">72</div>
+          <div class="gap-target">목표: 90</div>
+        </div>
+        <div class="gap-item good" onclick="showPillar('ux')">
+          <div class="gap-icon">🎨</div>
+          <div class="gap-name">UX/DX</div>
+          <div class="gap-score">80</div>
+          <div class="gap-target">목표: 95</div>
+        </div>
+        <div class="gap-item good" onclick="showPillar('philosophy')">
+          <div class="gap-icon">🧠</div>
+          <div class="gap-name">철학</div>
+          <div class="gap-score">90</div>
+          <div class="gap-target">목표: 100</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Pillar Tabs -->
+    <div class="pillar-tabs">
+      <button class="pillar-tab active" onclick="showPillar('arch')">🏗️ 아키텍처</button>
+      <button class="pillar-tab" onclick="showPillar('scale')">📈 확장성</button>
+      <button class="pillar-tab" onclick="showPillar('security')">🔒 보안</button>
+      <button class="pillar-tab" onclick="showPillar('biz')">💼 비즈니스</button>
+      <button class="pillar-tab" onclick="showPillar('ux')">🎨 UX/DX</button>
+    </div>
+    
+    <!-- Architecture Pillar -->
+    <div class="pillar-content active" id="pillar-arch">
+      <div class="pillar-header">
+        <div class="pillar-title-group">
+          <h3>🏗️ 아키텍처 최적화</h3>
+          <p>시스템 구조, 데이터 흐름, 서비스 분리</p>
+        </div>
+        <div class="pillar-score">
+          <div class="pillar-score-value">68</div>
+          <div class="pillar-score-label">/ 100</div>
+        </div>
+      </div>
+      
+      <div class="issue-grid">
+        <div class="issue-card critical">
+          <div class="issue-header">
+            <span class="issue-title">모놀리식 구조</span>
+            <span class="issue-priority p1">P1</span>
+          </div>
+          <div class="issue-problem">
+            <strong>문제:</strong> 단일 FastAPI 앱에 모든 로직 집중. 배포/확장 시 전체 재시작 필요.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> 도메인별 마이크로서비스 분리 (Node/Motion/Value/Auth)
+          </div>
+          <div class="issue-code">
+autus/
+├── services/
+│   ├── node-service/      # 노드 CRUD
+│   ├── motion-service/    # 모션 처리
+│   ├── value-engine/      # 가치 계산
+│   └── auth-gateway/      # 인증/인가
+├── shared/
+│   └── proto/             # gRPC 정의
+└── docker-compose.yml</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">배포 속도:</span><span class="metric-value">+300%</span></div>
+            <div class="metric"><span class="metric-label">장애 격리:</span><span class="metric-value">개별 서비스</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card warning">
+          <div class="issue-header">
+            <span class="issue-title">동기식 API 호출</span>
+            <span class="issue-priority p2">P2</span>
+          </div>
+          <div class="issue-problem">
+            <strong>문제:</strong> 가치 계산 시 동기 대기. 복잡 쿼리에서 타임아웃 발생.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> 이벤트 기반 비동기 처리 (Redis Pub/Sub + Celery)
+          </div>
+          <div class="issue-code">
+# 비동기 가치 계산
+@celery.task
+def calculate_value_async(node_id: int):
+    value = compute_value(node_id)
+    redis.publish(f"node:{node_id}", value)
+    return value
+
+# 클라이언트 SSE 구독
+@app.get("/stream/{node_id}")
+async def stream(node_id: int):
+    return EventSourceResponse(
+        subscribe(f"node:{node_id}")
+    )</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">응답 시간:</span><span class="metric-value">-80%</span></div>
+            <div class="metric"><span class="metric-label">타임아웃:</span><span class="metric-value">0%</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card warning">
+          <div class="issue-header">
+            <span class="issue-title">캐시 레이어 부재</span>
+            <span class="issue-priority p2">P2</span>
+          </div>
+          <div class="issue-problem">
+            <strong>문제:</strong> 매 요청마다 DB 조회. 동일 데이터 반복 쿼리.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> 3단계 캐시 (L1: 메모리, L2: Redis, L3: DB)
+          </div>
+          <div class="issue-code">
+class CacheManager:
+    def get(self, key: str):
+        # L1: 메모리 (TTL 10s)
+        if val := self.memory.get(key):
+            return val
+        # L2: Redis (TTL 5min)
+        if val := self.redis.get(key):
+            self.memory.set(key, val, 10)
+            return val
+        # L3: DB
+        val = self.db.query(key)
+        self.redis.setex(key, 300, val)
+        return val</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">DB 부하:</span><span class="metric-value">-70%</span></div>
+            <div class="metric"><span class="metric-label">응답 속도:</span><span class="metric-value">+500%</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card good">
+          <div class="issue-header">
+            <span class="issue-title">API 버저닝</span>
+            <span class="issue-priority p3">P3</span>
+          </div>
+          <div class="issue-problem">
+            <strong>현재:</strong> 단일 버전. 하위 호환성 관리 어려움.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> URL 기반 버저닝 + 자동 deprecation
+          </div>
+          <div class="issue-code">
+# /api/v1/nodes (현재)
+# /api/v2/nodes (신규 - breaking changes)
+
+@app.get("/api/v1/nodes")
+@deprecated(sunset="2025-06-01")
+def get_nodes_v1(): ...
+
+@app.get("/api/v2/nodes")  
+def get_nodes_v2(): ...</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">호환성:</span><span class="metric-value">보장</span></div>
+            <div class="metric"><span class="metric-label">마이그레이션:</span><span class="metric-value">점진적</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Scalability Pillar -->
+    <div class="pillar-content" id="pillar-scale">
+      <div class="pillar-header">
+        <div class="pillar-title-group">
+          <h3>📈 확장성 최적화</h3>
+          <p>수평 확장, 부하 분산, 데이터 샤딩</p>
+        </div>
+        <div class="pillar-score">
+          <div class="pillar-score-value">55</div>
+          <div class="pillar-score-label">/ 100</div>
+        </div>
+      </div>
+      
+      <div class="issue-grid">
+        <div class="issue-card critical">
+          <div class="issue-header">
+            <span class="issue-title">단일 DB 병목</span>
+            <span class="issue-priority p1">P1</span>
+          </div>
+          <div class="issue-problem">
+            <strong>문제:</strong> PostgreSQL 단일 인스턴스. 10만 노드 시 쿼리 10초+.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> Read Replica + 샤딩 (노드 ID 기반)
+          </div>
+          <div class="issue-code">
+# 샤딩 전략: node_id % 4
+SHARDS = {
+    0: "db-shard-0.autus.com",
+    1: "db-shard-1.autus.com",
+    2: "db-shard-2.autus.com",
+    3: "db-shard-3.autus.com",
+}
+
+def get_shard(node_id: int) -> str:
+    return SHARDS[node_id % len(SHARDS)]</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">노드 용량:</span><span class="metric-value">1억+</span></div>
+            <div class="metric"><span class="metric-label">쿼리 속도:</span><span class="metric-value">100ms</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card critical">
+          <div class="issue-header">
+            <span class="issue-title">Auto-Scaling 미구현</span>
+            <span class="issue-priority p1">P1</span>
+          </div>
+          <div class="issue-problem">
+            <strong>문제:</strong> 트래픽 급증 시 수동 스케일링. 장애 위험.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> K8s HPA + 메트릭 기반 자동 스케일링
+          </div>
+          <div class="issue-code">
+# kubernetes HPA
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+spec:
+  scaleTargetRef:
+    name: autus-api
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        averageUtilization: 70</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">스케일 시간:</span><span class="metric-value">30초</span></div>
+            <div class="metric"><span class="metric-label">비용 효율:</span><span class="metric-value">+40%</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card warning">
+          <div class="issue-header">
+            <span class="issue-title">WebSocket 클러스터링</span>
+            <span class="issue-priority p2">P2</span>
+          </div>
+          <div class="issue-problem">
+            <strong>문제:</strong> 단일 서버 WebSocket. 서버 간 브로드캐스트 불가.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> Redis Pub/Sub 기반 WebSocket 클러스터
+          </div>
+          <div class="issue-code">
+# 서버 간 메시지 브로드캐스트
+async def broadcast_cluster(msg: dict):
+    # 로컬 연결에 전송
+    for ws in local_connections:
+        await ws.send_json(msg)
+    # 다른 서버에 발행
+    redis.publish("ws:broadcast", json.dumps(msg))</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">동시 접속:</span><span class="metric-value">100K+</span></div>
+            <div class="metric"><span class="metric-label">지연:</span><span class="metric-value">50ms</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card warning">
+          <div class="issue-header">
+            <span class="issue-title">CDN 미적용</span>
+            <span class="issue-priority p2">P2</span>
+          </div>
+          <div class="issue-problem">
+            <strong>문제:</strong> 정적 파일 서버 직접 서빙. 글로벌 지연.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> CloudFlare CDN + Edge Caching
+          </div>
+          <div class="issue-code">
+# cloudflare 설정
+{
+  "cache_rules": [{
+    "expression": "(http.request.uri.path matches \"^/static/\")",
+    "action": "cache",
+    "edge_ttl": 2592000
+  }]
+}</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">글로벌 지연:</span><span class="metric-value">50ms</span></div>
+            <div class="metric"><span class="metric-label">대역폭 절감:</span><span class="metric-value">-80%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Security Pillar -->
+    <div class="pillar-content" id="pillar-security">
+      <div class="pillar-header">
+        <div class="pillar-title-group">
+          <h3>🔒 보안 최적화</h3>
+          <p>인증, 암호화, 감사, 컴플라이언스</p>
+        </div>
+        <div class="pillar-score">
+          <div class="pillar-score-value">70</div>
+          <div class="pillar-score-label">/ 100</div>
+        </div>
+      </div>
+      
+      <div class="issue-grid">
+        <div class="issue-card warning">
+          <div class="issue-header">
+            <span class="issue-title">API 인증 강화</span>
+            <span class="issue-priority p2">P2</span>
+          </div>
+          <div class="issue-problem">
+            <strong>현재:</strong> 기본 JWT. 토큰 탈취 시 무력화.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> Refresh Token + IP 바인딩 + 디바이스 핑거프린팅
+          </div>
+          <div class="issue-code">
+class TokenManager:
+    def create_tokens(self, user_id, ip, device_fp):
+        access = jwt.encode({
+            "user_id": user_id,
+            "ip_hash": hash(ip),
+            "device_fp": device_fp,
+            "exp": now() + timedelta(minutes=15)
+        })
+        refresh = create_refresh_token(user_id)
+        return access, refresh</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">토큰 유효:</span><span class="metric-value">15분</span></div>
+            <div class="metric"><span class="metric-label">탈취 방어:</span><span class="metric-value">IP+Device</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card warning">
+          <div class="issue-header">
+            <span class="issue-title">데이터 암호화</span>
+            <span class="issue-priority p2">P2</span>
+          </div>
+          <div class="issue-problem">
+            <strong>현재:</strong> DB 평문 저장. 유출 시 리스크.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> AES-256 필드 암호화 + KMS 키 관리
+          </div>
+          <div class="issue-code">
+from cryptography.fernet import Fernet
+
+class EncryptedField:
+    def __init__(self, key: bytes):
+        self.cipher = Fernet(key)
+    
+    def encrypt(self, value: str) -> bytes:
+        return self.cipher.encrypt(value.encode())
+    
+    def decrypt(self, token: bytes) -> str:
+        return self.cipher.decrypt(token).decode()</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">암호화:</span><span class="metric-value">AES-256</span></div>
+            <div class="metric"><span class="metric-label">키 관리:</span><span class="metric-value">AWS KMS</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card good">
+          <div class="issue-header">
+            <span class="issue-title">감사 로그</span>
+            <span class="issue-priority p3">P3</span>
+          </div>
+          <div class="issue-problem">
+            <strong>현재:</strong> 기본 로깅. 감사 추적 어려움.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> 구조화된 감사 로그 + 불변 저장소
+          </div>
+          <div class="issue-code">
+@audit_log
+async def execute_action(action: str, node_id: int):
+    # 자동으로 감사 로그 생성
+    # {timestamp, user, action, target, before, after}
+    pass
+
+# 불변 저장 (append-only)
+audit_store.append({
+    "timestamp": utc_now(),
+    "hash": sha256(prev_hash + data)
+})</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">추적성:</span><span class="metric-value">100%</span></div>
+            <div class="metric"><span class="metric-label">무결성:</span><span class="metric-value">해시 체인</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card good">
+          <div class="issue-header">
+            <span class="issue-title">Zero Meaning 검증</span>
+            <span class="issue-priority p3">P3</span>
+          </div>
+          <div class="issue-problem">
+            <strong>현재:</strong> 수동 검증. 의미 침투 가능성.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> 자동 검증 미들웨어 + CI/CD 통합
+          </div>
+          <div class="issue-code">
+@app.middleware("http")
+async def zero_meaning_guard(request, call_next):
+    if request.method in ["POST", "PUT"]:
+        body = await request.json()
+        violations = ZeroMeaningValidator.check(body)
+        if violations:
+            raise ZeroMeaningViolation(violations)
+    return await call_next(request)</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">자동 검증:</span><span class="metric-value">100%</span></div>
+            <div class="metric"><span class="metric-label">의미 침투:</span><span class="metric-value">0%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Business Pillar -->
+    <div class="pillar-content" id="pillar-biz">
+      <div class="pillar-header">
+        <div class="pillar-title-group">
+          <h3>💼 비즈니스 최적화</h3>
+          <p>수익 모델, 전환율, 경쟁 우위</p>
+        </div>
+        <div class="pillar-score">
+          <div class="pillar-score-value">72</div>
+          <div class="pillar-score-label">/ 100</div>
+        </div>
+      </div>
+      
+      <div class="issue-grid">
+        <div class="issue-card critical">
+          <div class="issue-header">
+            <span class="issue-title">가격 정책 미확정</span>
+            <span class="issue-priority p1">P1</span>
+          </div>
+          <div class="issue-problem">
+            <strong>문제:</strong> "성과 연동" 원칙만 있고 구체적 가격표 없음.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> 4-Tier 가격 정책 + 사용량 기반 과금
+          </div>
+          <div class="issue-code">
+PRICING = {
+  "FREE":       {"nodes": 100,    "price": 0},
+  "PRO":        {"nodes": 10000,  "price": 99000},
+  "ENTERPRISE": {"nodes": -1,     "price": "custom"},
+  "GOVERNMENT": {"nodes": -1,     "price": "performance"}
+}
+
+# 성과 연동 (정부)
+def calc_gov_fee(stabilizations: int) -> int:
+    return stabilizations * 1000000  # 안정화 당 100만원</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">ARPU:</span><span class="metric-value">₩150K</span></div>
+            <div class="metric"><span class="metric-label">전환율:</span><span class="metric-value">+50%</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card warning">
+          <div class="issue-header">
+            <span class="issue-title">셀프서브 온보딩</span>
+            <span class="issue-priority p2">P2</span>
+          </div>
+          <div class="issue-problem">
+            <strong>문제:</strong> 가입 후 이탈률 높음. 첫 가치 실현까지 시간 소요.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> 5분 셀프서브 온보딩 + 샘플 데이터
+          </div>
+          <div class="issue-code">
+ONBOARDING_FLOW = [
+    {"step": 1, "action": "샘플 데이터 자동 로드"},
+    {"step": 2, "action": "첫 노드 클릭 유도"},
+    {"step": 3, "action": "3버튼 체험"},
+    {"step": 4, "action": "가치 변화 확인"},
+    {"step": 5, "action": "내 데이터 연결 안내"}
+]
+# Time to Value: 5분</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">이탈률:</span><span class="metric-value">-60%</span></div>
+            <div class="metric"><span class="metric-label">활성화:</span><span class="metric-value">+80%</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card warning">
+          <div class="issue-header">
+            <span class="issue-title">PoC→계약 전환</span>
+            <span class="issue-priority p2">P2</span>
+          </div>
+          <div class="issue-problem">
+            <strong>문제:</strong> PoC 종료 후 계약 전환 프로세스 불명확.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> 자동 ROI 리포트 + 견적 생성 + CTA
+          </div>
+          <div class="issue-code">
+def generate_poc_report(poc_id: str) -> Report:
+    metrics = calculate_poc_metrics(poc_id)
+    roi = (metrics.benefit - metrics.cost) / metrics.cost
+    
+    return Report(
+        summary=f"ROI: {roi:.0%}",
+        recommendation=get_tier(metrics),
+        quote=generate_quote(metrics),
+        cta_url=f"/upgrade?poc={poc_id}"
+    )</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">전환율:</span><span class="metric-value">30%→60%</span></div>
+            <div class="metric"><span class="metric-label">자동화:</span><span class="metric-value">100%</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card good">
+          <div class="issue-header">
+            <span class="issue-title">경쟁사 차별화</span>
+            <span class="issue-priority p3">P3</span>
+          </div>
+          <div class="issue-problem">
+            <strong>현재:</strong> Zero Meaning USP 있지만 비교 자료 부족.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> 경쟁사 비교표 + TCO 계산기
+          </div>
+          <div class="issue-code">
+COMPARISON = {
+  "AUTUS":    {"정치중립": "✅", "3버튼": "✅", "가격": "$"},
+  "Palantir": {"정치중립": "❌", "3버튼": "❌", "가격": "$$$$"},
+  "Tableau":  {"정치중립": "❌", "3버튼": "❌", "가격": "$$$"},
+}
+
+# TCO 계산기
+def calc_tco(nodes: int, years: int) -> dict:
+    return {
+        "AUTUS": nodes * 100 * years,
+        "Palantir": nodes * 1000 * years + 500000
+    }</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">TCO 절감:</span><span class="metric-value">-70%</span></div>
+            <div class="metric"><span class="metric-label">차별화:</span><span class="metric-value">명확</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- UX Pillar -->
+    <div class="pillar-content" id="pillar-ux">
+      <div class="pillar-header">
+        <div class="pillar-title-group">
+          <h3>🎨 UX/DX 최적화</h3>
+          <p>사용자 경험, 개발자 경험, 접근성</p>
+        </div>
+        <div class="pillar-score">
+          <div class="pillar-score-value">80</div>
+          <div class="pillar-score-label">/ 100</div>
+        </div>
+      </div>
+      
+      <div class="issue-grid">
+        <div class="issue-card warning">
+          <div class="issue-header">
+            <span class="issue-title">모바일 반응형</span>
+            <span class="issue-priority p2">P2</span>
+          </div>
+          <div class="issue-problem">
+            <strong>문제:</strong> 데스크탑 최적화. 모바일에서 사용 어려움.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> 모바일 퍼스트 리디자인 + 터치 제스처
+          </div>
+          <div class="issue-code">
+/* 모바일 퍼스트 */
+.action-btn {
+  min-height: 48px;  /* 터치 타겟 */
+  padding: 16px 24px;
+}
+
+@media (min-width: 768px) {
+  .dashboard { flex-direction: row; }
+}
+
+/* 터치 제스처 */
+hammer.on('swipeleft', () => nextNode());
+hammer.on('pinch', (e) => zoom(e.scale));</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">모바일 점수:</span><span class="metric-value">55→90</span></div>
+            <div class="metric"><span class="metric-label">터치 UX:</span><span class="metric-value">네이티브급</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card warning">
+          <div class="issue-header">
+            <span class="issue-title">키보드 접근성</span>
+            <span class="issue-priority p2">P2</span>
+          </div>
+          <div class="issue-problem">
+            <strong>문제:</strong> 마우스 필수. 키보드만으로 조작 불가.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> 키보드 단축키 + Focus 관리
+          </div>
+          <div class="issue-code">
+const SHORTCUTS = {
+  'd': () => executeAction('delete'),
+  'a': () => executeAction('automate'),
+  'o': () => executeAction('outsource'),
+  'Escape': () => clearSelection(),
+  'Tab': () => focusNextNode(),
+};
+
+document.addEventListener('keydown', (e) => {
+  if (SHORTCUTS[e.key]) SHORTCUTS[e.key]();
+});</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">a11y 점수:</span><span class="metric-value">60→95</span></div>
+            <div class="metric"><span class="metric-label">키보드:</span><span class="metric-value">100%</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card good">
+          <div class="issue-header">
+            <span class="issue-title">API 문서화</span>
+            <span class="issue-priority p3">P3</span>
+          </div>
+          <div class="issue-problem">
+            <strong>현재:</strong> 기본 OpenAPI. 예제/가이드 부족.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> 인터랙티브 문서 + SDK + 샘플 코드
+          </div>
+          <div class="issue-code">
+# 자동 SDK 생성
+openapi-generator generate \
+  -i openapi.yaml \
+  -g python \
+  -o sdk/python
+
+# 인터랙티브 예제
+"""
+from autus import Client
+
+client = Client(api_key="xxx")
+nodes = client.nodes.list()
+client.nodes.update(1, value=1000000)
+"""</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">DX 점수:</span><span class="metric-value">70→95</span></div>
+            <div class="metric"><span class="metric-label">SDK:</span><span class="metric-value">Python/JS/Go</span></div>
+          </div>
+        </div>
+        
+        <div class="issue-card good">
+          <div class="issue-header">
+            <span class="issue-title">성능 모니터링</span>
+            <span class="issue-priority p3">P3</span>
+          </div>
+          <div class="issue-problem">
+            <strong>현재:</strong> 기본 로깅. 성능 병목 파악 어려움.
+          </div>
+          <div class="issue-solution">
+            <strong>해결:</strong> APM 통합 + 실시간 대시보드
+          </div>
+          <div class="issue-code">
+# OpenTelemetry 통합
+from opentelemetry import trace
+
+tracer = trace.get_tracer(__name__)
+
+@tracer.start_as_current_span("calculate_value")
+def calculate_value(node_id: int):
+    span = trace.get_current_span()
+    span.set_attribute("node_id", node_id)
+    # 자동으로 지연/에러 추적</div>
+          <div class="issue-metrics">
+            <div class="metric"><span class="metric-label">가시성:</span><span class="metric-value">100%</span></div>
+            <div class="metric"><span class="metric-label">MTTR:</span><span class="metric-value">-50%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Architecture Diagram -->
+    <div class="arch-section">
+      <h2 class="section-title">🏗️ 목표 아키텍처</h2>
+      <div class="arch-diagram">
+                                    ┌─────────────────────┐
+                                    │      CDN/Edge       │
+                                    │    (CloudFlare)     │
+                                    └──────────┬──────────┘
+                                               │
+                         ┌─────────────────────┴─────────────────────┐
+                         │              Load Balancer                │
+                         │               (Nginx/K8s)                 │
+                         └─────────────────────┬─────────────────────┘
+                                               │
+            ┌──────────────────────────────────┼──────────────────────────────────┐
+            │                                  │                                  │
+     ┌──────┴──────┐                   ┌───────┴───────┐                 ┌────────┴────────┐
+     │  API Gateway │                   │   WebSocket   │                 │   Static Files  │
+     │   (Auth)     │                   │   Cluster     │                 │    (Vite)       │
+     └──────┬──────┘                   └───────┬───────┘                 └─────────────────┘
+            │                                  │
+            ├─────────────────┬────────────────┼────────────────┬─────────────────┐
+            │                 │                │                │                 │
+     ┌──────┴──────┐   ┌──────┴──────┐   ┌─────┴─────┐   ┌──────┴──────┐   ┌──────┴──────┐
+     │    Node     │   │   Motion    │   │   Value   │   │    Auth     │   │   Audit     │
+     │   Service   │   │   Service   │   │   Engine  │   │   Service   │   │   Service   │
+     └──────┬──────┘   └──────┬──────┘   └─────┬─────┘   └─────────────┘   └─────────────┘
+            │                 │                │
+            └─────────────────┼────────────────┘
+                              │
+                      ┌───────┴───────┐
+                      │  Redis Cache  │
+                      │   + Pub/Sub   │
+                      └───────┬───────┘
+                              │
+       ┌──────────────────────┼──────────────────────┐
+       │                      │                      │
+┌──────┴──────┐        ┌──────┴──────┐        ┌──────┴──────┐
+│  DB Shard 0 │        │  DB Shard 1 │        │  DB Shard N │
+│ (PostgreSQL)│        │ (PostgreSQL)│        │ (PostgreSQL)│
+└─────────────┘        └─────────────┘        └─────────────┘</div>
+      <div class="arch-legend">
+        <div class="legend-item"><div class="legend-dot current"></div> 현재 구현</div>
+        <div class="legend-item"><div class="legend-dot new"></div> 신규 추가</div>
+        <div class="legend-item"><div class="legend-dot target"></div> 최적화 대상</div>
+      </div>
+    </div>
+    
+    <!-- Roadmap -->
+    <div class="roadmap-section">
+      <h2 class="section-title">🗓️ 8주 최적화 로드맵</h2>
+      <div class="roadmap-grid">
+        <div class="roadmap-phase p1">
+          <div class="phase-header">
+            <span class="phase-name">Phase 1: Foundation</span>
+            <span class="phase-week">Week 1-2</span>
+          </div>
+          <ul class="phase-tasks">
+            <li>Redis 캐시 구축</li>
+            <li>DB 인덱스 최적화</li>
+            <li>Gzip/CDN 적용</li>
+            <li>가격 정책 확정</li>
+            <li>Zero Meaning 검증기</li>
+          </ul>
+          <div class="phase-result">
+            <div class="phase-result-label">예상 점수</div>
+            <div class="phase-result-value">68 → 78</div>
+          </div>
+        </div>
+        
+        <div class="roadmap-phase p2">
+          <div class="phase-header">
+            <span class="phase-name">Phase 2: Scale</span>
+            <span class="phase-week">Week 3-4</span>
+          </div>
+          <ul class="phase-tasks">
+            <li>마이크로서비스 분리</li>
+            <li>WebSocket 클러스터</li>
+            <li>DB 샤딩 구현</li>
+            <li>Auto-scaling 설정</li>
+            <li>비동기 처리 전환</li>
+          </ul>
+          <div class="phase-result">
+            <div class="phase-result-label">예상 점수</div>
+            <div class="phase-result-value">78 → 85</div>
+          </div>
+        </div>
+        
+        <div class="roadmap-phase p3">
+          <div class="phase-header">
+            <span class="phase-name">Phase 3: Security</span>
+            <span class="phase-week">Week 5-6</span>
+          </div>
+          <ul class="phase-tasks">
+            <li>JWT 강화 (Refresh)</li>
+            <li>데이터 암호화</li>
+            <li>감사 로그 시스템</li>
+            <li>셀프서브 온보딩</li>
+            <li>PoC 자동화</li>
+          </ul>
+          <div class="phase-result">
+            <div class="phase-result-label">예상 점수</div>
+            <div class="phase-result-value">85 → 90</div>
+          </div>
+        </div>
+        
+        <div class="roadmap-phase p4">
+          <div class="phase-header">
+            <span class="phase-name">Phase 4: Polish</span>
+            <span class="phase-week">Week 7-8</span>
+          </div>
+          <ul class="phase-tasks">
+            <li>모바일 반응형</li>
+            <li>키보드 접근성</li>
+            <li>SDK 생성</li>
+            <li>APM 통합</li>
+            <li>문서 완성</li>
+          </ul>
+          <div class="phase-result">
+            <div class="phase-result-label">예상 점수</div>
+            <div class="phase-result-value">90 → 95+</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Risk Matrix -->
+    <div class="risk-section">
+      <h2 class="section-title" style="color: var(--critical);">⚠️ 리스크 매트릭스</h2>
+      <div class="risk-grid">
+        <div class="risk-card">
+          <div class="risk-header">
+            <span class="risk-icon">💾</span>
+            <span class="risk-title">데이터 마이그레이션</span>
+            <span class="risk-level high">HIGH</span>
+          </div>
+          <div class="risk-desc">샤딩 전환 시 데이터 손실 또는 정합성 문제 발생 가능</div>
+          <div class="risk-mitigation">
+            <strong>완화:</strong> 단계적 마이그레이션 + 롤백 계획 + 실시간 검증
+          </div>
+        </div>
+        
+        <div class="risk-card">
+          <div class="risk-header">
+            <span class="risk-icon">⏱️</span>
+            <span class="risk-title">일정 지연</span>
+            <span class="risk-level medium">MED</span>
+          </div>
+          <div class="risk-desc">마이크로서비스 전환 복잡도로 일정 초과 가능</div>
+          <div class="risk-mitigation">
+            <strong>완화:</strong> MVP 우선 + 점진적 전환 + 버퍼 2주
+          </div>
+        </div>
+        
+        <div class="risk-card">
+          <div class="risk-header">
+            <span class="risk-icon">💰</span>
+            <span class="risk-title">비용 증가</span>
+            <span class="risk-level medium">MED</span>
+          </div>
+          <div class="risk-desc">인프라 확장으로 예상 비용 초과 가능</div>
+          <div class="risk-mitigation">
+            <strong>완화:</strong> 스팟 인스턴스 + Reserved + 모니터링 알림
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- KPIs -->
+    <div class="kpi-section">
+      <h2 class="section-title">📈 핵심 KPI 목표</h2>
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-current">2s</div>
+          <div class="kpi-arrow">↓</div>
+          <div class="kpi-target">100ms</div>
+          <div class="kpi-label">API 응답</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-current">100</div>
+          <div class="kpi-arrow">↓</div>
+          <div class="kpi-target">10K+</div>
+          <div class="kpi-label">동시 접속</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-current">10만</div>
+          <div class="kpi-arrow">↓</div>
+          <div class="kpi-target">1억+</div>
+          <div class="kpi-label">노드 용량</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-current">30%</div>
+          <div class="kpi-arrow">↓</div>
+          <div class="kpi-target">70%</div>
+          <div class="kpi-label">PoC 전환율</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-current">68</div>
+          <div class="kpi-arrow">↓</div>
+          <div class="kpi-target">95+</div>
+          <div class="kpi-label">종합 점수</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Action -->
+    <div class="action-section">
+      <h2 class="action-title">🚀 최적화 시작</h2>
+      <p class="action-subtitle">8주 후 68점 → 95점+ 달성</p>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="exportReport()">📄 보고서 다운로드</button>
+        <button class="btn btn-primary" onclick="startOptimization()">⚡ Phase 1 시작</button>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <p>AUTUS 심층 보완 및 최적화 V2 © 2025</p>
+  </footer>
+
+  <script>
+    function showPillar(pillar) {
+      // Update tabs
+      document.querySelectorAll('.pillar-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.textContent.toLowerCase().includes(pillar.substring(0, 3))) {
+          tab.classList.add('active');
+        }
+      });
+      
+      // Update content
+      document.querySelectorAll('.pillar-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      document.getElementById(`pillar-${pillar}`).classList.add('active');
+    }
+    
+    function exportReport() {
+      alert('📄 심층 보완 및 최적화 보고서 다운로드\n\n포함 내용:\n• Gap 분석 (6개 영역)\n• 20개 개선 항목\n• 구체적 코드 예시\n• 8주 로드맵\n• 리스크 매트릭스\n• KPI 목표');
+    }
+    
+    function startOptimization() {
+      alert('⚡ Phase 1 시작!\n\nWeek 1-2 액션:\n1. Redis 캐시 구축\n2. DB 인덱스 최적화\n3. Gzip/CDN 적용\n4. 가격 정책 확정\n5. Zero Meaning 검증기\n\n예상 점수: 68 → 78');
+    }
+    
+    console.log('⚡ AUTUS 심층 최적화 V2 로드 완료');
+  </script>
+</body>
+</html>

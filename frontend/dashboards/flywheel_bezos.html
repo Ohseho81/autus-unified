@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUTUS Flywheel - Bezos Edition</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --card: rgba(18, 18, 26, 0.95);
+      --border: #1e1e2e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --accent: #00d4aa;
+      --gold: #ffd700;
+      --red: #ff4757;
+      --blue: #4a9eff;
+      --orange: #ff9f43;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    /* Header */
+    header {
+      text-align: center;
+      padding: 40px 20px;
+      background: linear-gradient(180deg, rgba(0,212,170,0.1) 0%, transparent 100%);
+    }
+    
+    .logo { font-size: 3rem; margin-bottom: 10px; }
+    
+    h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(135deg, var(--accent), var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle {
+      color: var(--dim);
+      margin-top: 10px;
+      font-size: 1.1rem;
+    }
+    
+    .bezos-quote {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 15px 25px;
+      background: var(--card);
+      border-left: 4px solid var(--gold);
+      border-radius: 0 8px 8px 0;
+      font-style: italic;
+      color: var(--dim);
+    }
+    
+    /* Main Layout */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+    
+    @media (max-width: 1000px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 25px;
+    }
+    
+    .card-title {
+      font-size: 1.3rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    /* Flywheel Visualization */
+    .flywheel-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
+    .flywheel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      height: 90%;
+    }
+    
+    .flywheel-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border: 3px solid var(--accent);
+      border-radius: 50%;
+      opacity: 0.3;
+    }
+    
+    .flywheel-ring.outer { width: 100%; height: 100%; }
+    .flywheel-ring.middle { width: 70%; height: 70%; }
+    .flywheel-ring.inner { width: 40%; height: 40%; }
+    
+    .flywheel-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--accent), var(--blue));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      box-shadow: 0 0 30px var(--accent);
+      z-index: 10;
+    }
+    
+    .flywheel-node {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      z-index: 5;
+    }
+    
+    .flywheel-node:hover {
+      transform: scale(1.1);
+      border-color: var(--accent);
+      box-shadow: 0 0 20px rgba(0,212,170,0.3);
+    }
+    
+    .flywheel-node.active {
+      border-color: var(--gold);
+      box-shadow: 0 0 25px rgba(255,215,0,0.4);
+    }
+    
+    .flywheel-node .icon { font-size: 1.5rem; margin-bottom: 5px; }
+    .flywheel-node .label { font-weight: 600; color: var(--text); }
+    .flywheel-node .value { color: var(--accent); font-size: 0.75rem; margin-top: 3px; }
+    
+    /* Node Positions (5 nodes around circle) */
+    .flywheel-node:nth-child(1) { top: -10%; left: 50%; transform: translateX(-50%); }
+    .flywheel-node:nth-child(2) { top: 20%; right: -5%; }
+    .flywheel-node:nth-child(3) { bottom: 5%; right: 10%; }
+    .flywheel-node:nth-child(4) { bottom: 5%; left: 10%; }
+    .flywheel-node:nth-child(5) { top: 20%; left: -5%; }
+    
+    /* Arrows */
+    .flywheel-arrow {
+      position: absolute;
+      color: var(--accent);
+      font-size: 1.5rem;
+      opacity: 0.6;
+      z-index: 3;
+    }
+    
+    .arrow-1 { top: 8%; right: 20%; transform: rotate(45deg); }
+    .arrow-2 { top: 45%; right: -2%; transform: rotate(90deg); }
+    .arrow-3 { bottom: 8%; right: 20%; transform: rotate(135deg); }
+    .arrow-4 { bottom: 8%; left: 20%; transform: rotate(-135deg); }
+    .arrow-5 { top: 45%; left: -2%; transform: rotate(-90deg); }
+    
+    /* Rotation Animation */
+    @keyframes rotateWheel {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    
+    .flywheel.spinning .flywheel-ring {
+      animation: rotateWheel var(--spin-duration, 20s) linear infinite;
+    }
+    
+    /* Simulator Controls */
+    .simulator {
+      margin-top: 20px;
+    }
+    
+    .sim-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .sim-row:last-child { border-bottom: none; }
+    
+    .sim-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .sim-label .icon { font-size: 1.2rem; }
+    
+    .sim-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    
+    .sim-value.negative { color: var(--red); }
+    
+    /* Slider */
+    .slider-container {
+      margin: 20px 0;
+    }
+    
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    
+    input[type="range"] {
+      width: 100%;
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn:hover { transform: translateY(-2px); }
+    
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-warning { background: var(--gold); color: #000; }
+    .btn-secondary { background: var(--border); color: var(--text); }
+    
+    /* Chart */
+    .chart-container {
+      width: 100%;
+      height: 300px;
+      margin-top: 20px;
+    }
+    
+    /* Timeline */
+    .timeline {
+      display: flex;
+      overflow-x: auto;
+      gap: 15px;
+      padding: 20px 0;
+    }
+    
+    .timeline-item {
+      min-width: 100px;
+      text-align: center;
+      padding: 15px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+    
+    .timeline-item.active {
+      border-color: var(--accent);
+      background: rgba(0,212,170,0.1);
+    }
+    
+    .timeline-month { font-size: 0.8rem; color: var(--dim); }
+    .timeline-value { font-size: 1.1rem; font-weight: 700; margin-top: 5px; }
+    .timeline-growth { font-size: 0.75rem; color: var(--accent); }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--dim);
+      margin-top: 5px;
+    }
+    
+    /* Action Log */
+    .action-log {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .log-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    
+    .log-icon { font-size: 1.2rem; }
+    .log-time { color: var(--dim); font-size: 0.8rem; }
+    .log-impact { margin-left: auto; font-weight: 600; }
+    .log-impact.positive { color: var(--accent); }
+    .log-impact.negative { color: var(--red); }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--dim);
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+    }
+    
+    .philosophy {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    
+    .philosophy-item {
+      padding: 10px 20px;
+      background: var(--card);
+      border-radius: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">♾️</div>
+    <h1>AUTUS Flywheel</h1>
+    <p class="subtitle">Bezos Edition - 스스로 가속하는 돈 엔진</p>
+    <div class="bezos-quote">
+      "아우투스는 Day 1 정신 그 자체다. 고객(당신)의 돈 최고치를 위해<br>
+      불필요한 모든 것을 제거하고 Flywheel을 끝없이 돌려라."
+    </div>
+  </header>
+  
+  <div class="container">
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-value">₩60M</div>
+        <div class="stat-label">현재 월 가치</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-velocity">1.0x</div>
+        <div class="stat-label">Flywheel 속도</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-synergy">5%</div>
+        <div class="stat-label">평균 시너지</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-month">0</div>
+        <div class="stat-label">경과 월</div>
+      </div>
+    </div>
+    
+    <div class="grid">
+      <!-- Flywheel Visualization -->
+      <div class="card">
+        <h2 class="card-title">🔄 Flywheel 시각화</h2>
+        
+        <div class="flywheel-container">
+          <div class="flywheel" id="flywheel">
+            <div class="flywheel-ring outer"></div>
+            <div class="flywheel-ring middle"></div>
+            <div class="flywheel-ring inner"></div>
+            
+            <div class="flywheel-center" id="flywheel-speed">1.0x</div>
+            
+            <!-- 5 Nodes -->
+            <div class="flywheel-node" data-step="1" onclick="highlightStep(1)">
+              <span class="icon">⏱️</span>
+              <span class="label">시간 비용 ↓</span>
+              <span class="value" id="node-time">-0%</span>
+            </div>
+            
+            <div class="flywheel-node" data-step="2" onclick="highlightStep(2)">
+              <span class="icon">🔗</span>
+              <span class="label">시너지 연결 ↑</span>
+              <span class="value" id="node-synergy">+0개</span>
+            </div>
+            
+            <div class="flywheel-node" data-step="3" onclick="highlightStep(3)">
+              <span class="icon">💰</span>
+              <span class="label">돈 가치 폭발</span>
+              <span class="value" id="node-value">+0%</span>
+            </div>
+            
+            <div class="flywheel-node" data-step="4" onclick="highlightStep(4)">
+              <span class="icon">⚡</span>
+              <span class="label">실행 용이</span>
+              <span class="value" id="node-exec">+0건</span>
+            </div>
+            
+            <div class="flywheel-node" data-step="5" onclick="highlightStep(5)">
+              <span class="icon">🔄</span>
+              <span class="label">자동화 확장</span>
+              <span class="value" id="node-auto">+0개</span>
+            </div>
+            
+            <!-- Arrows -->
+            <div class="flywheel-arrow arrow-1">→</div>
+            <div class="flywheel-arrow arrow-2">→</div>
+            <div class="flywheel-arrow arrow-3">→</div>
+            <div class="flywheel-arrow arrow-4">→</div>
+            <div class="flywheel-arrow arrow-5">→</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Simulator -->
+      <div class="card">
+        <h2 class="card-title">🎮 Flywheel 시뮬레이터</h2>
+        
+        <div class="simulator">
+          <div class="sim-row">
+            <div class="sim-label">
+              <span class="icon">💵</span>
+              <span>초기 월 가치</span>
+            </div>
+            <div class="sim-value" id="initial-value">₩60,000,000</div>
+          </div>
+          
+          <div class="sim-row">
+            <div class="sim-label">
+              <span class="icon">📈</span>
+              <span>12개월 후 예측</span>
+            </div>
+            <div class="sim-value" id="predicted-value">₩60,000,000</div>
+          </div>
+          
+          <div class="sim-row">
+            <div class="sim-label">
+              <span class="icon">🚀</span>
+              <span>성장 배수</span>
+            </div>
+            <div class="sim-value" id="growth-multiple">1.0x</div>
+          </div>
+        </div>
+        
+        <!-- Sliders -->
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>✂️ CUT 실행 (가치 ≤ 0 삭제)</span>
+            <span id="cut-label">0개</span>
+          </div>
+          <input type="range" id="cut-slider" min="0" max="10" value="0" oninput="updateSimulation()">
+        </div>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>🔗 LINK 실행 (시너지 연결)</span>
+            <span id="link-label">0개</span>
+          </div>
+          <input type="range" id="link-slider" min="0" max="20" value="0" oninput="updateSimulation()">
+        </div>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>📤 OUTSOURCE 실행 (외주화)</span>
+            <span id="outsource-label">0개</span>
+          </div>
+          <input type="range" id="outsource-slider" min="0" max="10" value="0" oninput="updateSimulation()">
+        </div>
+        
+        <div class="btn-row">
+          <button class="btn btn-danger" onclick="executeCut()">✂️ CUT</button>
+          <button class="btn btn-primary" onclick="executeLink()">🔗 LINK</button>
+          <button class="btn btn-warning" onclick="executeOutsource()">📤 OUTSOURCE</button>
+        </div>
+        
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="resetSimulation()">🔄 리셋</button>
+          <button class="btn btn-primary" onclick="startFlywheel()">▶️ Flywheel 시작</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 12 Month Timeline -->
+    <div class="card">
+      <h2 class="card-title">📅 12개월 Flywheel 예측</h2>
+      <div class="timeline" id="timeline"></div>
+    </div>
+    
+    <div class="grid">
+      <!-- Action Log -->
+      <div class="card">
+        <h2 class="card-title">📋 실행 로그</h2>
+        <div class="action-log" id="action-log">
+          <div class="log-item">
+            <span class="log-icon">🚀</span>
+            <span>Flywheel 시뮬레이터 시작</span>
+            <span class="log-time">방금</span>
+            <span class="log-impact positive">Ready</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Bezos 5단계 -->
+      <div class="card">
+        <h2 class="card-title">📖 Bezos 5단계 전략</h2>
+        <div class="simulator">
+          <div class="sim-row">
+            <div class="sim-label">
+              <span class="icon">1️⃣</span>
+              <span>Customer Obsession → 돈 최고치</span>
+            </div>
+          </div>
+          <div class="sim-row">
+            <div class="sim-label">
+              <span class="icon">2️⃣</span>
+              <span>Lower Prices → Lower Time Cost</span>
+            </div>
+          </div>
+          <div class="sim-row">
+            <div class="sim-label">
+              <span class="icon">3️⃣</span>
+              <span>Flywheel 시작 → 자동화의 자동화</span>
+            </div>
+          </div>
+          <div class="sim-row">
+            <div class="sim-label">
+              <span class="icon">4️⃣</span>
+              <span>Scale of Economy → Scale of Synergy</span>
+            </div>
+          </div>
+          <div class="sim-row">
+            <div class="sim-label">
+              <span class="icon">5️⃣</span>
+              <span>Long-Term Thinking → 복리 폭발</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <div class="philosophy">
+      <div class="philosophy-item">👤 모든 개체는 사람</div>
+      <div class="philosophy-item">💰 모든 액션은 돈</div>
+      <div class="philosophy-item">🚫 의미·판단은 없다</div>
+      <div class="philosophy-item">♾️ 자동화가 자동화를 낳는다</div>
+    </div>
+    <p>AUTUS Flywheel - Bezos Edition © 2025</p>
+  </footer>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const state = {
+      initialValue: 60000000,      // 6천만원
+      currentValue: 60000000,
+      currentMonth: 0,
+      
+      // Actions executed
+      cuts: 0,
+      links: 0,
+      outsources: 0,
+      automations: 5,              // 초기 자동화 수
+      
+      // Rates
+      timeCostReduction: 0,        // 시간 비용 감소율
+      synergyRate: 0.05,           // 시너지율
+      
+      // Flywheel
+      velocity: 1.0,               // Flywheel 속도
+      isRunning: false,
+      
+      // History
+      history: [],
+      actionLog: []
+    };
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FLYWHEEL PHYSICS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function calculateFlywheelVelocity() {
+      // Flywheel 속도 = (1 + CUT효과) × (1 + LINK효과) × (1 + OUTSOURCE효과)
+      const cutEffect = state.cuts * 0.05;           // CUT 1개당 5% 가속
+      const linkEffect = state.links * 0.03;         // LINK 1개당 3% 가속
+      const outsourceEffect = state.outsources * 0.04; // OUTSOURCE 1개당 4% 가속
+      
+      return 1 + cutEffect + linkEffect + outsourceEffect;
+    }
+    
+    function calculateMonthlyGrowth() {
+      // 월간 성장률 = 기본 성장 × Flywheel 속도 × 시너지율
+      const baseGrowth = 0.05;  // 기본 5%
+      const velocity = calculateFlywheelVelocity();
+      const synergy = 1 + state.synergyRate;
+      
+      return baseGrowth * velocity * synergy;
+    }
+    
+    function calculateValueAfterMonths(months) {
+      let value = state.initialValue;
+      const velocity = calculateFlywheelVelocity();
+      
+      for (let i = 0; i < months; i++) {
+        // 복리 성장
+        const cutBonus = state.cuts * 0.02;         // CUT: 시간비용 ↓ → 가치 ↑
+        const linkBonus = state.links * 0.015;      // LINK: 시너지 ↑
+        const outsourceBonus = state.outsources * 0.01; // OUTSOURCE: 비용 ↓
+        
+        const monthlyRate = 0.05 + cutBonus + linkBonus + outsourceBonus;
+        const acceleratedRate = monthlyRate * velocity;
+        
+        value = value * (1 + acceleratedRate);
+        
+        // 자동화 복리 (12개월 후 5개 → 60개)
+        if (i > 0 && i % 2 === 0) {
+          state.automations = Math.floor(state.automations * 1.2);
+        }
+      }
+      
+      return value;
+    }
+    
+    function calculateSynergyRate() {
+      // 시너지율 = 기본 5% + (LINK * 1%) + (자동화 * 0.5%)
+      return 0.05 + (state.links * 0.01) + (state.automations * 0.005);
+    }
+    
+    function calculateTimeCostReduction() {
+      // 시간비용 감소 = CUT * 3% + OUTSOURCE * 5%
+      return (state.cuts * 0.03) + (state.outsources * 0.05);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SIMULATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function updateSimulation() {
+      // Get slider values
+      state.cuts = parseInt(document.getElementById('cut-slider').value);
+      state.links = parseInt(document.getElementById('link-slider').value);
+      state.outsources = parseInt(document.getElementById('outsource-slider').value);
+      
+      // Update labels
+      document.getElementById('cut-label').textContent = state.cuts + '개';
+      document.getElementById('link-label').textContent = state.links + '개';
+      document.getElementById('outsource-label').textContent = state.outsources + '개';
+      
+      // Calculate
+      state.velocity = calculateFlywheelVelocity();
+      state.synergyRate = calculateSynergyRate();
+      state.timeCostReduction = calculateTimeCostReduction();
+      
+      const predicted = calculateValueAfterMonths(12);
+      const multiple = predicted / state.initialValue;
+      
+      // Update UI
+      updateUI(predicted, multiple);
+      updateTimeline();
+      updateFlywheelNodes();
+    }
+    
+    function updateUI(predicted, multiple) {
+      // Stats
+      document.getElementById('stat-velocity').textContent = state.velocity.toFixed(1) + 'x';
+      document.getElementById('stat-synergy').textContent = (state.synergyRate * 100).toFixed(0) + '%';
+      
+      // Simulator
+      document.getElementById('predicted-value').textContent = formatMoney(predicted);
+      document.getElementById('growth-multiple').textContent = multiple.toFixed(1) + 'x';
+      
+      // Flywheel center
+      document.getElementById('flywheel-speed').textContent = state.velocity.toFixed(1) + 'x';
+      
+      // Flywheel spin speed
+      const flywheel = document.getElementById('flywheel');
+      const spinDuration = Math.max(5, 20 / state.velocity);
+      flywheel.style.setProperty('--spin-duration', spinDuration + 's');
+    }
+    
+    function updateFlywheelNodes() {
+      document.getElementById('node-time').textContent = '-' + (state.timeCostReduction * 100).toFixed(0) + '%';
+      document.getElementById('node-synergy').textContent = '+' + state.links + '개';
+      document.getElementById('node-value').textContent = '+' + ((state.velocity - 1) * 100).toFixed(0) + '%';
+      document.getElementById('node-exec').textContent = '+' + (state.cuts + state.links + state.outsources) + '건';
+      document.getElementById('node-auto').textContent = '+' + (state.automations - 5) + '개';
+    }
+    
+    function updateTimeline() {
+      const timeline = document.getElementById('timeline');
+      timeline.innerHTML = '';
+      
+      let value = state.initialValue;
+      const velocity = calculateFlywheelVelocity();
+      
+      for (let month = 0; month <= 12; month++) {
+        if (month > 0) {
+          const cutBonus = state.cuts * 0.02;
+          const linkBonus = state.links * 0.015;
+          const outsourceBonus = state.outsources * 0.01;
+          const monthlyRate = 0.05 + cutBonus + linkBonus + outsourceBonus;
+          value = value * (1 + monthlyRate * velocity);
+        }
+        
+        const growth = ((value / state.initialValue - 1) * 100).toFixed(0);
+        const isActive = month === state.currentMonth;
+        
+        timeline.innerHTML += `
+          <div class="timeline-item ${isActive ? 'active' : ''}">
+            <div class="timeline-month">${month}개월</div>
+            <div class="timeline-value">${formatMoneyShort(value)}</div>
+            <div class="timeline-growth">+${growth}%</div>
+          </div>
+        `;
+      }
+    }
+    
+    function highlightStep(step) {
+      document.querySelectorAll('.flywheel-node').forEach((node, i) => {
+        node.classList.toggle('active', i + 1 === step);
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ACTIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function executeCut() {
+      state.cuts++;
+      document.getElementById('cut-slider').value = state.cuts;
+      
+      addLog('✂️', 'CUT 실행: 가치 ≤ 0 노드 삭제', '+3% 시간비용 ↓');
+      updateSimulation();
+    }
+    
+    function executeLink() {
+      state.links++;
+      document.getElementById('link-slider').value = state.links;
+      
+      addLog('🔗', 'LINK 실행: 시너지 연결 생성', '+1% 시너지');
+      updateSimulation();
+    }
+    
+    function executeOutsource() {
+      state.outsources++;
+      document.getElementById('outsource-slider').value = state.outsources;
+      
+      addLog('📤', 'OUTSOURCE 실행: 외주화', '+5% 비용 ↓');
+      updateSimulation();
+    }
+    
+    function resetSimulation() {
+      state.cuts = 0;
+      state.links = 0;
+      state.outsources = 0;
+      state.automations = 5;
+      state.currentMonth = 0;
+      state.isRunning = false;
+      
+      document.getElementById('cut-slider').value = 0;
+      document.getElementById('link-slider').value = 0;
+      document.getElementById('outsource-slider').value = 0;
+      
+      document.getElementById('flywheel').classList.remove('spinning');
+      
+      addLog('🔄', '시뮬레이션 리셋', '');
+      updateSimulation();
+    }
+    
+    function startFlywheel() {
+      if (state.isRunning) return;
+      
+      state.isRunning = true;
+      document.getElementById('flywheel').classList.add('spinning');
+      
+      addLog('🚀', 'Flywheel 시작!', state.velocity.toFixed(1) + 'x');
+      
+      // Animate through months
+      let month = 0;
+      const interval = setInterval(() => {
+        month++;
+        state.currentMonth = month;
+        
+        document.getElementById('stat-month').textContent = month;
+        
+        // Update current value
+        const velocity = calculateFlywheelVelocity();
+        const cutBonus = state.cuts * 0.02;
+        const linkBonus = state.links * 0.015;
+        const outsourceBonus = state.outsources * 0.01;
+        const monthlyRate = 0.05 + cutBonus + linkBonus + outsourceBonus;
+        
+        state.currentValue = state.currentValue * (1 + monthlyRate * velocity);
+        document.getElementById('stat-value').textContent = formatMoneyShort(state.currentValue);
+        
+        updateTimeline();
+        
+        if (month >= 12) {
+          clearInterval(interval);
+          state.isRunning = false;
+          
+          const multiple = (state.currentValue / state.initialValue).toFixed(1);
+          addLog('🎉', `12개월 완료! ${multiple}x 성장`, formatMoneyShort(state.currentValue));
+        }
+      }, 500);
+    }
+    
+    function addLog(icon, message, impact) {
+      const log = document.getElementById('action-log');
+      const isPositive = impact.includes('+') || impact.includes('x');
+      
+      const html = `
+        <div class="log-item">
+          <span class="log-icon">${icon}</span>
+          <span>${message}</span>
+          <span class="log-time">방금</span>
+          <span class="log-impact ${isPositive ? 'positive' : ''}">${impact}</span>
+        </div>
+      `;
+      
+      log.insertAdjacentHTML('afterbegin', html);
+      
+      // Keep only last 10
+      while (log.children.length > 10) {
+        log.removeChild(log.lastChild);
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UTILITIES
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      if (value >= 100000000) {
+        return '₩' + (value / 100000000).toFixed(1) + '억';
+      }
+      return '₩' + value.toLocaleString();
+    }
+    
+    function formatMoneyShort(value) {
+      if (value >= 100000000) {
+        return '₩' + (value / 100000000).toFixed(1) + '억';
+      }
+      if (value >= 10000000) {
+        return '₩' + (value / 10000000).toFixed(0) + '천만';
+      }
+      if (value >= 1000000) {
+        return '₩' + (value / 1000000).toFixed(0) + 'M';
+      }
+      return '₩' + (value / 10000).toFixed(0) + '만';
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      updateSimulation();
+      console.log('♾️ AUTUS Flywheel - Bezos Edition loaded');
+    });
+  </script>
+</body>
+</html>

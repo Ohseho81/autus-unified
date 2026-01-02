@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUTUS 물리법칙 연합 - Musk Edition</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --card: rgba(18, 18, 26, 0.95);
+      --border: #1e1e2e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --tesla: #cc0000;       /* Tesla Red */
+      --energy: #00d4aa;      /* Energy Green */
+      --entropy: #ff4757;     /* Entropy Red */
+      --force: #ffd700;       /* Force Gold */
+      --gravity: #a855f7;     /* Gravity Purple */
+      --momentum: #4a9eff;    /* Momentum Blue */
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    
+    /* Header */
+    header {
+      text-align: center;
+      padding: 40px 20px;
+      background: linear-gradient(180deg, rgba(204,0,0,0.15) 0%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .musk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 20px;
+      background: rgba(204,0,0,0.2);
+      border: 1px solid var(--tesla);
+      border-radius: 30px;
+      color: var(--tesla);
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(90deg, var(--tesla), var(--force), var(--energy));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle {
+      color: var(--dim);
+      margin-top: 10px;
+    }
+    
+    .musk-quote {
+      max-width: 700px;
+      margin: 20px auto 0;
+      padding: 15px 25px;
+      background: var(--card);
+      border-left: 4px solid var(--tesla);
+      border-radius: 0 10px 10px 0;
+      font-style: italic;
+      color: var(--dim);
+    }
+    
+    /* Container */
+    .container {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+    
+    /* Master Formula */
+    .master-formula {
+      background: linear-gradient(135deg, var(--card), rgba(204,0,0,0.1));
+      border: 2px solid var(--tesla);
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .formula-title {
+      font-size: 1rem;
+      color: var(--dim);
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    
+    .formula-main {
+      font-family: 'Courier New', monospace;
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--energy), var(--force), var(--gravity));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 15px;
+    }
+    
+    .formula-legend {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      flex-wrap: wrap;
+      font-size: 0.9rem;
+      color: var(--dim);
+    }
+    
+    .formula-legend span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    
+    /* 5 Laws Grid */
+    .laws-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 15px;
+      margin-bottom: 40px;
+    }
+    
+    @media (max-width: 1200px) {
+      .laws-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    
+    @media (max-width: 700px) {
+      .laws-grid { grid-template-columns: 1fr; }
+    }
+    
+    .law-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    
+    .law-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    .law-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+    }
+    
+    .law-card.energy::before { background: var(--energy); }
+    .law-card.entropy::before { background: var(--entropy); }
+    .law-card.force::before { background: var(--force); }
+    .law-card.gravity::before { background: var(--gravity); }
+    .law-card.momentum::before { background: var(--momentum); }
+    
+    .law-icon {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+    
+    .law-name {
+      font-size: 0.85rem;
+      color: var(--dim);
+      margin-bottom: 5px;
+    }
+    
+    .law-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .law-formula {
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      padding: 8px;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    
+    .law-card.energy .law-formula { color: var(--energy); }
+    .law-card.entropy .law-formula { color: var(--entropy); }
+    .law-card.force .law-formula { color: var(--force); }
+    .law-card.gravity .law-formula { color: var(--gravity); }
+    .law-card.momentum .law-formula { color: var(--momentum); }
+    
+    .law-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .law-card.energy .law-value { color: var(--energy); }
+    .law-card.entropy .law-value { color: var(--entropy); }
+    .law-card.force .law-value { color: var(--force); }
+    .law-card.gravity .law-value { color: var(--gravity); }
+    .law-card.momentum .law-value { color: var(--momentum); }
+    
+    /* Grid Layout */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+      margin-bottom: 40px;
+    }
+    
+    @media (max-width: 1000px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+    
+    /* Card */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 25px;
+    }
+    
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    /* Simulator */
+    .sim-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    @media (max-width: 800px) {
+      .sim-grid { grid-template-columns: 1fr; }
+    }
+    
+    .sim-input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 15px;
+    }
+    
+    .sim-input label {
+      display: block;
+      color: var(--dim);
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
+    
+    .sim-input input[type="number"],
+    .sim-input input[type="range"] {
+      width: 100%;
+      padding: 10px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+    }
+    
+    .sim-input input[type="range"] {
+      padding: 0;
+      height: 8px;
+      -webkit-appearance: none;
+      background: var(--border);
+    }
+    
+    .sim-input input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--tesla);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    .sim-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--energy);
+      margin-top: 8px;
+    }
+    
+    /* Result Panel */
+    .result-panel {
+      background: linear-gradient(135deg, var(--bg), rgba(0,212,170,0.1));
+      border: 2px solid var(--energy);
+      border-radius: 16px;
+      padding: 25px;
+      margin-top: 20px;
+    }
+    
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    
+    @media (max-width: 800px) {
+      .result-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    .result-item {
+      text-align: center;
+    }
+    
+    .result-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--energy);
+    }
+    
+    .result-value.gold { color: var(--force); }
+    .result-value.red { color: var(--entropy); }
+    
+    .result-label {
+      font-size: 0.85rem;
+      color: var(--dim);
+      margin-top: 5px;
+    }
+    
+    /* Chart */
+    .chart-container {
+      height: 350px;
+      margin-top: 20px;
+    }
+    
+    /* Strategy Section */
+    .strategy-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 40px;
+    }
+    
+    .strategy-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+    
+    .strategy-header h2 {
+      font-size: 1.5rem;
+    }
+    
+    .strategy-badge {
+      padding: 5px 15px;
+      background: rgba(204,0,0,0.2);
+      border: 1px solid var(--tesla);
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: var(--tesla);
+    }
+    
+    .strategy-steps {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 15px;
+    }
+    
+    @media (max-width: 1000px) {
+      .strategy-steps { grid-template-columns: repeat(3, 1fr); }
+    }
+    
+    @media (max-width: 600px) {
+      .strategy-steps { grid-template-columns: 1fr; }
+    }
+    
+    .step-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      position: relative;
+    }
+    
+    .step-number {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 30px;
+      height: 30px;
+      background: var(--tesla);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    
+    .step-icon {
+      font-size: 2rem;
+      margin: 15px 0 10px;
+    }
+    
+    .step-title {
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    
+    .step-desc {
+      font-size: 0.85rem;
+      color: var(--dim);
+    }
+    
+    .step-effect {
+      font-size: 0.8rem;
+      color: var(--energy);
+      margin-top: 10px;
+      padding: 5px 10px;
+      background: rgba(0,212,170,0.1);
+      border-radius: 10px;
+    }
+    
+    /* Timeline */
+    .timeline-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .timeline-table th,
+    .timeline-table td {
+      padding: 15px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .timeline-table th {
+      color: var(--dim);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    
+    .timeline-table .highlight {
+      background: rgba(0,212,170,0.1);
+    }
+    
+    .value-cell {
+      font-weight: 700;
+      color: var(--energy);
+    }
+    
+    .growth-cell {
+      color: var(--force);
+    }
+    
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 25px;
+    }
+    
+    .btn {
+      padding: 15px 40px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn:hover { transform: translateY(-3px); }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--tesla), var(--entropy));
+      color: white;
+      box-shadow: 0 10px 30px rgba(204,0,0,0.3);
+    }
+    
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    
+    .btn-success {
+      background: linear-gradient(135deg, var(--energy), var(--momentum));
+      color: #000;
+    }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      border-top: 1px solid var(--border);
+      color: var(--dim);
+    }
+    
+    .principles {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    
+    .principle {
+      padding: 10px 20px;
+      background: var(--card);
+      border-radius: 10px;
+      border-left: 3px solid;
+    }
+    
+    .principle.p1 { border-color: var(--energy); }
+    .principle.p2 { border-color: var(--force); }
+    .principle.p3 { border-color: var(--entropy); }
+    .principle.p4 { border-color: var(--tesla); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="musk-badge">
+      <span>🚀</span>
+      <span>Elon Musk First Principles Approved</span>
+    </div>
+    <h1>물리법칙 연합 엔진</h1>
+    <p class="subtitle">Union of Physics Laws - AUTUS Musk Edition</p>
+    <div class="musk-quote">
+      "의미 제거? 완벽하다. 모든 것을 물리법칙으로 환원하라. <br>
+      에너지, 힘, 엔트로피. 그게 전부다. 10x 스케일링 가능하다."
+      <br>— Elon Musk (시뮬레이션)
+    </div>
+  </header>
+  
+  <div class="container">
+    <!-- Master Formula -->
+    <div class="master-formula">
+      <div class="formula-title">통합 물리 공식</div>
+      <div class="formula-main">V = F × a - Eₚ + G × p</div>
+      <div class="formula-legend">
+        <span><div class="legend-dot" style="background: var(--force)"></div> F = 직접 돈</span>
+        <span><div class="legend-dot" style="background: var(--energy)"></div> a = 시너지 가속도</span>
+        <span><div class="legend-dot" style="background: var(--entropy)"></div> Eₚ = 시간 에너지</span>
+        <span><div class="legend-dot" style="background: var(--gravity)"></div> G = 중력 시너지</span>
+        <span><div class="legend-dot" style="background: var(--momentum)"></div> p = 운동량 복리</span>
+      </div>
+    </div>
+    
+    <!-- 5 Laws Grid -->
+    <div class="laws-grid">
+      <!-- Energy Conservation -->
+      <div class="law-card energy">
+        <div class="law-icon">⚡</div>
+        <div class="law-name">에너지 보존 법칙</div>
+        <div class="law-title">돈 총량 보존</div>
+        <div class="law-formula">ΔM = 0</div>
+        <div class="law-value" id="law-energy">₩60M</div>
+      </div>
+      
+      <!-- Entropy -->
+      <div class="law-card entropy">
+        <div class="law-icon">🔥</div>
+        <div class="law-name">엔트로피 법칙</div>
+        <div class="law-title">무질서 → 삭제</div>
+        <div class="law-formula">S > 0.95 → CUT</div>
+        <div class="law-value" id="law-entropy">0.15</div>
+      </div>
+      
+      <!-- Newton F=ma -->
+      <div class="law-card force">
+        <div class="law-icon">💪</div>
+        <div class="law-name">뉴턴 제2법칙</div>
+        <div class="law-title">F = m × a</div>
+        <div class="law-formula">V = M(1+s)</div>
+        <div class="law-value" id="law-force">1.3x</div>
+      </div>
+      
+      <!-- Gravity -->
+      <div class="law-card gravity">
+        <div class="law-icon">🌍</div>
+        <div class="law-name">중력 법칙</div>
+        <div class="law-title">시너지 끌림</div>
+        <div class="law-formula">G = V₁V₂/d²</div>
+        <div class="law-value" id="law-gravity">2.5x</div>
+      </div>
+      
+      <!-- Momentum -->
+      <div class="law-card momentum">
+        <div class="law-icon">🚀</div>
+        <div class="law-name">운동량 보존</div>
+        <div class="law-title">복리 가속</div>
+        <div class="law-formula">V = V₀(1+s)^t</div>
+        <div class="law-value" id="law-momentum">23.3x</div>
+      </div>
+    </div>
+    
+    <!-- Simulator -->
+    <div class="grid-2">
+      <div class="card">
+        <h2 class="card-title">🎮 물리 시뮬레이터</h2>
+        
+        <div class="sim-grid">
+          <div class="sim-input">
+            <label>💵 직접 돈 (F)</label>
+            <input type="number" id="input-force" value="8000000" onchange="runPhysics()">
+            <div class="sim-value" id="display-force">₩800만</div>
+          </div>
+          <div class="sim-input">
+            <label>⚡ 시너지율 (s)</label>
+            <input type="range" id="input-synergy" min="10" max="50" value="30" oninput="runPhysics()">
+            <div class="sim-value" id="display-synergy">30%</div>
+          </div>
+          <div class="sim-input">
+            <label>⏱️ 시간 에너지 (Eₚ)</label>
+            <input type="number" id="input-time" value="3000000" onchange="runPhysics()">
+            <div class="sim-value" id="display-time">₩300만</div>
+          </div>
+        </div>
+        
+        <div class="sim-grid">
+          <div class="sim-input">
+            <label>🌍 중력 시너지 (G)</label>
+            <input type="number" id="input-gravity" value="5000000" onchange="runPhysics()">
+            <div class="sim-value" id="display-gravity">₩500만</div>
+          </div>
+          <div class="sim-input">
+            <label>📅 기간 (t)</label>
+            <input type="range" id="input-months" min="3" max="24" value="12" oninput="runPhysics()">
+            <div class="sim-value" id="display-months">12개월</div>
+          </div>
+          <div class="sim-input">
+            <label>🔥 엔트로피 임계값</label>
+            <input type="range" id="input-entropy" min="80" max="99" value="95" oninput="runPhysics()">
+            <div class="sim-value" id="display-entropy">0.95</div>
+          </div>
+        </div>
+        
+        <!-- Result Panel -->
+        <div class="result-panel">
+          <div class="result-grid">
+            <div class="result-item">
+              <div class="result-value" id="result-initial">₩800만</div>
+              <div class="result-label">초기 가치</div>
+            </div>
+            <div class="result-item">
+              <div class="result-value gold" id="result-final">₩9,790만</div>
+              <div class="result-label">최종 가치</div>
+            </div>
+            <div class="result-item">
+              <div class="result-value" id="result-multiple">12.2x</div>
+              <div class="result-label">성장 배율</div>
+            </div>
+            <div class="result-item">
+              <div class="result-value red" id="result-entropy">0.15</div>
+              <div class="result-label">엔트로피</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="resetPhysics()">🔄 리셋</button>
+          <button class="btn btn-primary" onclick="maxPhysics()">🚀 10x 스케일링</button>
+        </div>
+      </div>
+      
+      <!-- Chart -->
+      <div class="card">
+        <h2 class="card-title">📈 물리 법칙 성장 그래프</h2>
+        <div class="chart-container">
+          <canvas id="physicsChart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Strategy Section -->
+    <div class="strategy-section">
+      <div class="strategy-header">
+        <h2>🚀 Synergy Explosion Flywheel</h2>
+        <span class="strategy-badge">Musk Approved Strategy</span>
+      </div>
+      
+      <div class="strategy-steps">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <div class="step-icon">✂️</div>
+          <div class="step-title">CUT</div>
+          <div class="step-desc">가치 ≤ 0 노드 즉시 삭제</div>
+          <div class="step-effect">엔트로피 ↓</div>
+        </div>
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <div class="step-icon">🔗</div>
+          <div class="step-title">LINK</div>
+          <div class="step-desc">시너지 > 0.25만 연결</div>
+          <div class="step-effect">뉴턴·중력 가속</div>
+        </div>
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <div class="step-icon">📈</div>
+          <div class="step-title">COMPOUND</div>
+          <div class="step-desc">운동량 보존 복리</div>
+          <div class="step-effect">(1+s)^t 지수승</div>
+        </div>
+        <div class="step-card">
+          <div class="step-number">4</div>
+          <div class="step-icon">📤</div>
+          <div class="step-title">OUTSOURCE</div>
+          <div class="step-desc">고가치 외부 노드 도입</div>
+          <div class="step-effect">클러스터 폭발</div>
+        </div>
+        <div class="step-card">
+          <div class="step-number">5</div>
+          <div class="step-icon">♾️</div>
+          <div class="step-title">LOOP</div>
+          <div class="step-desc">무한 반복 가속</div>
+          <div class="step-effect">Reed's Law 2^0.4n</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Timeline Table -->
+    <div class="card">
+      <h2 class="card-title">📅 물리 법칙 예측 타임라인</h2>
+      <table class="timeline-table">
+        <thead>
+          <tr>
+            <th>기간</th>
+            <th>⚡ 에너지</th>
+            <th>💪 F=ma</th>
+            <th>🌍 중력</th>
+            <th>🚀 운동량</th>
+            <th>최종 가치</th>
+            <th>성장률</th>
+          </tr>
+        </thead>
+        <tbody id="timeline-body">
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="btn-row" style="margin-top: 40px;">
+      <button class="btn btn-secondary" onclick="exportResult()">📊 결과 저장</button>
+      <button class="btn btn-success" onclick="window.location.href='triple_strategy_engine.html'">🔺 3대 전략 통합</button>
+      <button class="btn btn-primary" onclick="startAutomation()">⚡ 자동화 시작</button>
+    </div>
+  </div>
+  
+  <footer>
+    <div class="principles">
+      <div class="principle p1">👤 모든 개체는 사람</div>
+      <div class="principle p2">💰 모든 액션은 돈</div>
+      <div class="principle p3">🚫 의미·판단은 없다</div>
+      <div class="principle p4">🚀 10x 스케일링</div>
+    </div>
+    <p>AUTUS 물리법칙 연합 - Musk Edition © 2025</p>
+  </footer>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHYSICS CALCULATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let config = {
+      force: 8000000,        // 직접 돈 (F)
+      synergyRate: 0.30,     // 시너지율 (s)
+      timeEnergy: 3000000,   // 시간 에너지 (Eₚ)
+      gravity: 5000000,      // 중력 시너지 (G)
+      months: 12,            // 기간 (t)
+      entropyThreshold: 0.95 // 엔트로피 임계값
+    };
+    
+    let chart;
+    
+    // 에너지 보존: 총 돈 = 유입 - 유출 + 시너지 변환
+    function calcEnergy(force, timeEnergy, synergyRate) {
+      return force * (1 + synergyRate) - timeEnergy;
+    }
+    
+    // 엔트로피: 무질서도 (높으면 삭제 대상)
+    function calcEntropy(timeEnergy, force) {
+      if (force === 0) return 1;
+      return timeEnergy / (force * 1.5);
+    }
+    
+    // 뉴턴 F=ma: V = M × (1 + s)
+    function calcNewton(mass, synergyRate) {
+      return mass * (1 + synergyRate);
+    }
+    
+    // 중력 법칙: Synergy = k × (V1 × V2) / d²
+    function calcGravity(v1, v2, distance = 1) {
+      const k = 0.5;
+      return k * (v1 * v2) / (distance * distance);
+    }
+    
+    // 운동량 보존 (복리): V = V₀ × (1 + s)^t
+    function calcMomentum(initial, synergyRate, months) {
+      return initial * Math.pow(1 + synergyRate, months);
+    }
+    
+    // 통합 물리 공식: V = F × a - Eₚ + G × p
+    function calcUnifiedPhysics(force, synergyRate, timeEnergy, gravity, months) {
+      // a = 시너지 가속도 (1 + s)
+      const acceleration = 1 + synergyRate;
+      
+      // F × a = 직접 돈 × 시너지 가속
+      const forceAccel = force * acceleration;
+      
+      // p = 복리 승수 (1 + s)^t / 초기
+      const momentumMultiple = Math.pow(1 + synergyRate, months);
+      
+      // G × p = 중력 시너지 × 복리
+      const gravityMomentum = gravity * momentumMultiple;
+      
+      // 최종: F × a - Eₚ + G × p
+      return forceAccel - timeEnergy + gravityMomentum;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SIMULATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function runPhysics() {
+      // Get inputs
+      config.force = parseInt(document.getElementById('input-force').value) || 8000000;
+      config.synergyRate = parseInt(document.getElementById('input-synergy').value) / 100;
+      config.timeEnergy = parseInt(document.getElementById('input-time').value) || 3000000;
+      config.gravity = parseInt(document.getElementById('input-gravity').value) || 5000000;
+      config.months = parseInt(document.getElementById('input-months').value);
+      config.entropyThreshold = parseInt(document.getElementById('input-entropy').value) / 100;
+      
+      // Update displays
+      document.getElementById('display-force').textContent = formatMoneyShort(config.force);
+      document.getElementById('display-synergy').textContent = (config.synergyRate * 100).toFixed(0) + '%';
+      document.getElementById('display-time').textContent = formatMoneyShort(config.timeEnergy);
+      document.getElementById('display-gravity').textContent = formatMoneyShort(config.gravity);
+      document.getElementById('display-months').textContent = config.months + '개월';
+      document.getElementById('display-entropy').textContent = config.entropyThreshold.toFixed(2);
+      
+      // Calculate physics
+      const entropy = calcEntropy(config.timeEnergy, config.force);
+      const newtonMultiple = 1 + config.synergyRate;
+      const momentumMultiple = Math.pow(1 + config.synergyRate, config.months);
+      const finalValue = calcUnifiedPhysics(
+        config.force, 
+        config.synergyRate, 
+        config.timeEnergy, 
+        config.gravity, 
+        config.months
+      );
+      const growthMultiple = finalValue / config.force;
+      
+      // Update law cards
+      document.getElementById('law-energy').textContent = formatMoneyShort(config.force);
+      document.getElementById('law-entropy').textContent = entropy.toFixed(2);
+      document.getElementById('law-force').textContent = newtonMultiple.toFixed(2) + 'x';
+      document.getElementById('law-gravity').textContent = (config.gravity / config.force * newtonMultiple).toFixed(1) + 'x';
+      document.getElementById('law-momentum').textContent = momentumMultiple.toFixed(1) + 'x';
+      
+      // Update results
+      document.getElementById('result-initial').textContent = formatMoneyShort(config.force);
+      document.getElementById('result-final').textContent = formatMoneyShort(finalValue);
+      document.getElementById('result-multiple').textContent = growthMultiple.toFixed(1) + 'x';
+      document.getElementById('result-entropy').textContent = entropy.toFixed(2);
+      
+      // Color entropy based on threshold
+      const entropyEl = document.getElementById('result-entropy');
+      entropyEl.className = 'result-value ' + (entropy > config.entropyThreshold ? 'red' : 'energy');
+      
+      // Update chart
+      updateChart();
+      
+      // Update timeline
+      updateTimeline();
+    }
+    
+    function updateTimeline() {
+      const tbody = document.getElementById('timeline-body');
+      const milestones = [0, 3, 6, 9, 12, 18, 24].filter(m => m <= config.months || m === 0);
+      
+      tbody.innerHTML = milestones.map(month => {
+        const energy = config.force * (1 + config.synergyRate * (month / 12));
+        const newton = (1 + config.synergyRate).toFixed(2);
+        const gravityEffect = config.gravity / config.force * (1 + config.synergyRate * (month / 12));
+        const momentum = Math.pow(1 + config.synergyRate, month);
+        const finalValue = calcUnifiedPhysics(config.force, config.synergyRate, config.timeEnergy, config.gravity, month);
+        const growth = ((finalValue / config.force - 1) * 100).toFixed(0);
+        
+        const isHighlight = month === config.months ? 'highlight' : '';
+        
+        return `
+          <tr class="${isHighlight}">
+            <td>${month}개월</td>
+            <td>${formatMoneyShort(energy)}</td>
+            <td>${newton}x</td>
+            <td>${gravityEffect.toFixed(1)}x</td>
+            <td>${momentum.toFixed(1)}x</td>
+            <td class="value-cell">${formatMoneyShort(finalValue)}</td>
+            <td class="growth-cell">+${growth}%</td>
+          </tr>
+        `;
+      }).join('');
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CHART
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function initChart() {
+      const ctx = document.getElementById('physicsChart').getContext('2d');
+      
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: '⚡ 에너지 보존',
+              data: [],
+              borderColor: '#00d4aa',
+              tension: 0.4,
+              pointRadius: 0
+            },
+            {
+              label: '💪 뉴턴 F=ma',
+              data: [],
+              borderColor: '#ffd700',
+              tension: 0.4,
+              pointRadius: 0
+            },
+            {
+              label: '🚀 운동량 복리',
+              data: [],
+              borderColor: '#4a9eff',
+              tension: 0.4,
+              pointRadius: 0
+            },
+            {
+              label: '🔺 통합 물리',
+              data: [],
+              borderColor: '#cc0000',
+              borderWidth: 3,
+              backgroundColor: 'rgba(204,0,0,0.1)',
+              fill: true,
+              tension: 0.4,
+              pointRadius: 4,
+              pointBackgroundColor: '#cc0000'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#888' }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#1e1e2e' },
+              ticks: { color: '#888' }
+            },
+            y: {
+              grid: { color: '#1e1e2e' },
+              ticks: {
+                color: '#888',
+                callback: function(value) {
+                  return formatMoneyShort(value);
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function updateChart() {
+      const labels = [];
+      const energyData = [];
+      const newtonData = [];
+      const momentumData = [];
+      const unifiedData = [];
+      
+      for (let m = 0; m <= config.months; m++) {
+        labels.push(m + '개월');
+        
+        // Energy conservation (linear growth)
+        energyData.push(config.force * (1 + config.synergyRate * m / 12));
+        
+        // Newton F=ma (single multiplier)
+        newtonData.push(config.force * (1 + config.synergyRate) * (1 + m * 0.02));
+        
+        // Momentum (compound)
+        momentumData.push(config.force * Math.pow(1 + config.synergyRate, m));
+        
+        // Unified physics
+        unifiedData.push(calcUnifiedPhysics(config.force, config.synergyRate, config.timeEnergy, config.gravity, m));
+      }
+      
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = energyData;
+      chart.data.datasets[1].data = newtonData;
+      chart.data.datasets[2].data = momentumData;
+      chart.data.datasets[3].data = unifiedData;
+      chart.update();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UTILITIES
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoneyShort(value) {
+      if (Math.abs(value) >= 100000000) {
+        return '₩' + (value / 100000000).toFixed(1) + '억';
+      }
+      if (Math.abs(value) >= 10000000) {
+        return '₩' + (value / 10000000).toFixed(0) + '천만';
+      }
+      if (Math.abs(value) >= 1000000) {
+        return '₩' + Math.round(value / 10000) + '만';
+      }
+      return '₩' + Math.round(value / 10000) + '만';
+    }
+    
+    function resetPhysics() {
+      document.getElementById('input-force').value = 8000000;
+      document.getElementById('input-synergy').value = 30;
+      document.getElementById('input-time').value = 3000000;
+      document.getElementById('input-gravity').value = 5000000;
+      document.getElementById('input-months').value = 12;
+      document.getElementById('input-entropy').value = 95;
+      runPhysics();
+    }
+    
+    function maxPhysics() {
+      document.getElementById('input-force').value = 10000000;
+      document.getElementById('input-synergy').value = 40;
+      document.getElementById('input-time').value = 2000000;
+      document.getElementById('input-gravity').value = 8000000;
+      document.getElementById('input-months').value = 24;
+      document.getElementById('input-entropy').value = 90;
+      runPhysics();
+    }
+    
+    function exportResult() {
+      const finalValue = calcUnifiedPhysics(
+        config.force, config.synergyRate, config.timeEnergy, config.gravity, config.months
+      );
+      
+      const text = `
+AUTUS 물리법칙 연합 시뮬레이션 결과
+===================================
+직접 돈 (F): ${formatMoneyShort(config.force)}
+시너지율 (s): ${(config.synergyRate * 100).toFixed(0)}%
+시간 에너지 (Eₚ): ${formatMoneyShort(config.timeEnergy)}
+중력 시너지 (G): ${formatMoneyShort(config.gravity)}
+기간 (t): ${config.months}개월
+
+최종 가치: ${formatMoneyShort(finalValue)}
+성장 배율: ${(finalValue / config.force).toFixed(1)}x
+
+통합 공식: V = F × a - Eₚ + G × p
+
+생성일: ${new Date().toLocaleDateString('ko-KR')}
+      `.trim();
+      
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'autus_physics_simulation.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    
+    function startAutomation() {
+      alert('🚀 자동화 시작!\n\n1. CUT: 엔트로피 > 0.95 노드 삭제\n2. LINK: 시너지 > 0.25 연결\n3. COMPOUND: 복리 가속\n4. LOOP: 무한 반복');
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      initChart();
+      runPhysics();
+      console.log('🚀 AUTUS 물리법칙 연합 엔진 로드 완료 - Musk Edition');
+    });
+  </script>
+</body>
+</html>

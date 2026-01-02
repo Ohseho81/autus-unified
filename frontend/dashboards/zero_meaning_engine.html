@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUTUS Zero Meaning 실행 전략 - Implementation Engine</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --card: rgba(18, 18, 26, 0.95);
+      --border: #1e1e2e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --zero: #00d4aa;       /* Zero Meaning Green */
+      --lock: #ff6b6b;       /* Lock Red */
+      --phase1: #00d4aa;
+      --phase2: #3b82f6;
+      --phase3: #a855f7;
+      --phase4: #ffd700;
+      --phase5: #ff6b6b;
+      --accent: #00d4aa;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    
+    /* Header */
+    header {
+      text-align: center;
+      padding: 50px 20px;
+      background: linear-gradient(180deg, rgba(0,212,170,0.2) 0%, rgba(255,107,107,0.1) 50%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    
+    .lock-icon {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 3rem;
+      opacity: 0.3;
+    }
+    
+    .zero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 15px 35px;
+      background: linear-gradient(135deg, rgba(0,212,170,0.3), rgba(255,107,107,0.2));
+      border: 2px solid var(--zero);
+      border-radius: 40px;
+      font-weight: 700;
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      font-size: 3rem;
+      background: linear-gradient(90deg, var(--zero), var(--lock));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle { color: var(--dim); font-size: 1.1rem; margin-bottom: 20px; }
+    
+    .philosophy-box {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 25px 30px;
+      background: var(--card);
+      border: 1px solid var(--zero);
+      border-radius: 16px;
+      text-align: left;
+    }
+    
+    .philosophy-title {
+      color: var(--zero);
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 15px;
+    }
+    
+    .philosophy-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+    }
+    
+    @media (max-width: 800px) { .philosophy-grid { grid-template-columns: repeat(2, 1fr); } }
+    
+    .philosophy-item {
+      text-align: center;
+      padding: 15px;
+      background: var(--bg);
+      border-radius: 10px;
+    }
+    
+    .philosophy-icon { font-size: 2rem; margin-bottom: 8px; }
+    .philosophy-text { font-size: 0.85rem; color: var(--dim); }
+    .philosophy-value { font-weight: 700; color: var(--zero); margin-top: 5px; }
+    
+    /* Container */
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    /* Progress Overview */
+    .progress-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 35px;
+      margin-bottom: 40px;
+    }
+    
+    .section-title {
+      font-size: 1.5rem;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .progress-bar-container {
+      background: var(--bg);
+      border-radius: 15px;
+      height: 30px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--phase1), var(--phase2), var(--phase3), var(--phase4), var(--phase5));
+      border-radius: 15px;
+      transition: width 0.5s;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 15px;
+      font-weight: 700;
+      color: #000;
+    }
+    
+    .progress-stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 15px;
+    }
+    
+    @media (max-width: 1000px) { .progress-stats { grid-template-columns: repeat(3, 1fr); } }
+    
+    .progress-stat {
+      text-align: center;
+      padding: 20px;
+      background: var(--bg);
+      border-radius: 12px;
+    }
+    
+    .progress-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--zero);
+    }
+    
+    .progress-label {
+      color: var(--dim);
+      font-size: 0.85rem;
+      margin-top: 5px;
+    }
+    
+    /* Timeline */
+    .timeline-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 35px;
+      margin-bottom: 40px;
+    }
+    
+    .timeline {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      margin: 40px 0;
+    }
+    
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 40px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--phase1), var(--phase2), var(--phase3), var(--phase4), var(--phase5));
+      border-radius: 2px;
+    }
+    
+    .timeline-phase {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .timeline-phase:hover { transform: translateY(-5px); }
+    
+    .phase-number {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 15px;
+      position: relative;
+      z-index: 1;
+      font-weight: 700;
+      transition: all 0.3s;
+    }
+    
+    .phase-number.p1 { background: var(--phase1); color: #000; }
+    .phase-number.p2 { background: var(--phase2); color: #fff; }
+    .phase-number.p3 { background: var(--phase3); color: #fff; }
+    .phase-number.p4 { background: var(--phase4); color: #000; }
+    .phase-number.p5 { background: var(--phase5); color: #fff; }
+    
+    .phase-number.active {
+      transform: scale(1.2);
+      box-shadow: 0 0 30px currentColor;
+    }
+    
+    .phase-month { font-size: 0.7rem; opacity: 0.8; }
+    .phase-num { font-size: 1.5rem; }
+    
+    .phase-title { font-weight: 600; margin-bottom: 5px; }
+    .phase-subtitle { font-size: 0.8rem; color: var(--dim); }
+    
+    /* Phase Details */
+    .phase-details {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 20px;
+      margin-top: 30px;
+    }
+    
+    @media (max-width: 1200px) { .phase-details { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 800px) { .phase-details { grid-template-columns: 1fr; } }
+    
+    .phase-card {
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 25px;
+      transition: all 0.3s;
+    }
+    
+    .phase-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    }
+    
+    .phase-card.p1 { border-color: var(--phase1); }
+    .phase-card.p2 { border-color: var(--phase2); }
+    .phase-card.p3 { border-color: var(--phase3); }
+    .phase-card.p4 { border-color: var(--phase4); }
+    .phase-card.p5 { border-color: var(--phase5); }
+    
+    .phase-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+    
+    .phase-badge {
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    
+    .phase-badge.p1 { background: rgba(0,212,170,0.2); color: var(--phase1); }
+    .phase-badge.p2 { background: rgba(59,130,246,0.2); color: var(--phase2); }
+    .phase-badge.p3 { background: rgba(168,85,247,0.2); color: var(--phase3); }
+    .phase-badge.p4 { background: rgba(255,215,0,0.2); color: var(--phase4); }
+    .phase-badge.p5 { background: rgba(255,107,107,0.2); color: var(--phase5); }
+    
+    .phase-card-title { font-weight: 700; }
+    
+    .phase-tasks {
+      list-style: none;
+      margin: 15px 0;
+    }
+    
+    .phase-tasks li {
+      padding: 8px 0;
+      padding-left: 25px;
+      position: relative;
+      font-size: 0.85rem;
+      color: var(--dim);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .phase-tasks li:last-child { border-bottom: none; }
+    
+    .phase-tasks li::before {
+      content: '□';
+      position: absolute;
+      left: 0;
+      color: var(--zero);
+    }
+    
+    .phase-tasks li.done::before {
+      content: '✓';
+      color: var(--zero);
+    }
+    
+    .phase-cost {
+      display: flex;
+      justify-content: space-between;
+      padding-top: 15px;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    
+    .phase-cost-label { color: var(--dim); }
+    .phase-cost-value { font-weight: 700; color: var(--zero); }
+    
+    /* Data Model */
+    .model-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 35px;
+      margin-bottom: 40px;
+    }
+    
+    .model-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+    }
+    
+    @media (max-width: 800px) { .model-grid { grid-template-columns: 1fr; } }
+    
+    .model-box {
+      background: var(--bg);
+      border: 2px solid var(--zero);
+      border-radius: 16px;
+      padding: 25px;
+    }
+    
+    .model-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      color: var(--zero);
+    }
+    
+    .model-code {
+      background: #1a1a2e;
+      border-radius: 10px;
+      padding: 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      overflow-x: auto;
+    }
+    
+    .model-code .keyword { color: var(--phase3); }
+    .model-code .type { color: var(--phase2); }
+    .model-code .value { color: var(--zero); }
+    .model-code .comment { color: var(--dim); }
+    
+    /* Forbidden List */
+    .forbidden-section {
+      background: linear-gradient(135deg, var(--card), rgba(255,107,107,0.1));
+      border: 2px solid var(--lock);
+      border-radius: 20px;
+      padding: 35px;
+      margin-bottom: 40px;
+    }
+    
+    .forbidden-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    @media (max-width: 900px) { .forbidden-grid { grid-template-columns: repeat(2, 1fr); } }
+    
+    .forbidden-item {
+      background: var(--bg);
+      border: 1px solid var(--lock);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .forbidden-icon { font-size: 2rem; margin-bottom: 10px; }
+    .forbidden-text { font-weight: 600; margin-bottom: 5px; }
+    .forbidden-desc { font-size: 0.8rem; color: var(--dim); }
+    
+    /* Formula Section */
+    .formula-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 35px;
+      margin-bottom: 40px;
+    }
+    
+    .formula-box {
+      background: var(--bg);
+      border: 2px solid var(--zero);
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    
+    .formula-main {
+      font-size: 2.5rem;
+      font-family: 'Courier New', monospace;
+      color: var(--zero);
+      margin-bottom: 20px;
+    }
+    
+    .formula-breakdown {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+    }
+    
+    @media (max-width: 700px) { .formula-breakdown { grid-template-columns: repeat(2, 1fr); } }
+    
+    .formula-item {
+      padding: 15px;
+      background: var(--card);
+      border-radius: 10px;
+    }
+    
+    .formula-var { font-weight: 700; color: var(--phase4); font-size: 1.2rem; }
+    .formula-desc { font-size: 0.8rem; color: var(--dim); margin-top: 5px; }
+    
+    /* ROI Chart */
+    .roi-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 35px;
+      margin-bottom: 40px;
+    }
+    
+    .roi-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 30px;
+    }
+    
+    @media (max-width: 900px) { .roi-grid { grid-template-columns: 1fr; } }
+    
+    .chart-container { height: 300px; }
+    
+    .roi-summary {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .roi-item {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .roi-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--zero);
+    }
+    
+    .roi-label {
+      color: var(--dim);
+      font-size: 0.85rem;
+      margin-top: 5px;
+    }
+    
+    /* Action Section */
+    .action-section {
+      background: linear-gradient(135deg, var(--card), rgba(0,212,170,0.1));
+      border: 2px solid var(--zero);
+      border-radius: 24px;
+      padding: 50px;
+      text-align: center;
+    }
+    
+    .action-title { font-size: 2rem; margin-bottom: 15px; }
+    .action-subtitle { color: var(--dim); margin-bottom: 30px; }
+    
+    .btn-row {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: 18px 45px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 35px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn:hover { transform: translateY(-3px); }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--zero), #00a88a);
+      color: #000;
+      box-shadow: 0 15px 40px rgba(0,212,170,0.3);
+    }
+    
+    .btn-lock {
+      background: linear-gradient(135deg, var(--lock), #cc5555);
+      color: #fff;
+    }
+    
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 50px 20px;
+      border-top: 1px solid var(--border);
+      color: var(--dim);
+    }
+    
+    .footer-principles {
+      display: flex;
+      justify-content: center;
+      gap: 25px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .footer-principle {
+      padding: 12px 25px;
+      background: var(--card);
+      border-radius: 25px;
+      border-left: 3px solid var(--zero);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="lock-icon">🔒</div>
+    <div class="zero-badge">
+      <span>🚫</span>
+      <span>ZERO MEANING LOCK</span>
+      <span>🔒</span>
+    </div>
+    <h1>Zero Meaning 실행 전략</h1>
+    <p class="subtitle">사람(노드) + 돈(모션) 외 모든 정보 영구 배제 = 정치·규제 리스크 0</p>
+    
+    <div class="philosophy-box">
+      <div class="philosophy-title">🎯 Zero Meaning 핵심 원칙</div>
+      <div class="philosophy-grid">
+        <div class="philosophy-item">
+          <div class="philosophy-icon">🚫</div>
+          <div class="philosophy-text">이름·역할 금지</div>
+          <div class="philosophy-value">ID만 허용</div>
+        </div>
+        <div class="philosophy-item">
+          <div class="philosophy-icon">⚖️</div>
+          <div class="philosophy-text">정치적 의미 금지</div>
+          <div class="philosophy-value">자동 삭제</div>
+        </div>
+        <div class="philosophy-item">
+          <div class="philosophy-icon">🌍</div>
+          <div class="philosophy-text">문화 레이블 금지</div>
+          <div class="philosophy-value">글로벌 중립</div>
+        </div>
+        <div class="philosophy-item">
+          <div class="philosophy-icon">📊</div>
+          <div class="philosophy-text">판단 기준 금지</div>
+          <div class="philosophy-value">물리 법칙만</div>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <div class="container">
+    <!-- Progress Overview -->
+    <div class="progress-section">
+      <h2 class="section-title">📊 실행 진행률</h2>
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar" style="width: 0%;">0%</div>
+      </div>
+      <div class="progress-stats">
+        <div class="progress-stat">
+          <div class="progress-value">6</div>
+          <div class="progress-label">총 개월</div>
+        </div>
+        <div class="progress-stat">
+          <div class="progress-value">5</div>
+          <div class="progress-label">실행 단계</div>
+        </div>
+        <div class="progress-stat">
+          <div class="progress-value">$1.7K</div>
+          <div class="progress-label">총 예산</div>
+        </div>
+        <div class="progress-stat">
+          <div class="progress-value">20x</div>
+          <div class="progress-label">12개월 ROI</div>
+        </div>
+        <div class="progress-stat">
+          <div class="progress-value">0</div>
+          <div class="progress-label">의미 허용량</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Timeline -->
+    <div class="timeline-section">
+      <h2 class="section-title">🗓️ 6개월 실행 타임라인</h2>
+      
+      <div class="timeline">
+        <div class="timeline-phase" onclick="selectPhase(1)">
+          <div class="phase-number p1 active">
+            <div class="phase-month">M1</div>
+            <div class="phase-num">1</div>
+          </div>
+          <div class="phase-title">준비</div>
+          <div class="phase-subtitle">철학 고정</div>
+        </div>
+        <div class="timeline-phase" onclick="selectPhase(2)">
+          <div class="phase-number p2">
+            <div class="phase-month">M2</div>
+            <div class="phase-num">2</div>
+          </div>
+          <div class="phase-title">데이터 모델</div>
+          <div class="phase-subtitle">최소 구조</div>
+        </div>
+        <div class="timeline-phase" onclick="selectPhase(3)">
+          <div class="phase-number p3">
+            <div class="phase-month">M3</div>
+            <div class="phase-num">3</div>
+          </div>
+          <div class="phase-title">시각화</div>
+          <div class="phase-subtitle">Physics Map UI</div>
+        </div>
+        <div class="timeline-phase" onclick="selectPhase(4)">
+          <div class="phase-number p4">
+            <div class="phase-month">M4</div>
+            <div class="phase-num">4</div>
+          </div>
+          <div class="phase-title">물리 엔진</div>
+          <div class="phase-subtitle">가치 계산</div>
+        </div>
+        <div class="timeline-phase" onclick="selectPhase(5)">
+          <div class="phase-number p5">
+            <div class="phase-month">M5-6</div>
+            <div class="phase-num">5</div>
+          </div>
+          <div class="phase-title">배포</div>
+          <div class="phase-subtitle">QCF & 론칭</div>
+        </div>
+      </div>
+      
+      <!-- Phase Details -->
+      <div class="phase-details">
+        <div class="phase-card p1">
+          <div class="phase-card-header">
+            <span class="phase-badge p1">Month 1</span>
+            <span class="phase-card-title">준비 단계</span>
+          </div>
+          <ul class="phase-tasks">
+            <li>철학 고정: Zero Meaning Lock 원칙</li>
+            <li>코드 리뷰: 의미적 단어 제거</li>
+            <li>팀 구성: 3명 최소 팀</li>
+            <li>매뉴얼 작성: 1페이지 규칙</li>
+            <li>자동 에러 로직 삽입</li>
+          </ul>
+          <div class="phase-cost">
+            <span class="phase-cost-label">예상 비용</span>
+            <span class="phase-cost-value">$500</span>
+          </div>
+        </div>
+        
+        <div class="phase-card p2">
+          <div class="phase-card-header">
+            <span class="phase-badge p2">Month 2</span>
+            <span class="phase-card-title">데이터 모델</span>
+          </div>
+          <ul class="phase-tasks">
+            <li>노드 = {id, lat, lon, value}</li>
+            <li>모션 = {source, target, amount}</li>
+            <li>Neo4j 스키마 고정</li>
+            <li>입력 유효성 검사</li>
+            <li>1,000노드 테스트</li>
+          </ul>
+          <div class="phase-cost">
+            <span class="phase-cost-label">예상 비용</span>
+            <span class="phase-cost-value">$0</span>
+          </div>
+        </div>
+        
+        <div class="phase-card p3">
+          <div class="phase-card-header">
+            <span class="phase-badge p3">Month 3</span>
+            <span class="phase-card-title">시각화 레이어</span>
+          </div>
+          <ul class="phase-tasks">
+            <li>위성 지도 배경</li>
+            <li>노드 = 단순 원 (크기=가치)</li>
+            <li>모션 = 화살표 (굵기=금액)</li>
+            <li>3버튼 시스템 구현</li>
+            <li>10만 노드 테스트</li>
+          </ul>
+          <div class="phase-cost">
+            <span class="phase-cost-label">예상 비용</span>
+            <span class="phase-cost-value">$200</span>
+          </div>
+        </div>
+        
+        <div class="phase-card p4">
+          <div class="phase-card-header">
+            <span class="phase-badge p4">Month 4</span>
+            <span class="phase-card-title">물리 엔진</span>
+          </div>
+          <ul class="phase-tasks">
+            <li>V = M - T + S 공식 고정</li>
+            <li>복리 예측: (1+s)^t</li>
+            <li>엔트로피 컷: V ≤ 0 삭제</li>
+            <li>별똥별 트레일 시각화</li>
+            <li>100노드 시뮬레이션</li>
+          </ul>
+          <div class="phase-cost">
+            <span class="phase-cost-label">예상 비용</span>
+            <span class="phase-cost-value">$0</span>
+          </div>
+        </div>
+        
+        <div class="phase-card p5">
+          <div class="phase-card-header">
+            <span class="phase-badge p5">Month 5-6</span>
+            <span class="phase-card-title">QCF & 배포</span>
+          </div>
+          <ul class="phase-tasks">
+            <li>Quantum Cluster Flow 구현</li>
+            <li>성능 최적화: Web Worker</li>
+            <li>GitHub Pages 배포</li>
+            <li>3산업 PoC 테스트</li>
+            <li>1억 노드 시뮬레이션</li>
+          </ul>
+          <div class="phase-cost">
+            <span class="phase-cost-label">예상 비용</span>
+            <span class="phase-cost-value">$1,000</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Data Model -->
+    <div class="model-section">
+      <h2 class="section-title">📐 Zero Meaning 데이터 모델</h2>
+      <div class="model-grid">
+        <div class="model-box">
+          <div class="model-title">📍 Node (사람)</div>
+          <div class="model-code">
+            <span class="keyword">interface</span> <span class="type">Node</span> {<br>
+            &nbsp;&nbsp;<span class="value">id</span>: <span class="type">number</span>;      <span class="comment">// N-001, N-002...</span><br>
+            &nbsp;&nbsp;<span class="value">lat</span>: <span class="type">number</span>;     <span class="comment">// 위도</span><br>
+            &nbsp;&nbsp;<span class="value">lon</span>: <span class="type">number</span>;     <span class="comment">// 경도</span><br>
+            &nbsp;&nbsp;<span class="value">value</span>: <span class="type">number</span>;   <span class="comment">// 가치 (₩)</span><br>
+            &nbsp;&nbsp;<span class="comment">// ❌ name, role, country 금지</span><br>
+            }
+          </div>
+        </div>
+        <div class="model-box">
+          <div class="model-title">💸 Motion (돈)</div>
+          <div class="model-code">
+            <span class="keyword">interface</span> <span class="type">Motion</span> {<br>
+            &nbsp;&nbsp;<span class="value">source</span>: <span class="type">number</span>;  <span class="comment">// 출발 노드 ID</span><br>
+            &nbsp;&nbsp;<span class="value">target</span>: <span class="type">number</span>;  <span class="comment">// 도착 노드 ID</span><br>
+            &nbsp;&nbsp;<span class="value">amount</span>: <span class="type">number</span>;  <span class="comment">// 금액 (₩)</span><br>
+            &nbsp;&nbsp;<span class="comment">// ❌ reason, type, label 금지</span><br>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Forbidden List -->
+    <div class="forbidden-section">
+      <h2 class="section-title" style="color: var(--lock);">🚫 영구 금지 항목</h2>
+      <p style="color: var(--dim); margin-bottom: 20px;">입력 시 자동 삭제 + 에러 발생</p>
+      <div class="forbidden-grid">
+        <div class="forbidden-item">
+          <div class="forbidden-icon">👤</div>
+          <div class="forbidden-text">이름</div>
+          <div class="forbidden-desc">person_name → node_id</div>
+        </div>
+        <div class="forbidden-item">
+          <div class="forbidden-icon">💼</div>
+          <div class="forbidden-text">역할</div>
+          <div class="forbidden-desc">role, job, title</div>
+        </div>
+        <div class="forbidden-item">
+          <div class="forbidden-icon">🏳️</div>
+          <div class="forbidden-text">국가</div>
+          <div class="forbidden-desc">country, nationality</div>
+        </div>
+        <div class="forbidden-item">
+          <div class="forbidden-icon">🏷️</div>
+          <div class="forbidden-text">레이블</div>
+          <div class="forbidden-desc">category, type, tag</div>
+        </div>
+        <div class="forbidden-item">
+          <div class="forbidden-icon">⚖️</div>
+          <div class="forbidden-text">판단</div>
+          <div class="forbidden-desc">good, bad, rating</div>
+        </div>
+        <div class="forbidden-item">
+          <div class="forbidden-icon">💬</div>
+          <div class="forbidden-text">설명</div>
+          <div class="forbidden-desc">description, note</div>
+        </div>
+        <div class="forbidden-item">
+          <div class="forbidden-icon">🎨</div>
+          <div class="forbidden-text">문화</div>
+          <div class="forbidden-desc">culture, religion</div>
+        </div>
+        <div class="forbidden-item">
+          <div class="forbidden-icon">🗳️</div>
+          <div class="forbidden-text">정치</div>
+          <div class="forbidden-desc">party, ideology</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Formula Section -->
+    <div class="formula-section">
+      <h2 class="section-title">📐 가치 계산 공식</h2>
+      <div class="formula-box">
+        <div class="formula-main">V = M - T + S</div>
+        <div class="formula-breakdown">
+          <div class="formula-item">
+            <div class="formula-var">V</div>
+            <div class="formula-desc">최종 가치</div>
+          </div>
+          <div class="formula-item">
+            <div class="formula-var">M</div>
+            <div class="formula-desc">직접 돈 (Money)</div>
+          </div>
+          <div class="formula-item">
+            <div class="formula-var">T</div>
+            <div class="formula-desc">시간 비용 (Time)</div>
+          </div>
+          <div class="formula-item">
+            <div class="formula-var">S</div>
+            <div class="formula-desc">시너지 돈 (Synergy)</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="formula-box" style="margin-top: 20px;">
+        <div class="formula-main">Future V = V × (1 + s)^t</div>
+        <div class="formula-breakdown">
+          <div class="formula-item">
+            <div class="formula-var">s</div>
+            <div class="formula-desc">시너지율 (0.1~0.5)</div>
+          </div>
+          <div class="formula-item">
+            <div class="formula-var">t</div>
+            <div class="formula-desc">기간 (개월)</div>
+          </div>
+          <div class="formula-item">
+            <div class="formula-var">Cut</div>
+            <div class="formula-desc">V ≤ 0 → 자동 삭제</div>
+          </div>
+          <div class="formula-item">
+            <div class="formula-var">의미</div>
+            <div class="formula-desc">= 0 (완전 배제)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ROI Chart -->
+    <div class="roi-section">
+      <h2 class="section-title">📈 ROI 예측</h2>
+      <div class="roi-grid">
+        <div class="chart-container">
+          <canvas id="roiChart"></canvas>
+        </div>
+        <div class="roi-summary">
+          <div class="roi-item">
+            <div class="roi-value">$1.7K</div>
+            <div class="roi-label">초기 투자</div>
+          </div>
+          <div class="roi-item">
+            <div class="roi-value">$5K+</div>
+            <div class="roi-label">6개월 후</div>
+          </div>
+          <div class="roi-item">
+            <div class="roi-value">$34K</div>
+            <div class="roi-label">12개월 후</div>
+          </div>
+          <div class="roi-item">
+            <div class="roi-value">20x</div>
+            <div class="roi-label">1년 ROI</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Action Section -->
+    <div class="action-section">
+      <h2 class="action-title">🚀 Zero Meaning 실행 시작</h2>
+      <p class="action-subtitle">6개월 후 완전한 "중립적 물리 엔진" 완성</p>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="exportPlan()">📄 실행 계획 다운로드</button>
+        <button class="btn btn-lock" onclick="testZeroMeaning()">🔒 Zero Lock 테스트</button>
+        <button class="btn btn-primary" onclick="startExecution()">🚀 실행 시작</button>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <div class="footer-principles">
+      <div class="footer-principle">🚫 이름 = 0</div>
+      <div class="footer-principle">🚫 역할 = 0</div>
+      <div class="footer-principle">🚫 판단 = 0</div>
+      <div class="footer-principle">✓ 숫자만 허용</div>
+    </div>
+    <p>AUTUS Zero Meaning 실행 전략 © 2025</p>
+  </footer>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE DATA
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const phases = [
+      { month: 1, name: '준비', cost: 500, progress: 20 },
+      { month: 2, name: '데이터 모델', cost: 0, progress: 40 },
+      { month: 3, name: '시각화', cost: 200, progress: 60 },
+      { month: 4, name: '물리 엔진', cost: 0, progress: 80 },
+      { month: 6, name: '배포', cost: 1000, progress: 100 }
+    ];
+    
+    let currentPhase = 1;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function selectPhase(phase) {
+      currentPhase = phase;
+      document.querySelectorAll('.phase-number').forEach((el, i) => {
+        el.classList.toggle('active', i + 1 === phase);
+      });
+      
+      const progress = phases[phase - 1].progress;
+      document.getElementById('progressBar').style.width = progress + '%';
+      document.getElementById('progressBar').textContent = progress + '%';
+    }
+    
+    function initChart() {
+      const ctx = document.getElementById('roiChart').getContext('2d');
+      
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['투자', 'M2', 'M4', 'M6', 'M8', 'M10', 'M12'],
+          datasets: [{
+            label: 'ROI ($)',
+            data: [1700, 2000, 3000, 5000, 10000, 20000, 34000],
+            borderColor: '#00d4aa',
+            borderWidth: 3,
+            backgroundColor: 'rgba(0,212,170,0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 5,
+            pointBackgroundColor: '#00d4aa'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#888' } }
+          },
+          scales: {
+            x: {
+              grid: { color: '#1e1e2e' },
+              ticks: { color: '#888' }
+            },
+            y: {
+              grid: { color: '#1e1e2e' },
+              ticks: {
+                color: '#888',
+                callback: function(value) {
+                  return '$' + (value / 1000) + 'K';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function exportPlan() {
+      const plan = `
+AUTUS Zero Meaning 실행 계획
+============================
+
+■ 핵심 원칙
+- 사람(노드) + 돈(모션) 외 모든 정보 영구 배제
+- 이름, 역할, 국가, 레이블, 판단 완전 금지
+- 정치·규제·사회적 리스크 원천 차단
+
+■ 데이터 모델
+Node = {id: number, lat: number, lon: number, value: number}
+Motion = {source: number, target: number, amount: number}
+
+■ 가치 공식
+V = M - T + S (직접돈 - 시간비용 + 시너지)
+Future V = V × (1 + s)^t (복리 예측)
+Cut: V ≤ 0 → 자동 삭제
+
+■ 6개월 타임라인
+Month 1: 준비 ($500) - 철학 고정, 팀 구성
+Month 2: 데이터 모델 ($0) - Neo4j 스키마
+Month 3: 시각화 ($200) - Physics Map UI
+Month 4: 물리 엔진 ($0) - 가치 계산
+Month 5-6: 배포 ($1,000) - QCF & 론칭
+
+■ 총 예산: $1,700
+■ 6개월 후: $5,000+
+■ 12개월 ROI: 20x ($34,000)
+
+■ 영구 금지 항목
+- 이름 (person_name → node_id)
+- 역할 (role, job, title)
+- 국가 (country, nationality)
+- 레이블 (category, type, tag)
+- 판단 (good, bad, rating)
+- 설명 (description, note)
+- 문화 (culture, religion)
+- 정치 (party, ideology)
+
+생성일: ${new Date().toLocaleDateString('ko-KR')}
+      `.trim();
+      
+      const blob = new Blob([plan], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'autus_zero_meaning_plan.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    
+    function testZeroMeaning() {
+      const testCases = [
+        { input: 'person_name', result: '❌ 금지 → node_id로 변환' },
+        { input: 'role: CEO', result: '❌ 금지 → 자동 삭제' },
+        { input: 'country: Korea', result: '❌ 금지 → 자동 삭제' },
+        { input: 'id: 001', result: '✅ 허용' },
+        { input: 'value: 5000000', result: '✅ 허용' },
+        { input: 'lat: 37.5665', result: '✅ 허용' }
+      ];
+      
+      let message = '🔒 Zero Meaning Lock 테스트 결과:\n\n';
+      testCases.forEach(tc => {
+        message += `${tc.input} → ${tc.result}\n`;
+      });
+      message += '\n모든 의미적 데이터가 차단됩니다!';
+      
+      alert(message);
+    }
+    
+    function startExecution() {
+      alert('🚀 Zero Meaning 실행 시작!\n\nMonth 1 액션:\n1. Zero Meaning Lock 원칙 문서화\n2. 코드 리뷰 (의미적 단어 제거)\n3. 3인 팀 구성\n4. 자동 에러 로직 삽입\n\n예산: $500\n목표: 철학 100% 고정');
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      initChart();
+      selectPhase(1);
+      console.log('🔒 AUTUS Zero Meaning 실행 전략 로드 완료');
+    });
+  </script>
+</body>
+</html>

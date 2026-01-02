@@ -1,0 +1,114 @@
+{
+  "annotations": { "list": [] },
+  "title": "AUTUS n8n 모니터링",
+  "uid": "autus-n8n",
+  "panels": [
+    {
+      "title": "워크플로우 실행 수",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "n8n_workflow_executions_total",
+          "legendFormat": "총 실행"
+        }
+      ]
+    },
+    {
+      "title": "실패율",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(n8n_workflow_executions_failed_total[5m]) / rate(n8n_workflow_executions_total[5m]) * 100",
+          "legendFormat": "실패율 %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "평균 실행 시간",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "avg(n8n_workflow_execution_duration_seconds)",
+          "legendFormat": "평균 (초)"
+        }
+      ]
+    },
+    {
+      "title": "활성 실행",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "expr": "n8n_workflow_executions_active",
+          "legendFormat": "활성"
+        }
+      ]
+    },
+    {
+      "title": "실행 추이",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "rate(n8n_workflow_executions_total[5m])",
+          "legendFormat": "실행/분"
+        },
+        {
+          "expr": "rate(n8n_workflow_executions_failed_total[5m])",
+          "legendFormat": "실패/분"
+        }
+      ]
+    },
+    {
+      "title": "CPU 사용량",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        {
+          "expr": "100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "CPU %"
+        }
+      ]
+    },
+    {
+      "title": "메모리 사용량",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+          "legendFormat": "메모리 %"
+        }
+      ]
+    },
+    {
+      "title": "Neo4j 연결",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "neo4j_dbms_pool_bolt_total_size",
+          "legendFormat": "연결 수"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" }
+}

@@ -1,0 +1,89 @@
+{
+  "name": "AUTUS 에러 자동 처리",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "error_trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 에러 분류\nconst error = $input.item.json.error || {};\nconst message = (error.message || '').toLowerCase();\n\nlet errorType = 'unknown';\nlet retryable = false;\nlet waitTime = 0;\n\nif (message.includes('timeout') || message.includes('econnreset')) {\n  errorType = 'timeout';\n  retryable = true;\n  waitTime = 60000; // 1분\n} else if (message.includes('429') || message.includes('rate limit')) {\n  errorType = 'rate_limit';\n  retryable = true;\n  waitTime = 300000; // 5분\n} else if (message.includes('401') || message.includes('403')) {\n  errorType = 'auth';\n  retryable = false;\n} else if (message.includes('neo4j') || message.includes('database')) {\n  errorType = 'database';\n  retryable = true;\n  waitTime = 30000; // 30초\n}\n\nreturn [{\n  json: {\n    errorType,\n    retryable,\n    waitTime,\n    originalError: error.message,\n    workflow: $workflow.name,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "classify_error",
+      "name": "에러 분류",
+      "type": "n8n-nodes-base.function",
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.retryable }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "retry_check",
+      "name": "재시도 가능?",
+      "type": "n8n-nodes-base.if",
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.waitTime }}",
+        "unit": "milliseconds"
+      },
+      "id": "wait_retry",
+      "name": "재시도 대기",
+      "type": "n8n-nodes-base.wait",
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: '⚠️ *AUTUS 에러*\\n타입: ' + $json.errorType + '\\n워크플로: ' + $json.workflow + '\\n메시지: ' + $json.originalError + '\\n시간: ' + $json.timestamp + '\\n재시도: ' + ($json.retryable ? '예' : '아니오') }) }}"
+      },
+      "id": "slack_alert",
+      "name": "Slack 알림",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 에러 로그 저장 (선택)\nconsole.log('Error logged:', $json);\nreturn [$input.item];"
+      },
+      "id": "log_error",
+      "name": "에러 로그",
+      "type": "n8n-nodes-base.function",
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [[{ "node": "에러 분류", "type": "main", "index": 0 }]]
+    },
+    "에러 분류": {
+      "main": [[{ "node": "재시도 가능?", "type": "main", "index": 0 }]]
+    },
+    "재시도 가능?": {
+      "main": [
+        [{ "node": "재시도 대기", "type": "main", "index": 0 }],
+        [{ "node": "Slack 알림", "type": "main", "index": 0 }]
+      ]
+    },
+    "재시도 대기": {
+      "main": [[{ "node": "에러 로그", "type": "main", "index": 0 }]]
+    },
+    "Slack 알림": {
+      "main": [[{ "node": "에러 로그", "type": "main", "index": 0 }]]
+    }
+  }
+}

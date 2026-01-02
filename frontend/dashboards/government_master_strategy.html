@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUTUS 정부 연계 최종 전략 - Master Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --card: rgba(18, 18, 26, 0.95);
+      --border: #1e1e2e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --gov: #1a5fb4;
+      --domestic: #00d4aa;
+      --global: #ffd700;
+      --enterprise: #a855f7;
+      --accent: #00d4aa;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    
+    /* Header */
+    header {
+      text-align: center;
+      padding: 50px 20px;
+      background: linear-gradient(180deg, rgba(26,95,180,0.3) 0%, rgba(0,212,170,0.1) 50%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    
+    .master-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 30px;
+      background: linear-gradient(135deg, rgba(26,95,180,0.3), rgba(0,212,170,0.2));
+      border: 2px solid var(--gov);
+      border-radius: 40px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      font-size: 1.1rem;
+    }
+    
+    h1 {
+      font-size: 3rem;
+      background: linear-gradient(90deg, var(--gov), var(--domestic), var(--global));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle { color: var(--dim); font-size: 1.1rem; }
+    
+    .zero-lock {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 25px;
+      background: rgba(0,212,170,0.2);
+      border: 1px solid var(--domestic);
+      border-radius: 25px;
+      color: var(--domestic);
+      font-weight: 600;
+    }
+    
+    /* Container */
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    /* Executive Summary */
+    .exec-summary {
+      background: linear-gradient(135deg, var(--card), rgba(26,95,180,0.1));
+      border: 2px solid var(--gov);
+      border-radius: 24px;
+      padding: 40px;
+      margin-bottom: 50px;
+    }
+    
+    .exec-title {
+      font-size: 1.8rem;
+      margin-bottom: 30px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .exec-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 20px;
+    }
+    
+    @media (max-width: 1200px) { .exec-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 700px) { .exec-grid { grid-template-columns: repeat(2, 1fr); } }
+    
+    .exec-stat {
+      text-align: center;
+      padding: 25px;
+      background: var(--bg);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+    
+    .exec-stat.highlight {
+      border-color: var(--domestic);
+      box-shadow: 0 0 30px rgba(0,212,170,0.2);
+    }
+    
+    .exec-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--gov);
+    }
+    
+    .exec-value.mint { color: var(--domestic); }
+    .exec-value.gold { color: var(--global); }
+    .exec-value.purple { color: var(--enterprise); }
+    
+    .exec-label {
+      color: var(--dim);
+      font-size: 0.9rem;
+      margin-top: 8px;
+    }
+    
+    /* Section Title */
+    .section-title {
+      font-size: 1.6rem;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    /* 3 Pillar Strategy */
+    .pillar-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 25px;
+      margin-bottom: 50px;
+    }
+    
+    @media (max-width: 1000px) { .pillar-grid { grid-template-columns: 1fr; } }
+    
+    .pillar-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    
+    .pillar-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    }
+    
+    .pillar-card.domestic { border-color: var(--domestic); }
+    .pillar-card.global { border-color: var(--global); }
+    .pillar-card.enterprise { border-color: var(--enterprise); }
+    
+    .pillar-header {
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .pillar-header.domestic { background: linear-gradient(135deg, rgba(0,212,170,0.3), rgba(0,212,170,0.1)); }
+    .pillar-header.global { background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,215,0,0.1)); }
+    .pillar-header.enterprise { background: linear-gradient(135deg, rgba(168,85,247,0.3), rgba(168,85,247,0.1)); }
+    
+    .pillar-icon { font-size: 4rem; margin-bottom: 15px; }
+    .pillar-title { font-size: 1.5rem; font-weight: 700; }
+    .pillar-subtitle { color: var(--dim); margin-top: 5px; }
+    
+    .pillar-body { padding: 30px; }
+    
+    .pillar-strategies {
+      list-style: none;
+      margin-bottom: 25px;
+    }
+    
+    .pillar-strategies li {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .pillar-strategies li:last-child { border-bottom: none; }
+    
+    .strategy-name { font-weight: 600; }
+    .strategy-synergy { 
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    
+    .domestic .strategy-synergy { background: rgba(0,212,170,0.2); color: var(--domestic); }
+    .global .strategy-synergy { background: rgba(255,215,0,0.2); color: var(--global); }
+    .enterprise .strategy-synergy { background: rgba(168,85,247,0.2); color: var(--enterprise); }
+    
+    .pillar-result {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .pillar-result-label { color: var(--dim); font-size: 0.85rem; margin-bottom: 5px; }
+    .pillar-result-value { font-size: 2rem; font-weight: 700; }
+    
+    .domestic .pillar-result-value { color: var(--domestic); }
+    .global .pillar-result-value { color: var(--global); }
+    .enterprise .pillar-result-value { color: var(--enterprise); }
+    
+    .pillar-btn {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      margin-top: 20px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .pillar-btn:hover { transform: translateY(-2px); }
+    
+    .domestic .pillar-btn { background: var(--domestic); color: #000; }
+    .global .pillar-btn { background: var(--global); color: #000; }
+    .enterprise .pillar-btn { background: var(--enterprise); color: #fff; }
+    
+    /* Master Formula */
+    .formula-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 50px;
+    }
+    
+    .formula-box {
+      background: var(--bg);
+      border: 2px solid var(--gov);
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      margin: 30px 0;
+    }
+    
+    .formula-main {
+      font-size: 2rem;
+      font-family: 'Courier New', monospace;
+      color: var(--domestic);
+      margin-bottom: 20px;
+    }
+    
+    .formula-breakdown {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    @media (max-width: 800px) { .formula-breakdown { grid-template-columns: repeat(2, 1fr); } }
+    
+    .formula-item {
+      padding: 15px;
+      background: var(--card);
+      border-radius: 10px;
+    }
+    
+    .formula-var { font-weight: 700; color: var(--global); margin-bottom: 5px; }
+    .formula-desc { font-size: 0.8rem; color: var(--dim); }
+    
+    /* Roadmap */
+    .roadmap-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 50px;
+    }
+    
+    .roadmap-timeline {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      margin: 40px 0;
+    }
+    
+    .roadmap-timeline::before {
+      content: '';
+      position: absolute;
+      top: 30px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--domestic), var(--global), var(--enterprise));
+      border-radius: 2px;
+    }
+    
+    .roadmap-phase {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      padding: 0 10px;
+    }
+    
+    .phase-dot {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin: 0 auto 15px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .phase-dot.domestic { background: var(--domestic); }
+    .phase-dot.global { background: var(--global); }
+    .phase-dot.enterprise { background: var(--enterprise); }
+    
+    .phase-title { font-weight: 700; margin-bottom: 5px; }
+    .phase-period { color: var(--dim); font-size: 0.85rem; margin-bottom: 10px; }
+    .phase-desc { font-size: 0.8rem; color: var(--text); }
+    
+    /* Target Table */
+    .target-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 50px;
+      overflow-x: auto;
+    }
+    
+    .target-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 800px;
+    }
+    
+    .target-table th, .target-table td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .target-table th {
+      color: var(--dim);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    
+    .target-table tr:hover { background: rgba(0,212,170,0.05); }
+    
+    .target-rank {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    
+    .target-rank.r1 { background: var(--domestic); color: #000; }
+    .target-rank.r2 { background: var(--global); color: #000; }
+    .target-rank.r3 { background: var(--enterprise); color: #fff; }
+    
+    .target-type {
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .target-type.domestic { background: rgba(0,212,170,0.2); color: var(--domestic); }
+    .target-type.global { background: rgba(255,215,0,0.2); color: var(--global); }
+    .target-type.enterprise { background: rgba(168,85,247,0.2); color: var(--enterprise); }
+    
+    .target-value { font-weight: 700; color: var(--domestic); }
+    .target-prob { color: var(--gold); font-weight: 600; }
+    
+    /* Action Plan */
+    .action-section {
+      background: linear-gradient(135deg, var(--card), rgba(0,212,170,0.1));
+      border: 2px solid var(--domestic);
+      border-radius: 24px;
+      padding: 50px;
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    
+    .action-title {
+      font-size: 2rem;
+      margin-bottom: 20px;
+    }
+    
+    .action-subtitle {
+      color: var(--dim);
+      font-size: 1.1rem;
+      margin-bottom: 30px;
+    }
+    
+    .action-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    @media (max-width: 900px) { .action-steps { grid-template-columns: repeat(2, 1fr); } }
+    
+    .action-step {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 25px;
+    }
+    
+    .step-number {
+      width: 40px;
+      height: 40px;
+      background: var(--domestic);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #000;
+      margin: 0 auto 15px;
+    }
+    
+    .step-title { font-weight: 600; margin-bottom: 8px; }
+    .step-desc { font-size: 0.85rem; color: var(--dim); }
+    
+    .btn-row {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: 18px 50px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 35px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn:hover { transform: translateY(-3px); }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--domestic), #00a88a);
+      color: #000;
+      box-shadow: 0 15px 40px rgba(0,212,170,0.3);
+    }
+    
+    .btn-gold {
+      background: linear-gradient(135deg, var(--global), #cc9900);
+      color: #000;
+    }
+    
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    
+    /* Key Principles */
+    .principles-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-top: 30px;
+    }
+    
+    @media (max-width: 900px) { .principles-grid { grid-template-columns: repeat(2, 1fr); } }
+    
+    .principle-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 25px;
+      text-align: center;
+    }
+    
+    .principle-icon { font-size: 2.5rem; margin-bottom: 15px; }
+    .principle-title { font-weight: 600; margin-bottom: 8px; }
+    .principle-desc { font-size: 0.85rem; color: var(--dim); }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 50px 20px;
+      border-top: 1px solid var(--border);
+      color: var(--dim);
+    }
+    
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .footer-link {
+      padding: 12px 25px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 25px;
+      color: var(--text);
+      text-decoration: none;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    
+    .footer-link:hover {
+      border-color: var(--domestic);
+      background: rgba(0,212,170,0.1);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="master-badge">
+      <span>🏛️</span>
+      <span>AUTUS Government Strategy</span>
+      <span>🌐</span>
+    </div>
+    <h1>정부 연계 최종 전략</h1>
+    <p class="subtitle">국내 PoC · 국제 연계 · 기업 학습 통합 마스터 플랜</p>
+    <div class="zero-lock">🔒 Zero Meaning Lock = 정치 리스크 0 = 성공률 80%+</div>
+  </header>
+  
+  <div class="container">
+    <!-- Executive Summary -->
+    <div class="exec-summary">
+      <h2 class="exec-title">📊 Executive Summary</h2>
+      <div class="exec-grid">
+        <div class="exec-stat">
+          <div class="exec-value">3</div>
+          <div class="exec-label">핵심 전략 축</div>
+        </div>
+        <div class="exec-stat">
+          <div class="exec-value mint">13</div>
+          <div class="exec-label">세부 전략</div>
+        </div>
+        <div class="exec-stat highlight">
+          <div class="exec-value gold">+0.50</div>
+          <div class="exec-label">최대 시너지</div>
+        </div>
+        <div class="exec-stat">
+          <div class="exec-value purple">80%+</div>
+          <div class="exec-label">성공 확률</div>
+        </div>
+        <div class="exec-stat">
+          <div class="exec-value mint">150x</div>
+          <div class="exec-label">5년 성장 잠재력</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 3 Pillar Strategy -->
+    <h2 class="section-title">🎯 3대 핵심 전략 축</h2>
+    <div class="pillar-grid">
+      <!-- Domestic PoC -->
+      <div class="pillar-card domestic">
+        <div class="pillar-header domestic">
+          <div class="pillar-icon">🏛️</div>
+          <div class="pillar-title">국내 정부 PoC</div>
+          <div class="pillar-subtitle">Domestic Government</div>
+        </div>
+        <div class="pillar-body">
+          <ul class="pillar-strategies">
+            <li>
+              <span class="strategy-name">🥇 중립 인프라 공급자</span>
+              <span class="strategy-synergy">+0.40</span>
+            </li>
+            <li>
+              <span class="strategy-name">🥈 공공 재정 투명화</span>
+              <span class="strategy-synergy">+0.35</span>
+            </li>
+            <li>
+              <span class="strategy-name">🥉 국방·안보 최적화</span>
+              <span class="strategy-synergy">+0.30</span>
+            </li>
+          </ul>
+          <div class="pillar-result">
+            <div class="pillar-result-label">12개월 예상 성장</div>
+            <div class="pillar-result-value">50x</div>
+          </div>
+          <button class="pillar-btn" onclick="window.location.href='government_poc_engine.html'">
+            국내 PoC 시작 →
+          </button>
+        </div>
+      </div>
+      
+      <!-- Global -->
+      <div class="pillar-card global">
+        <div class="pillar-header global">
+          <div class="pillar-icon">🌐</div>
+          <div class="pillar-title">국제 정부 연계</div>
+          <div class="pillar-subtitle">Global Government</div>
+        </div>
+        <div class="pillar-body">
+          <ul class="pillar-strategies">
+            <li>
+              <span class="strategy-name">🌍 다자간주의 (UN/WTO)</span>
+              <span class="strategy-synergy">+0.40</span>
+            </li>
+            <li>
+              <span class="strategy-name">🤝 양자 협정 (FTA)</span>
+              <span class="strategy-synergy">+0.30</span>
+            </li>
+            <li>
+              <span class="strategy-name">🏗️ PPP 파트너십</span>
+              <span class="strategy-synergy">+0.35</span>
+            </li>
+            <li>
+              <span class="strategy-name">🎭 소프트파워</span>
+              <span class="strategy-synergy">+0.20</span>
+            </li>
+          </ul>
+          <div class="pillar-result">
+            <div class="pillar-result-label">5년 예상 성장</div>
+            <div class="pillar-result-value">150x</div>
+          </div>
+          <button class="pillar-btn" onclick="window.location.href='global_strategy_engine.html'">
+            국제 연계 시작 →
+          </button>
+        </div>
+      </div>
+      
+      <!-- Enterprise -->
+      <div class="pillar-card enterprise">
+        <div class="pillar-header enterprise">
+          <div class="pillar-icon">🏢</div>
+          <div class="pillar-title">기업 전략 학습</div>
+          <div class="pillar-subtitle">Enterprise Learning</div>
+        </div>
+        <div class="pillar-body">
+          <ul class="pillar-strategies">
+            <li>
+              <span class="strategy-name">Palantir 데이터 독점</span>
+              <span class="strategy-synergy">+0.30</span>
+            </li>
+            <li>
+              <span class="strategy-name">BlackRock 정책 영향</span>
+              <span class="strategy-synergy">+0.40</span>
+            </li>
+            <li>
+              <span class="strategy-name">Microsoft 클라우드</span>
+              <span class="strategy-synergy">+0.35</span>
+            </li>
+            <li>
+              <span class="strategy-name">Raytheon 장기 계약</span>
+              <span class="strategy-synergy">+0.30</span>
+            </li>
+            <li>
+              <span class="strategy-name">Lockheed R&D</span>
+              <span class="strategy-synergy">+0.25</span>
+            </li>
+            <li>
+              <span class="strategy-name">Oracle 인프라</span>
+              <span class="strategy-synergy">+0.25</span>
+            </li>
+          </ul>
+          <div class="pillar-result">
+            <div class="pillar-result-label">정부 매출 목표</div>
+            <div class="pillar-result-value">70%</div>
+          </div>
+          <button class="pillar-btn" onclick="window.location.href='government_strategy_engine.html'">
+            기업 전략 학습 →
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Master Formula -->
+    <div class="formula-section">
+      <h2 class="section-title">📐 마스터 공식</h2>
+      <div class="formula-box">
+        <div class="formula-main">V = V₀ × (1 + s_d + s_g + s_e)^t × M</div>
+        <div class="formula-breakdown">
+          <div class="formula-item">
+            <div class="formula-var">V₀</div>
+            <div class="formula-desc">초기 가치</div>
+          </div>
+          <div class="formula-item">
+            <div class="formula-var">s_d</div>
+            <div class="formula-desc">국내 시너지 (+0.40)</div>
+          </div>
+          <div class="formula-item">
+            <div class="formula-var">s_g</div>
+            <div class="formula-desc">국제 시너지 (+0.50)</div>
+          </div>
+          <div class="formula-item">
+            <div class="formula-var">s_e</div>
+            <div class="formula-desc">기업 시너지 (+0.40)</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="principles-grid">
+        <div class="principle-card">
+          <div class="principle-icon">🚫</div>
+          <div class="principle-title">정치 판단 0</div>
+          <div class="principle-desc">의미·가치 평가 없음</div>
+        </div>
+        <div class="principle-card">
+          <div class="principle-icon">⚖️</div>
+          <div class="principle-title">규제 충돌 0</div>
+          <div class="principle-desc">Zero Meaning Lock</div>
+        </div>
+        <div class="principle-card">
+          <div class="principle-icon">📊</div>
+          <div class="principle-title">객관적 데이터</div>
+          <div class="principle-desc">물리 법칙 기반</div>
+        </div>
+        <div class="principle-card">
+          <div class="principle-icon">🔄</div>
+          <div class="principle-title">복리 가속</div>
+          <div class="principle-desc">(1+s)^t 지수승</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Roadmap -->
+    <div class="roadmap-section">
+      <h2 class="section-title">🗓️ 실행 로드맵</h2>
+      <div class="roadmap-timeline">
+        <div class="roadmap-phase">
+          <div class="phase-dot domestic">1</div>
+          <div class="phase-title">Phase 1</div>
+          <div class="phase-period">Month 1-3</div>
+          <div class="phase-desc">국내 지자체 PoC<br>세종시/인천시</div>
+        </div>
+        <div class="roadmap-phase">
+          <div class="phase-dot domestic">2</div>
+          <div class="phase-title">Phase 2</div>
+          <div class="phase-period">Month 4-6</div>
+          <div class="phase-desc">계약 전환<br>전국 확대</div>
+        </div>
+        <div class="roadmap-phase">
+          <div class="phase-dot global">3</div>
+          <div class="phase-title">Phase 3</div>
+          <div class="phase-period">Month 7-12</div>
+          <div class="phase-desc">국제 연계 시작<br>KORUS 활용</div>
+        </div>
+        <div class="roadmap-phase">
+          <div class="phase-dot global">4</div>
+          <div class="phase-title">Phase 4</div>
+          <div class="phase-period">Year 2</div>
+          <div class="phase-desc">다자간 참여<br>UN/WTO 연계</div>
+        </div>
+        <div class="roadmap-phase">
+          <div class="phase-dot enterprise">5</div>
+          <div class="phase-title">Phase 5</div>
+          <div class="phase-period">Year 3-5</div>
+          <div class="phase-desc">글로벌 확장<br>PPP 복리 폭발</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Target Priority -->
+    <div class="target-section">
+      <h2 class="section-title">🎯 타겟 우선순위</h2>
+      <table class="target-table">
+        <thead>
+          <tr>
+            <th>순위</th>
+            <th>타겟</th>
+            <th>유형</th>
+            <th>전략</th>
+            <th>예상 계약</th>
+            <th>성공률</th>
+            <th>기간</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="target-rank r1">1</div></td>
+            <td><strong>세종시</strong></td>
+            <td><span class="target-type domestic">국내</span></td>
+            <td>중립 인프라</td>
+            <td class="target-value">₩3억</td>
+            <td class="target-prob">85%</td>
+            <td>3개월</td>
+          </tr>
+          <tr>
+            <td><div class="target-rank r1">2</div></td>
+            <td><strong>인천시</strong></td>
+            <td><span class="target-type domestic">국내</span></td>
+            <td>중립 인프라</td>
+            <td class="target-value">₩5억</td>
+            <td class="target-prob">80%</td>
+            <td>3개월</td>
+          </tr>
+          <tr>
+            <td><div class="target-rank r2">3</div></td>
+            <td><strong>경기도</strong></td>
+            <td><span class="target-type domestic">국내</span></td>
+            <td>재정 투명화</td>
+            <td class="target-value">₩10억</td>
+            <td class="target-prob">75%</td>
+            <td>6개월</td>
+          </tr>
+          <tr>
+            <td><div class="target-rank r2">4</div></td>
+            <td><strong>미국 (KORUS)</strong></td>
+            <td><span class="target-type global">국제</span></td>
+            <td>양자 협정</td>
+            <td class="target-value">$10M</td>
+            <td class="target-prob">70%</td>
+            <td>12개월</td>
+          </tr>
+          <tr>
+            <td><div class="target-rank r3">5</div></td>
+            <td><strong>EU</strong></td>
+            <td><span class="target-type global">국제</span></td>
+            <td>다자간</td>
+            <td class="target-value">€15M</td>
+            <td class="target-prob">65%</td>
+            <td>24개월</td>
+          </tr>
+          <tr>
+            <td><div class="target-rank r3">6</div></td>
+            <td><strong>Singapore</strong></td>
+            <td><span class="target-type enterprise">PPP</span></td>
+            <td>스마트시티</td>
+            <td class="target-value">$20M</td>
+            <td class="target-prob">60%</td>
+            <td>36개월</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Action Plan -->
+    <div class="action-section">
+      <h2 class="action-title">🚀 지금 시작하기</h2>
+      <p class="action-subtitle">첫 액션: 세종시 무료 3개월 PoC로 정부 연계 시작</p>
+      
+      <div class="action-steps">
+        <div class="action-step">
+          <div class="step-number">1</div>
+          <div class="step-title">타겟 선정</div>
+          <div class="step-desc">세종시 담당자 연락</div>
+        </div>
+        <div class="action-step">
+          <div class="step-number">2</div>
+          <div class="step-title">제안서 발송</div>
+          <div class="step-desc">Zero Meaning Lock 강조</div>
+        </div>
+        <div class="action-step">
+          <div class="step-number">3</div>
+          <div class="step-title">무료 PoC</div>
+          <div class="step-desc">3개월 데이터 연계</div>
+        </div>
+        <div class="action-step">
+          <div class="step-number">4</div>
+          <div class="step-title">계약 전환</div>
+          <div class="step-desc">장기 파트너십</div>
+        </div>
+      </div>
+      
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="exportStrategy()">📄 전략 다운로드</button>
+        <button class="btn btn-gold" onclick="window.location.href='physics_laws_engine.html'">⚡ 물리 엔진</button>
+        <button class="btn btn-primary" onclick="startNow()">🚀 지금 시작</button>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <div class="footer-links">
+      <span class="footer-link" onclick="window.location.href='government_poc_engine.html'">🏛️ 국내 PoC</span>
+      <span class="footer-link" onclick="window.location.href='global_strategy_engine.html'">🌐 국제 연계</span>
+      <span class="footer-link" onclick="window.location.href='government_strategy_engine.html'">🏢 기업 전략</span>
+      <span class="footer-link" onclick="window.location.href='physics_laws_engine.html'">⚡ 물리 엔진</span>
+      <span class="footer-link" onclick="window.location.href='triple_strategy_engine.html'">🔺 3대 전략</span>
+    </div>
+    <p>AUTUS 정부 연계 최종 전략 - Master Dashboard © 2025</p>
+  </footer>
+
+  <script>
+    function exportStrategy() {
+      const strategy = `
+AUTUS 정부 연계 최종 전략 요약
+==============================
+
+■ 핵심 원칙
+- Zero Meaning Lock: 정치·윤리·의미 제거
+- 정치 리스크 0, 규제 충돌 0
+- 성공 확률 80%+
+
+■ 3대 전략 축
+
+1. 국내 정부 PoC
+   - 중립 인프라 공급자 (+0.40)
+   - 공공 재정 투명화 (+0.35)
+   - 국방·안보 최적화 (+0.30)
+   → 12개월 50x 성장
+
+2. 국제 정부 연계
+   - 다자간주의 (+0.40)
+   - 양자 협정 (+0.30)
+   - PPP 파트너십 (+0.35)
+   - 소프트파워 (+0.20)
+   → 5년 150x 성장
+
+3. 기업 전략 학습
+   - Palantir 데이터 독점
+   - BlackRock 정책 영향
+   - Microsoft 클라우드
+   - Raytheon 장기 계약
+   → 정부 매출 70% 목표
+
+■ 마스터 공식
+V = V₀ × (1 + s_d + s_g + s_e)^t × M
+
+■ 실행 로드맵
+Phase 1 (M1-3): 세종시/인천시 PoC
+Phase 2 (M4-6): 계약 전환, 전국 확대
+Phase 3 (M7-12): 국제 연계 (KORUS)
+Phase 4 (Y2): 다자간 (UN/WTO)
+Phase 5 (Y3-5): 글로벌 PPP 확장
+
+■ 첫 타겟
+- 세종시: 성공률 85%, 계약 ₩3억
+- 인천시: 성공률 80%, 계약 ₩5억
+
+■ 핵심 메시지
+"판단하지 않습니다. 결과만 보여드립니다."
+
+생성일: ${new Date().toLocaleDateString('ko-KR')}
+      `.trim();
+      
+      const blob = new Blob([strategy], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'autus_government_master_strategy.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    
+    function startNow() {
+      alert('🚀 정부 연계 최종 전략 시작!\n\n첫 타겟: 세종시\n전략: 중립 인프라 공급자\n성공률: 85%\n예상 계약: ₩3억\n\n핵심 메시지:\n"Zero Meaning Lock 적용"\n"판단하지 않습니다"\n"결과만 보여드립니다"\n\n→ 3개월 내 PoC 완료 목표!');
+    }
+    
+    console.log('🏛️ AUTUS 정부 연계 최종 전략 마스터 대시보드 로드 완료');
+  </script>
+</body>
+</html>

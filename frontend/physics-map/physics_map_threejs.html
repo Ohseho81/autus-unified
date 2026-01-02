@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎮 AUTUS Physics Map - Three.js 3D</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #000; 
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    
+    #container { width: 100%; height: 100vh; }
+    
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
+      padding: 24px 32px;
+      z-index: 100;
+    }
+    
+    .header h1 {
+      color: #fff;
+      font-size: 22px;
+      font-weight: 600;
+    }
+    
+    .header p {
+      color: #666;
+      font-size: 11px;
+      margin-top: 6px;
+    }
+    
+    .stats {
+      position: absolute;
+      top: 24px;
+      right: 32px;
+      display: flex;
+      gap: 30px;
+      z-index: 100;
+    }
+    
+    .stat { text-align: right; }
+    .stat-label { color: #555; font-size: 10px; text-transform: uppercase; }
+    .stat-value { font-size: 20px; font-weight: bold; margin-top: 4px; }
+    .green { color: #00ff88; text-shadow: 0 0 15px rgba(0, 255, 136, 0.6); }
+    .cyan { color: #00ccff; text-shadow: 0 0 15px rgba(0, 204, 255, 0.6); }
+    .gold { color: #ffcc00; text-shadow: 0 0 15px rgba(255, 204, 0, 0.6); }
+    
+    .info-panel {
+      position: absolute;
+      top: 100px;
+      left: 32px;
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      min-width: 280px;
+      z-index: 100;
+      display: none;
+    }
+    
+    .info-panel.visible { display: block; }
+    
+    .info-panel h3 {
+      color: #fff;
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    
+    .info-row-label { color: #666; }
+    .info-row-value { font-weight: bold; color: #fff; }
+    
+    .controls {
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      z-index: 100;
+    }
+    
+    .control-btn {
+      padding: 12px 20px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(0, 204, 255, 0.4);
+      border-radius: 25px;
+      color: #fff;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .control-btn:hover {
+      background: rgba(0, 204, 255, 0.2);
+      border-color: #00ccff;
+    }
+    
+    .footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+      padding: 20px 32px;
+      font-size: 10px;
+      color: #444;
+      z-index: 50;
+    }
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  
+  <div class="header">
+    <h1>🎮 AUTUS Physics Map - Three.js 3D</h1>
+    <p>3D Force-Directed Graph • 드래그로 회전 • 스크롤로 줌</p>
+  </div>
+  
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Total Value</div>
+      <div class="stat-value green">₩7.09억</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Synergy</div>
+      <div class="stat-value cyan">₩2,281만</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">12M Forecast</div>
+      <div class="stat-value gold">₩8.08억</div>
+    </div>
+  </div>
+  
+  <div class="info-panel" id="info-panel">
+    <h3 id="info-name">-</h3>
+    <div class="info-row">
+      <span class="info-row-label">Role</span>
+      <span class="info-row-value" id="info-role">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Value</span>
+      <span class="info-row-value green" id="info-value">₩0</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Synergy</span>
+      <span class="info-row-value cyan" id="info-synergy">₩0</span>
+    </div>
+  </div>
+  
+  <div class="controls">
+    <button class="control-btn" id="btn-reset">🔄 리셋</button>
+    <button class="control-btn" id="btn-animate">✨ 애니메이션</button>
+    <button class="control-btn" id="btn-labels">🏷️ 라벨</button>
+  </div>
+  
+  <div class="footer">
+    🖱️ 드래그: 회전 | 스크롤: 줌 | 노드 클릭: 상세 정보 | V = D - T + S
+  </div>
+  
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // AUTUS Physics Map 데이터
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const nodes = [
+      { id: '당신', label: '대표', value: 182886563, color: 0x00ff88, x: 0, y: 0, z: 0 },
+      { id: '매니저', label: '매니저', value: 75000000, color: 0x00ccff, x: 30, y: 15, z: 10 },
+      { id: '헤드코치', label: '헤드코치', value: 68000000, color: 0x00ccff, x: 30, y: -15, z: -10 },
+      { id: '학생군', label: '학생군', value: 55000000, color: 0xffcc00, x: 50, y: 0, z: 20 },
+      { id: '학부모군', label: '학부모군', value: 120000000, color: 0xff6600, x: -30, y: 20, z: 0 },
+      { id: '파트너A', label: '미국', value: 50000000, color: 0x9966ff, x: -40, y: -20, z: -20 },
+      { id: '고객B', label: '일본', value: 35000000, color: 0x00ccff, x: 40, y: 30, z: -15 },
+      { id: '스폰서C', label: '사우디', value: 0, forecast: 500000000, color: 0xffcc00, x: -50, y: 0, z: 30 }
+    ];
+    
+    const links = [
+      { from: '학부모군', to: '당신', value: 120000000, type: 'inflow' },
+      { from: '당신', to: '매니저', value: 25000000, type: 'inflow' },
+      { from: '당신', to: '헤드코치', value: 23000000, type: 'inflow' },
+      { from: '매니저', to: '헤드코치', value: 11406562, type: 'synergy' },
+      { from: '헤드코치', to: '학생군', value: 8000000, type: 'synergy' },
+      { from: '고객B', to: '당신', value: 35000000, type: 'inflow' },
+      { from: '당신', to: '파트너A', value: 15000000, type: 'outflow' },
+      { from: '당신', to: '스폰서C', value: 100000000, type: 'prediction' }
+    ];
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Three.js 초기화
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const container = document.getElementById('container');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+    
+    // CSS2D 렌더러 (라벨용)
+    const labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.domElement.style.position = 'absolute';
+    labelRenderer.domElement.style.top = '0';
+    labelRenderer.domElement.style.pointerEvents = 'none';
+    container.appendChild(labelRenderer.domElement);
+    
+    // OrbitControls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    
+    camera.position.set(0, 0, 100);
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 배경 (별/은하)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 5000;
+    const starPositions = new Float32Array(starCount * 3);
+    
+    for (let i = 0; i < starCount * 3; i += 3) {
+      starPositions[i] = (Math.random() - 0.5) * 2000;
+      starPositions[i + 1] = (Math.random() - 0.5) * 2000;
+      starPositions[i + 2] = (Math.random() - 0.5) * 2000;
+    }
+    
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.5 });
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 노드 생성
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const nodeMeshes = [];
+    let showLabels = true;
+    
+    nodes.forEach(node => {
+      const size = Math.max(3, Math.sqrt(node.value || node.forecast) / 3000);
+      
+      // 글로우 (외부 구)
+      const glowGeometry = new THREE.SphereGeometry(size * 1.5, 32, 32);
+      const glowMaterial = new THREE.MeshBasicMaterial({
+        color: node.color,
+        transparent: true,
+        opacity: 0.2
+      });
+      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+      glow.position.set(node.x, node.y, node.z);
+      scene.add(glow);
+      
+      // 메인 노드
+      const geometry = new THREE.SphereGeometry(size, 32, 32);
+      const material = new THREE.MeshBasicMaterial({
+        color: node.color,
+        transparent: true,
+        opacity: 0.9
+      });
+      const sphere = new THREE.Mesh(geometry, material);
+      sphere.position.set(node.x, node.y, node.z);
+      sphere.userData = node;
+      scene.add(sphere);
+      nodeMeshes.push(sphere);
+      
+      // 라벨
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'label';
+      labelDiv.textContent = node.id;
+      labelDiv.style.cssText = `
+        color: #fff;
+        font-size: 12px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 4px 8px;
+        border-radius: 4px;
+        pointer-events: none;
+      `;
+      
+      const label = new CSS2DObject(labelDiv);
+      label.position.set(0, size + 2, 0);
+      sphere.add(label);
+      node.label3d = label;
+    });
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 링크 (돈 흐름) 생성
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    links.forEach(link => {
+      const fromNode = nodes.find(n => n.id === link.from);
+      const toNode = nodes.find(n => n.id === link.to);
+      if (!fromNode || !toNode) return;
+      
+      // 곡선 생성
+      const midPoint = new THREE.Vector3(
+        (fromNode.x + toNode.x) / 2,
+        (fromNode.y + toNode.y) / 2 + 15,
+        (fromNode.z + toNode.z) / 2
+      );
+      
+      const curve = new THREE.QuadraticBezierCurve3(
+        new THREE.Vector3(fromNode.x, fromNode.y, fromNode.z),
+        midPoint,
+        new THREE.Vector3(toNode.x, toNode.y, toNode.z)
+      );
+      
+      const points = curve.getPoints(50);
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      
+      // 색상
+      let color;
+      if (link.type === 'inflow') color = 0x00ff88;
+      else if (link.type === 'outflow') color = 0xff4466;
+      else if (link.type === 'synergy') color = 0x9966ff;
+      else if (link.type === 'prediction') color = 0xffcc00;
+      
+      const material = new THREE.LineBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: link.type === 'prediction' ? 0.5 : 0.7
+      });
+      
+      const line = new THREE.Line(geometry, material);
+      scene.add(line);
+    });
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 파티클 시스템 (별똥별)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const particleCount = 500;
+    const particleGeometry = new THREE.BufferGeometry();
+    const particlePositions = new Float32Array(particleCount * 3);
+    const particleColors = new Float32Array(particleCount * 3);
+    
+    for (let i = 0; i < particleCount * 3; i += 3) {
+      particlePositions[i] = (Math.random() - 0.5) * 200;
+      particlePositions[i + 1] = (Math.random() - 0.5) * 200;
+      particlePositions[i + 2] = (Math.random() - 0.5) * 200;
+      
+      // 랜덤 색상 (초록/시안/주황)
+      const colorChoice = Math.random();
+      if (colorChoice < 0.33) {
+        particleColors[i] = 0; particleColors[i + 1] = 1; particleColors[i + 2] = 0.5;
+      } else if (colorChoice < 0.66) {
+        particleColors[i] = 0; particleColors[i + 1] = 0.8; particleColors[i + 2] = 1;
+      } else {
+        particleColors[i] = 1; particleColors[i + 1] = 0.8; particleColors[i + 2] = 0;
+      }
+    }
+    
+    particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+    particleGeometry.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+    
+    const particleMaterial = new THREE.PointsMaterial({
+      size: 1,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.8
+    });
+    
+    const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+    scene.add(particleSystem);
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 이벤트
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    
+    renderer.domElement.addEventListener('click', onClick);
+    
+    function onClick(event) {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(nodeMeshes);
+      
+      if (intersects.length > 0) {
+        const node = intersects[0].object.userData;
+        showNodeInfo(node);
+      } else {
+        document.getElementById('info-panel').classList.remove('visible');
+      }
+    }
+    
+    function showNodeInfo(node) {
+      document.getElementById('info-panel').classList.add('visible');
+      document.getElementById('info-name').textContent = `${node.id} (${node.label})`;
+      document.getElementById('info-role').textContent = node.label;
+      document.getElementById('info-value').textContent = formatMoney(node.value || node.forecast);
+      document.getElementById('info-synergy').textContent = formatMoney(node.synergy || 0);
+    }
+    
+    // 컨트롤 버튼
+    let isAnimating = true;
+    
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      camera.position.set(0, 0, 100);
+      controls.reset();
+    });
+    
+    document.getElementById('btn-animate').addEventListener('click', function() {
+      isAnimating = !isAnimating;
+      this.textContent = isAnimating ? '✨ 애니메이션 ON' : '✨ 애니메이션 OFF';
+    });
+    
+    document.getElementById('btn-labels').addEventListener('click', function() {
+      showLabels = !showLabels;
+      nodes.forEach(node => {
+        if (node.label3d) {
+          node.label3d.visible = showLabels;
+        }
+      });
+      this.textContent = showLabels ? '🏷️ 라벨 ON' : '🏷️ 라벨 OFF';
+    });
+    
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    });
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 애니메이션 루프
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let time = 0;
+    
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      time += 0.01;
+      
+      if (isAnimating) {
+        // 파티클 움직임
+        const positions = particleSystem.geometry.attributes.position.array;
+        for (let i = 0; i < particleCount * 3; i += 3) {
+          positions[i + 1] += Math.sin(time + i) * 0.1;
+        }
+        particleSystem.geometry.attributes.position.needsUpdate = true;
+        
+        // 별 회전
+        stars.rotation.y += 0.0001;
+        
+        // 노드 펄스
+        nodeMeshes.forEach((mesh, i) => {
+          const scale = 1 + Math.sin(time * 2 + i) * 0.05;
+          mesh.scale.setScalar(scale);
+        });
+      }
+      
+      controls.update();
+      renderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
+    }
+    
+    animate();
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 유틸리티
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      if (Math.abs(value) >= 100000000) return '₩' + (value / 100000000).toFixed(2) + '억';
+      if (Math.abs(value) >= 10000) return '₩' + Math.round(value / 10000).toLocaleString() + '만';
+      return '₩' + value.toLocaleString();
+    }
+    
+    console.log('🎮 AUTUS Physics Map - Three.js 3D initialized');
+  </script>
+</body>
+</html>

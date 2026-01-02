@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUTUS 기술 스펙 - Technical Specification</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --card: rgba(18, 18, 26, 0.95);
+      --border: #1e1e2e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --accent: #3b82f6;
+      --success: #00d4aa;
+      --warning: #ffd700;
+      --danger: #ff6b6b;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    
+    .container { max-width: 1400px; margin: 0 auto; }
+    
+    header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    
+    .spec-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 30px;
+      background: rgba(59,130,246,0.2);
+      border: 2px solid var(--accent);
+      border-radius: 30px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+    
+    h1 { font-size: 2.5rem; margin-bottom: 10px; }
+    .subtitle { color: var(--dim); }
+    
+    /* Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 20px;
+      margin-bottom: 50px;
+    }
+    
+    @media (max-width: 1000px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 600px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 25px;
+      text-align: center;
+    }
+    
+    .stat-value { font-size: 2.5rem; font-weight: 700; color: var(--accent); }
+    .stat-label { color: var(--dim); font-size: 0.9rem; margin-top: 5px; }
+    
+    /* Section */
+    .section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 30px;
+    }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .section-title {
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    /* Tech Stack */
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+    }
+    
+    @media (max-width: 900px) { .stack-grid { grid-template-columns: repeat(2, 1fr); } }
+    
+    .stack-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .stack-icon { font-size: 2rem; margin-bottom: 10px; }
+    .stack-name { font-weight: 600; margin-bottom: 5px; }
+    .stack-version { color: var(--accent); font-size: 0.85rem; }
+    .stack-purpose { color: var(--dim); font-size: 0.8rem; margin-top: 5px; }
+    
+    /* DB Schema */
+    .schema-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    
+    @media (max-width: 800px) { .schema-grid { grid-template-columns: 1fr; } }
+    
+    .schema-table {
+      background: var(--bg);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    .schema-header {
+      background: rgba(59,130,246,0.2);
+      padding: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .schema-body { padding: 15px; }
+    
+    .schema-field {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    
+    .schema-field:last-child { border-bottom: none; }
+    
+    .field-name { font-family: monospace; color: var(--success); }
+    .field-type { color: var(--dim); font-family: monospace; }
+    
+    /* API */
+    .api-list { list-style: none; }
+    
+    .api-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 12px 15px;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    
+    .api-method {
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      min-width: 50px;
+      text-align: center;
+    }
+    
+    .api-method.get { background: rgba(0,212,170,0.2); color: var(--success); }
+    .api-method.post { background: rgba(59,130,246,0.2); color: var(--accent); }
+    .api-method.put { background: rgba(255,215,0,0.2); color: var(--warning); }
+    .api-method.delete { background: rgba(255,107,107,0.2); color: var(--danger); }
+    
+    .api-path { font-family: monospace; flex: 1; }
+    .api-desc { color: var(--dim); font-size: 0.85rem; }
+    
+    /* Engine */
+    .engine-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    
+    @media (max-width: 800px) { .engine-grid { grid-template-columns: 1fr; } }
+    
+    .engine-card {
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 25px;
+    }
+    
+    .engine-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .engine-formula {
+      background: var(--card);
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      color: var(--success);
+      font-size: 1.2rem;
+      text-align: center;
+      margin: 15px 0;
+    }
+    
+    .engine-desc { color: var(--dim); font-size: 0.9rem; }
+    
+    /* Performance */
+    .perf-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+    }
+    
+    @media (max-width: 800px) { .perf-grid { grid-template-columns: repeat(2, 1fr); } }
+    
+    .perf-item {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .perf-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--success);
+    }
+    
+    .perf-metric { color: var(--dim); font-size: 0.85rem; margin-top: 5px; }
+    
+    /* Timeline */
+    .timeline {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      margin: 30px 0;
+    }
+    
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 25px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--success));
+    }
+    
+    .timeline-item {
+      text-align: center;
+      position: relative;
+      flex: 1;
+    }
+    
+    .timeline-dot {
+      width: 50px;
+      height: 50px;
+      background: var(--accent);
+      border-radius: 50%;
+      margin: 0 auto 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+      font-weight: 700;
+    }
+    
+    .timeline-label { font-weight: 600; margin-bottom: 5px; }
+    .timeline-desc { color: var(--dim); font-size: 0.85rem; }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px;
+      color: var(--dim);
+    }
+    
+    .btn {
+      padding: 15px 40px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--border); color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="spec-badge">
+        <span>📋</span>
+        <span>TECHNICAL SPECIFICATION</span>
+      </div>
+      <h1>AUTUS 기술 스펙</h1>
+      <p class="subtitle">미구현 시스템 완전 명세서</p>
+    </header>
+    
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value">25+</div>
+        <div class="stat-label">API 엔드포인트</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">6</div>
+        <div class="stat-label">DB 테이블</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">4</div>
+        <div class="stat-label">핵심 엔진</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">10+</div>
+        <div class="stat-label">서비스 모듈</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">6주</div>
+        <div class="stat-label">예상 개발기간</div>
+      </div>
+    </div>
+    
+    <!-- Tech Stack -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">🛠️ 기술 스택</h2>
+      </div>
+      <div class="stack-grid">
+        <div class="stack-item">
+          <div class="stack-icon">⚡</div>
+          <div class="stack-name">FastAPI</div>
+          <div class="stack-version">0.104+</div>
+          <div class="stack-purpose">REST API 서버</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-icon">🐘</div>
+          <div class="stack-name">PostgreSQL</div>
+          <div class="stack-version">15+</div>
+          <div class="stack-purpose">메인 데이터베이스</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-icon">🔷</div>
+          <div class="stack-name">Neo4j</div>
+          <div class="stack-version">5.x</div>
+          <div class="stack-purpose">그래프 DB (시너지)</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-icon">🔴</div>
+          <div class="stack-name">Redis</div>
+          <div class="stack-version">7.x</div>
+          <div class="stack-purpose">캐시 + 세션</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-icon">⚛️</div>
+          <div class="stack-name">React</div>
+          <div class="stack-version">18.x</div>
+          <div class="stack-purpose">프론트엔드</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-icon">📘</div>
+          <div class="stack-name">TypeScript</div>
+          <div class="stack-version">5.x</div>
+          <div class="stack-purpose">타입 안전성</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-icon">🐳</div>
+          <div class="stack-name">Docker</div>
+          <div class="stack-version">24+</div>
+          <div class="stack-purpose">컨테이너화</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-icon">🚀</div>
+          <div class="stack-name">Railway</div>
+          <div class="stack-version">-</div>
+          <div class="stack-purpose">클라우드 배포</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- DB Schema -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">🗄️ 데이터베이스 스키마</h2>
+      </div>
+      <div class="schema-grid">
+        <div class="schema-table">
+          <div class="schema-header">
+            <span>📍</span>
+            <span>nodes (Zero Meaning)</span>
+          </div>
+          <div class="schema-body">
+            <div class="schema-field">
+              <span class="field-name">id</span>
+              <span class="field-type">SERIAL PK</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">lat</span>
+              <span class="field-type">DOUBLE</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">lon</span>
+              <span class="field-type">DOUBLE</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">value</span>
+              <span class="field-type">DECIMAL(20,2)</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">direct_money</span>
+              <span class="field-type">DECIMAL(20,2)</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">time_cost</span>
+              <span class="field-type">DECIMAL(20,2)</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">synergy_money</span>
+              <span class="field-type">DECIMAL(20,2)</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">status</span>
+              <span class="field-type">VARCHAR(20)</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="schema-table">
+          <div class="schema-header">
+            <span>💸</span>
+            <span>motions (Zero Meaning)</span>
+          </div>
+          <div class="schema-body">
+            <div class="schema-field">
+              <span class="field-name">id</span>
+              <span class="field-type">SERIAL PK</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">source_id</span>
+              <span class="field-type">INTEGER FK</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">target_id</span>
+              <span class="field-type">INTEGER FK</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">amount</span>
+              <span class="field-type">DECIMAL(20,2)</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">occurred_at</span>
+              <span class="field-type">TIMESTAMP</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="schema-table">
+          <div class="schema-header">
+            <span>👤</span>
+            <span>users</span>
+          </div>
+          <div class="schema-body">
+            <div class="schema-field">
+              <span class="field-name">id</span>
+              <span class="field-type">SERIAL PK</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">email</span>
+              <span class="field-type">VARCHAR(255)</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">hashed_password</span>
+              <span class="field-type">VARCHAR(255)</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">is_active</span>
+              <span class="field-type">BOOLEAN</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="schema-table">
+          <div class="schema-header">
+            <span>📝</span>
+            <span>action_logs</span>
+          </div>
+          <div class="schema-body">
+            <div class="schema-field">
+              <span class="field-name">id</span>
+              <span class="field-type">SERIAL PK</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">action_type</span>
+              <span class="field-type">VARCHAR(20)</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">node_id</span>
+              <span class="field-type">INTEGER FK</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">before_value</span>
+              <span class="field-type">DECIMAL(20,2)</span>
+            </div>
+            <div class="schema-field">
+              <span class="field-name">after_value</span>
+              <span class="field-type">DECIMAL(20,2)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Physics Engines -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">⚡ 물리 엔진</h2>
+      </div>
+      <div class="engine-grid">
+        <div class="engine-card">
+          <div class="engine-name">📐 ValueCalculator</div>
+          <div class="engine-formula">V = M - T + S</div>
+          <div class="engine-desc">
+            가치 계산 엔진. 직접 돈(M), 시간 비용(T), 시너지(S)를 계산하여 최종 가치 도출
+          </div>
+        </div>
+        <div class="engine-card">
+          <div class="engine-name">🔗 SynergyCalculator</div>
+          <div class="engine-formula">S = Σ(V × rate^depth)</div>
+          <div class="engine-desc">
+            Neo4j 그래프 기반 시너지 계산. 연결 깊이에 따른 감쇠 적용
+          </div>
+        </div>
+        <div class="engine-card">
+          <div class="engine-name">📈 FuturePredictor</div>
+          <div class="engine-formula">Future V = V × (1+s)^t</div>
+          <div class="engine-desc">
+            복리 예측 엔진. 시너지율과 기간에 따른 미래 가치 예측
+          </div>
+        </div>
+        <div class="engine-card">
+          <div class="engine-name">🌡️ EntropyManager</div>
+          <div class="engine-formula">V ≤ 0 → REMOVE</div>
+          <div class="engine-desc">
+            엔트로피 관리. 가치 없는 노드 자동 정화로 시스템 최적화
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- API Endpoints -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">🔌 API 엔드포인트 (주요)</h2>
+      </div>
+      <ul class="api-list">
+        <li class="api-item">
+          <span class="api-method post">POST</span>
+          <span class="api-path">/auth/login</span>
+          <span class="api-desc">로그인 + JWT 발급</span>
+        </li>
+        <li class="api-item">
+          <span class="api-method get">GET</span>
+          <span class="api-path">/nodes</span>
+          <span class="api-desc">노드 목록 조회</span>
+        </li>
+        <li class="api-item">
+          <span class="api-method post">POST</span>
+          <span class="api-path">/nodes</span>
+          <span class="api-desc">노드 생성 (Zero Meaning)</span>
+        </li>
+        <li class="api-item">
+          <span class="api-method post">POST</span>
+          <span class="api-path">/nodes/{id}/calculate</span>
+          <span class="api-desc">가치 재계산</span>
+        </li>
+        <li class="api-item">
+          <span class="api-method get">GET</span>
+          <span class="api-path">/nodes/{id}/predict</span>
+          <span class="api-desc">복리 예측</span>
+        </li>
+        <li class="api-item">
+          <span class="api-method post">POST</span>
+          <span class="api-path">/motions</span>
+          <span class="api-desc">모션 생성</span>
+        </li>
+        <li class="api-item">
+          <span class="api-method post">POST</span>
+          <span class="api-path">/actions/cut</span>
+          <span class="api-desc">CUT 버튼 실행</span>
+        </li>
+        <li class="api-item">
+          <span class="api-method post">POST</span>
+          <span class="api-path">/actions/link</span>
+          <span class="api-desc">LINK 버튼 실행</span>
+        </li>
+        <li class="api-item">
+          <span class="api-method post">POST</span>
+          <span class="api-path">/actions/outsource</span>
+          <span class="api-desc">OUTSOURCE 버튼 실행</span>
+        </li>
+        <li class="api-item">
+          <span class="api-method post">POST</span>
+          <span class="api-path">/import/nodes</span>
+          <span class="api-desc">CSV/Excel Import</span>
+        </li>
+        <li class="api-item">
+          <span class="api-method get">GET</span>
+          <span class="api-path">/stats</span>
+          <span class="api-desc">시스템 통계</span>
+        </li>
+      </ul>
+    </div>
+    
+    <!-- Performance -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">📊 성능 목표</h2>
+      </div>
+      <div class="perf-grid">
+        <div class="perf-item">
+          <div class="perf-value">&lt;200ms</div>
+          <div class="perf-metric">P95 응답 시간</div>
+        </div>
+        <div class="perf-item">
+          <div class="perf-value">1,000</div>
+          <div class="perf-metric">req/s 처리량</div>
+        </div>
+        <div class="perf-item">
+          <div class="perf-value">100만+</div>
+          <div class="perf-metric">노드 처리</div>
+        </div>
+        <div class="perf-item">
+          <div class="perf-value">&lt;100ms</div>
+          <div class="perf-metric">WebSocket 지연</div>
+        </div>
+        <div class="perf-item">
+          <div class="perf-value">99.9%</div>
+          <div class="perf-metric">가용성</div>
+        </div>
+        <div class="perf-item">
+          <div class="perf-value">60fps</div>
+          <div class="perf-metric">시각화 성능</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Development Timeline -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">🗓️ 개발 타임라인 (6주)</h2>
+      </div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot">1-2</div>
+          <div class="timeline-label">백엔드 기초</div>
+          <div class="timeline-desc">FastAPI + DB + Auth</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">3</div>
+          <div class="timeline-label">물리 엔진</div>
+          <div class="timeline-desc">가치/시너지 계산</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">4</div>
+          <div class="timeline-label">데이터</div>
+          <div class="timeline-desc">Import + ETL</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">5</div>
+          <div class="timeline-label">UI 연동</div>
+          <div class="timeline-desc">API + 3버튼</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">6</div>
+          <div class="timeline-label">배포</div>
+          <div class="timeline-desc">Docker + Railway</div>
+        </div>
+      </div>
+    </div>
+    
+    <footer>
+      <button class="btn btn-secondary" onclick="window.print()">📄 PDF 저장</button>
+      <button class="btn btn-primary" onclick="alert('🚀 개발 시작!\n\n첫 단계: FastAPI 프로젝트 구조 생성')">🚀 개발 시작</button>
+      <p style="margin-top: 20px;">AUTUS 기술 스펙 © 2025</p>
+    </footer>
+  </div>
+</body>
+</html>

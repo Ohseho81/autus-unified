@@ -1,0 +1,166 @@
+# docker-compose.yml
+# AUTUS Integration Hub - 전체 스택
+
+version: '3.8'
+
+services:
+  # ═══════════════════════════════════════════════════════════════
+  # AUTUS 메인 API
+  # ═══════════════════════════════════════════════════════════════
+  autus-api:
+    build: ./backend
+    container_name: autus-api
+    ports:
+      - "8000:8000"
+    environment:
+      - AUTUS_ENV=production
+      - AUTUS_SECRET_KEY=${AUTUS_SECRET_KEY:-autus_secret_key_change_me}
+      - DATABASE_URL=postgresql://autus:${DB_PASSWORD:-autus123}@postgres:5432/autus
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-neo4j123}
+      - REDIS_URL=redis://redis:6379
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - SHOPIFY_API_SECRET=${SHOPIFY_API_SECRET:-}
+      - TOSS_SECRET_KEY=${TOSS_SECRET_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_started
+      redis:
+        condition: service_started
+    networks:
+      - autus-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ═══════════════════════════════════════════════════════════════
+  # PostgreSQL (메인 DB)
+  # ═══════════════════════════════════════════════════════════════
+  postgres:
+    image: postgres:15-alpine
+    container_name: autus-postgres
+    environment:
+      POSTGRES_USER: autus
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-autus123}
+      POSTGRES_DB: autus
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - autus-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ═══════════════════════════════════════════════════════════════
+  # Neo4j (그래프 DB - Money Physics)
+  # ═══════════════════════════════════════════════════════════════
+  neo4j:
+    image: neo4j:5-community
+    container_name: autus-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-neo4j123}
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_memory_heap_max__size: 1G
+    ports:
+      - "7474:7474"  # Browser UI
+      - "7687:7687"  # Bolt Protocol
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    networks:
+      - autus-network
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════
+  # Redis (캐시 + Rate Limiting + WebSocket PubSub)
+  # ═══════════════════════════════════════════════════════════════
+  redis:
+    image: redis:7-alpine
+    container_name: autus-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - autus-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ═══════════════════════════════════════════════════════════════
+  # n8n (워크플로우 자동화)
+  # ═══════════════════════════════════════════════════════════════
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: autus-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-n8nadmin}
+      - N8N_HOST=0.0.0.0
+      - N8N_PROTOCOL=http
+      - N8N_METRICS=true
+      - N8N_METRICS_PREFIX=n8n_
+      - WEBHOOK_URL=http://localhost:5678/
+      - AUTUS_API_URL=http://autus-api:8000
+      - GENERIC_TIMEZONE=Asia/Seoul
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n:/home/node/workflows:ro
+    depends_on:
+      - autus-api
+    networks:
+      - autus-network
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════
+  # Nginx (리버스 프록시) - 선택적
+  # ═══════════════════════════════════════════════════════════════
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: autus-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - autus-api
+  #     - n8n
+  #   networks:
+  #     - autus-network
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+    name: autus-postgres-data
+  neo4j_data:
+    name: autus-neo4j-data
+  neo4j_logs:
+    name: autus-neo4j-logs
+  redis_data:
+    name: autus-redis-data
+  n8n_data:
+    name: autus-n8n-data
+
+networks:
+  autus-network:
+    name: autus-network
+    driver: bridge
+

@@ -1,0 +1,129 @@
+{
+  "name": "AUTUS ERP 범용 연동 (하이클래스/아카데미플러스/클래스메이트)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "erp-universal",
+        "responseMode": "responseNode"
+      },
+      "id": "erp_webhook",
+      "name": "ERP Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// ERP 범용 데이터 변환\nconst data = $input.item.json.body || $input.item.json;\n\n// ERP별 필드 매핑\nconst mapping = {\n  highclass: {\n    id: ['student_id', 'member_id'],\n    value: ['payment', 'tuition', 'amount'],\n    event: ['event', 'type']\n  },\n  academy_plus: {\n    id: ['member_no'],\n    value: ['pay_amount'],\n    event: ['event_type']\n  },\n  classmate: {\n    id: ['student_id'],\n    value: ['tuition'],\n    event: ['event']\n  },\n  gymbox: {\n    id: ['member_id'],\n    value: ['membership_fee', 'payment'],\n    event: ['event_type']\n  }\n};\n\n// ERP 자동 감지 (헤더 또는 필드 기반)\nlet erpType = 'unknown';\nif (data.erp_type) erpType = data.erp_type;\nelse if (data.student_id && data.tuition) erpType = 'highclass';\nelse if (data.member_no) erpType = 'academy_plus';\nelse if (data.membership_fee) erpType = 'gymbox';\n\nconst map = mapping[erpType] || { id: ['id'], value: ['amount'], event: ['event'] };\n\n// ID 추출\nlet nodeId = null;\nfor (const field of map.id) {\n  if (data[field]) { nodeId = String(data[field]); break; }\n}\nnodeId = nodeId || 'anon_' + Date.now();\n\n// 금액 추출\nlet value = 0;\nfor (const field of map.value) {\n  if (data[field]) { value = parseFloat(data[field]); break; }\n}\n\n// 이벤트 추출\nlet event = '';\nfor (const field of map.event) {\n  if (data[field]) { event = String(data[field]).toLowerCase(); break; }\n}\n\n// Flow 타입 결정\nlet flowType = 'inflow';\nif (event.includes('refund') || event.includes('cancel') || event.includes('withdraw')) {\n  flowType = 'outflow';\n}\n\n// 의미 필드 제거\nconst FORBIDDEN = ['name', 'student_name', 'member_name', 'email', 'phone', 'address', 'parent_name', 'description', 'note', 'memo'];\nFORBIDDEN.forEach(f => delete data[f]);\n\nreturn [{\n  json: {\n    node_id: nodeId,\n    value: value,\n    flow_type: flowType,\n    source: erpType,\n    event: event,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "erp_transform",
+      "name": "ERP 데이터 정제 (Zero Meaning)",
+      "type": "n8n-nodes-base.function",
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.flow_type }}",
+              "value2": "inflow"
+            }
+          ]
+        }
+      },
+      "id": "flow_branch",
+      "name": "Inflow/Outflow",
+      "type": "n8n-nodes-base.if",
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUTUS_API_URL }}/nodes/upsert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ external_id: $json.node_id, source: $json.source }) }}"
+      },
+      "id": "upsert_node",
+      "name": "노드 생성/업데이트",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUTUS_API_URL }}/motions/create",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ source_id: $json.node_id, target_id: 'owner', amount: $json.value, direction: 'inflow' }) }}"
+      },
+      "id": "create_inflow",
+      "name": "Inflow 모션",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUTUS_API_URL }}/motions/create",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ source_id: 'owner', target_id: $json.node_id, amount: $json.value, direction: 'outflow' }) }}"
+      },
+      "id": "create_outflow",
+      "name": "Outflow 모션",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUTUS_API_URL }}/crewai/quick-delete",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ nodes: [{ id: $json.node_id, value: $json.value }], motions: [] }) }}"
+      },
+      "id": "crewai_check",
+      "name": "CrewAI 삭제 체크",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, node_id: $json.node_id, value: $json.value, flow_type: $json.flow_type, source: $json.source } }}"
+      },
+      "id": "response",
+      "name": "Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1450, 300]
+    }
+  ],
+  "connections": {
+    "ERP Webhook": {
+      "main": [[{ "node": "ERP 데이터 정제 (Zero Meaning)", "type": "main", "index": 0 }]]
+    },
+    "ERP 데이터 정제 (Zero Meaning)": {
+      "main": [[{ "node": "Inflow/Outflow", "type": "main", "index": 0 }]]
+    },
+    "Inflow/Outflow": {
+      "main": [
+        [{ "node": "노드 생성/업데이트", "type": "main", "index": 0 }],
+        [{ "node": "Outflow 모션", "type": "main", "index": 0 }]
+      ]
+    },
+    "노드 생성/업데이트": {
+      "main": [[{ "node": "Inflow 모션", "type": "main", "index": 0 }]]
+    },
+    "Inflow 모션": {
+      "main": [[{ "node": "CrewAI 삭제 체크", "type": "main", "index": 0 }]]
+    },
+    "Outflow 모션": {
+      "main": [[{ "node": "CrewAI 삭제 체크", "type": "main", "index": 0 }]]
+    },
+    "CrewAI 삭제 체크": {
+      "main": [[{ "node": "Response", "type": "main", "index": 0 }]]
+    }
+  }
+}

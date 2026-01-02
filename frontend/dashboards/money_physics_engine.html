@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUTUS Money Physics Engine</title>
+  
+  <!-- Leaflet (무료 지도) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --card: rgba(18, 18, 26, 0.95);
+      --border: #1e1e2e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --accent: #00d4aa;
+      --gold: #ffd700;
+      --red: #ff4757;
+      --blue: #4a9eff;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+    
+    /* Map Container */
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    
+    /* Canvas Overlay */
+    #canvas-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+    
+    /* Interaction Layer */
+    #interaction-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 3;
+      pointer-events: none;
+    }
+    
+    /* KPI Panel */
+    #kpi-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      z-index: 10;
+      min-width: 280px;
+    }
+    
+    .kpi-title {
+      font-size: 0.9rem;
+      color: var(--dim);
+      margin-bottom: 5px;
+    }
+    
+    .kpi-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 15px;
+    }
+    
+    .kpi-value.negative { color: var(--red); }
+    .kpi-value.warning { color: var(--gold); }
+    
+    .kpi-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-top: 1px solid var(--border);
+    }
+    
+    .kpi-label { color: var(--dim); }
+    .kpi-data { font-weight: 600; }
+    
+    /* Node Info Panel */
+    #node-info {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      z-index: 10;
+      min-width: 260px;
+      display: none;
+    }
+    
+    #node-info.visible { display: block; }
+    
+    .node-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .node-badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .node-badge.positive { background: var(--accent); color: #000; }
+    .node-badge.negative { background: var(--red); color: #fff; }
+    .node-badge.quantum { background: var(--dim); color: #fff; }
+    
+    /* 3 Buttons */
+    #buttons {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 15px;
+      z-index: 10;
+    }
+    
+    .action-btn {
+      padding: 15px 35px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .action-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    .action-btn:active {
+      transform: translateY(0);
+    }
+    
+    .btn-cut {
+      background: var(--red);
+      color: white;
+    }
+    
+    .btn-link {
+      background: var(--accent);
+      color: black;
+    }
+    
+    .btn-outsource {
+      background: var(--gold);
+      color: black;
+    }
+    
+    .btn-disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* Legend */
+    #legend {
+      position: absolute;
+      bottom: 100px;
+      left: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 15px;
+      z-index: 10;
+      font-size: 0.85rem;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0;
+    }
+    
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    
+    .legend-line {
+      width: 30px;
+      height: 3px;
+      border-radius: 2px;
+    }
+    
+    /* Tooltip */
+    .node-tooltip {
+      position: absolute;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 15px;
+      pointer-events: none;
+      z-index: 100;
+      font-size: 0.9rem;
+      display: none;
+    }
+    
+    /* Logo */
+    #logo {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      z-index: 10;
+      text-shadow: 0 0 20px var(--accent);
+    }
+    
+    /* Zoom Controls */
+    #zoom-info {
+      position: absolute;
+      bottom: 100px;
+      right: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 15px;
+      z-index: 10;
+      font-size: 0.85rem;
+    }
+    
+    /* Loading */
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 100;
+      text-align: center;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Shooting Star Trail */
+    @keyframes shootingStar {
+      0% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(0.5); }
+    }
+    
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: #000;
+      padding: 12px 25px;
+      border-radius: 8px;
+      font-weight: 600;
+      z-index: 200;
+      display: none;
+    }
+    
+    #toast.show {
+      display: block;
+      animation: fadeInUp 0.3s ease;
+    }
+    
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    
+    /* Leaflet Custom */
+    .leaflet-container {
+      background: #0a0a0f;
+    }
+    
+    .custom-marker {
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .custom-marker:hover {
+      transform: scale(1.3);
+      z-index: 1000 !important;
+    }
+    
+    .custom-marker.selected {
+      border-color: var(--gold);
+      box-shadow: 0 0 20px var(--gold);
+    }
+    
+    .custom-marker.quantum {
+      opacity: 0.4;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.7; }
+    }
+    
+    /* Edge Polyline */
+    .money-flow {
+      stroke-linecap: round;
+    }
+    
+    /* Cluster */
+    .cluster-marker {
+      background: var(--blue);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      border: 3px solid rgba(255,255,255,0.5);
+    }
+  </style>
+</head>
+<body>
+  <!-- Logo -->
+  <div id="logo">♾️ AUTUS Physics Map</div>
+  
+  <!-- Loading -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <p style="margin-top: 15px; color: var(--dim);">Loading Physics Engine...</p>
+  </div>
+  
+  <!-- Map -->
+  <div id="map"></div>
+  
+  <!-- Canvas Overlay for Effects -->
+  <canvas id="canvas-overlay"></canvas>
+  
+  <!-- KPI Panel -->
+  <div id="kpi-panel">
+    <div class="kpi-title">💰 Total Money Flow Velocity</div>
+    <div class="kpi-value" id="velocity-value">₩0</div>
+    
+    <div class="kpi-row">
+      <span class="kpi-label">총 노드</span>
+      <span class="kpi-data" id="total-nodes">0</span>
+    </div>
+    <div class="kpi-row">
+      <span class="kpi-label">총 가치</span>
+      <span class="kpi-data" id="total-value">₩0</span>
+    </div>
+    <div class="kpi-row">
+      <span class="kpi-label">평균 시너지</span>
+      <span class="kpi-data" id="avg-synergy">0%</span>
+    </div>
+    <div class="kpi-row">
+      <span class="kpi-label">엔트로피</span>
+      <span class="kpi-data" id="entropy">0%</span>
+    </div>
+  </div>
+  
+  <!-- Node Info Panel -->
+  <div id="node-info">
+    <div class="node-title">
+      <span id="node-name">Node</span>
+      <span class="node-badge positive" id="node-badge">+</span>
+    </div>
+    <div class="kpi-row">
+      <span class="kpi-label">현재 가치</span>
+      <span class="kpi-data" id="node-value">₩0</span>
+    </div>
+    <div class="kpi-row">
+      <span class="kpi-label">돈 유입</span>
+      <span class="kpi-data" id="node-in">₩0</span>
+    </div>
+    <div class="kpi-row">
+      <span class="kpi-label">돈 유출</span>
+      <span class="kpi-data" id="node-out">₩0</span>
+    </div>
+    <div class="kpi-row">
+      <span class="kpi-label">시너지율</span>
+      <span class="kpi-data" id="node-synergy">0%</span>
+    </div>
+    <div class="kpi-row">
+      <span class="kpi-label">상태</span>
+      <span class="kpi-data" id="node-state">OBSERVED</span>
+    </div>
+  </div>
+  
+  <!-- Legend -->
+  <div id="legend">
+    <div style="font-weight: 600; margin-bottom: 10px;">범례</div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--accent);"></div>
+      <span>가치 양수</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--red);"></div>
+      <span>가치 음수 (CUT 대상)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--dim); opacity: 0.5;"></div>
+      <span>Quantum 상태</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line" style="background: var(--accent);"></div>
+      <span>돈 유입</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line" style="background: var(--red);"></div>
+      <span>돈 유출</span>
+    </div>
+  </div>
+  
+  <!-- Zoom Info -->
+  <div id="zoom-info">
+    <span>Zoom: </span><span id="zoom-level">10</span>
+    <span style="margin-left: 10px;">|</span>
+    <span style="margin-left: 10px;" id="qcf-state">QCF: OBSERVED</span>
+  </div>
+  
+  <!-- 3 Buttons -->
+  <div id="buttons">
+    <button class="action-btn btn-cut" id="btn-cut" onclick="executeCut()">
+      ✂️ CUT
+    </button>
+    <button class="action-btn btn-link" id="btn-link" onclick="executeLink()">
+      🔗 LINK
+    </button>
+    <button class="action-btn btn-outsource" id="btn-outsource" onclick="executeOutsource()">
+      📤 OUTSOURCE
+    </button>
+  </div>
+  
+  <!-- Toast -->
+  <div id="toast"></div>
+  
+  <!-- Tooltip -->
+  <div class="node-tooltip" id="tooltip"></div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CONFIGURATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const CONFIG = {
+      // QCF Thresholds
+      ZOOM_OBSERVE_THRESHOLD: 10,
+      ZOOM_COLLAPSE_THRESHOLD: 6,
+      
+      // Clustering
+      CLUSTER_MIN_DISTANCE: 50,
+      
+      // Animation
+      TRAIL_PARTICLE_COUNT: 50,
+      ANIMATION_FPS: 60,
+      
+      // Map Center (Seoul)
+      DEFAULT_CENTER: [37.5665, 126.9780],
+      DEFAULT_ZOOM: 11
+    };
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DATA STORE
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let nodes = [];
+    let edges = [];
+    let markers = {};
+    let polylines = [];
+    let selectedNode = null;
+    let linkSourceNode = null;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHYSICS ENGINE - VALUE CALCULATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function calculateValue(node) {
+      const moneyNet = (node.money_in || 0) - (node.money_out || 0);
+      const timeCost = node.time_cost || 0;
+      const synergyRate = node.synergy_rate || 0.05;
+      const execCount = node.execution_count || 0;
+      
+      const baseValue = moneyNet - timeCost;
+      const n = execCount / 10;
+      
+      return baseValue * Math.pow(1 + synergyRate, n);
+    }
+    
+    function calculateEntropy(node) {
+      if (!node.money_in || node.money_in === 0) return 1;
+      return (node.money_out || 0) / node.money_in;
+    }
+    
+    function shouldCut(node) {
+      return calculateValue(node) <= 0 || calculateEntropy(node) >= 0.95;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SAMPLE DATA GENERATOR
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function generateSampleData() {
+      const sampleNodes = [];
+      const sampleEdges = [];
+      
+      // 서울 주변 랜덤 노드 생성
+      const baseLocations = [
+        { name: "강남", lat: 37.4979, lng: 127.0276 },
+        { name: "홍대", lat: 37.5563, lng: 126.9220 },
+        { name: "여의도", lat: 37.5219, lng: 126.9245 },
+        { name: "종로", lat: 37.5704, lng: 126.9831 },
+        { name: "잠실", lat: 37.5133, lng: 127.1001 },
+        { name: "신촌", lat: 37.5598, lng: 126.9425 },
+        { name: "이태원", lat: 37.5340, lng: 126.9948 },
+        { name: "성수", lat: 37.5447, lng: 127.0558 },
+      ];
+      
+      for (let i = 0; i < 50; i++) {
+        const base = baseLocations[i % baseLocations.length];
+        const offsetLat = (Math.random() - 0.5) * 0.05;
+        const offsetLng = (Math.random() - 0.5) * 0.05;
+        
+        const moneyIn = Math.random() * 50000000;
+        const moneyOut = Math.random() * moneyIn * 1.2;
+        const synergyRate = 0.01 + Math.random() * 0.24;
+        
+        const node = {
+          node_id: `P${String(i + 1).padStart(3, '0')}`,
+          name: `${base.name} ${i + 1}`,
+          lat: base.lat + offsetLat,
+          lng: base.lng + offsetLng,
+          money_label: Math.round(moneyIn - moneyOut),
+          money_in: Math.round(moneyIn),
+          money_out: Math.round(moneyOut),
+          synergy_rate: synergyRate,
+          time_cost: Math.random() * 5000000,
+          execution_count: Math.floor(Math.random() * 100),
+          node_type: ['PERSON', 'STORE', 'COMPANY'][Math.floor(Math.random() * 3)],
+          state: 'OBSERVED'
+        };
+        
+        node.current_value = calculateValue(node);
+        sampleNodes.push(node);
+      }
+      
+      // 엣지 생성 (랜덤 연결)
+      for (let i = 0; i < 80; i++) {
+        const sourceIdx = Math.floor(Math.random() * sampleNodes.length);
+        let targetIdx = Math.floor(Math.random() * sampleNodes.length);
+        while (targetIdx === sourceIdx) {
+          targetIdx = Math.floor(Math.random() * sampleNodes.length);
+        }
+        
+        const amount = Math.random() * 10000000;
+        
+        sampleEdges.push({
+          edge_id: `E${String(i + 1).padStart(3, '0')}`,
+          source: sampleNodes[sourceIdx].node_id,
+          target: sampleNodes[targetIdx].node_id,
+          amount: Math.round(amount),
+          direction: Math.random() > 0.5 ? 'IN' : 'OUT',
+          synergy_rate: Math.random() * 0.15,
+          velocity: Math.random() * 100000
+        });
+      }
+      
+      return { nodes: sampleNodes, edges: sampleEdges };
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MAP INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let map;
+    
+    function initMap() {
+      // Leaflet 지도 초기화 (무료 OpenStreetMap 타일)
+      map = L.map('map', {
+        center: CONFIG.DEFAULT_CENTER,
+        zoom: CONFIG.DEFAULT_ZOOM,
+        zoomControl: false
+      });
+      
+      // Dark 스타일 타일 (CartoDB Dark Matter)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap, &copy; CartoDB',
+        maxZoom: 19
+      }).addTo(map);
+      
+      // 줌 컨트롤
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+      
+      // 이벤트
+      map.on('zoom', onZoomChange);
+      map.on('moveend', onViewportChange);
+      map.on('click', onMapClick);
+      
+      return map;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // NODE RENDERING
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function getNodeColor(node) {
+      const value = node.current_value || calculateValue(node);
+      if (value <= 0) return '#ff4757';
+      if (value < 1000000) return '#ffd700';
+      return '#00d4aa';
+    }
+    
+    function getNodeSize(node) {
+      const value = Math.abs(node.current_value || calculateValue(node));
+      return Math.max(8, Math.min(30, Math.sqrt(value) / 500));
+    }
+    
+    function createNodeMarker(node) {
+      const color = getNodeColor(node);
+      const size = getNodeSize(node);
+      const isQuantum = node.state === 'QUANTUM';
+      
+      const icon = L.divIcon({
+        className: `custom-marker ${isQuantum ? 'quantum' : ''} ${selectedNode === node.node_id ? 'selected' : ''}`,
+        html: `<div style="
+          width: ${size}px;
+          height: ${size}px;
+          background: ${color};
+          border-radius: 50%;
+          box-shadow: 0 0 ${size}px ${color}80;
+        "></div>`,
+        iconSize: [size, size],
+        iconAnchor: [size/2, size/2]
+      });
+      
+      const marker = L.marker([node.lat, node.lng], { icon })
+        .addTo(map)
+        .on('click', (e) => {
+          L.DomEvent.stopPropagation(e);
+          selectNode(node);
+        })
+        .on('mouseover', (e) => showTooltip(e, node))
+        .on('mouseout', hideTooltip);
+      
+      markers[node.node_id] = marker;
+      return marker;
+    }
+    
+    function updateNodeMarker(node) {
+      if (markers[node.node_id]) {
+        markers[node.node_id].remove();
+      }
+      createNodeMarker(node);
+    }
+    
+    function renderNodes() {
+      // 기존 마커 제거
+      Object.values(markers).forEach(m => m.remove());
+      markers = {};
+      
+      // 새 마커 생성
+      nodes.forEach(node => createNodeMarker(node));
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EDGE RENDERING
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function renderEdges() {
+      // 기존 폴리라인 제거
+      polylines.forEach(p => p.remove());
+      polylines = [];
+      
+      edges.forEach(edge => {
+        const sourceNode = nodes.find(n => n.node_id === edge.source);
+        const targetNode = nodes.find(n => n.node_id === edge.target);
+        
+        if (!sourceNode || !targetNode) return;
+        
+        const color = edge.direction === 'IN' ? '#00d4aa' : '#ff4757';
+        const weight = Math.max(1, Math.min(5, edge.amount / 2000000));
+        const opacity = Math.min(0.8, edge.velocity / 50000);
+        
+        const polyline = L.polyline(
+          [[sourceNode.lat, sourceNode.lng], [targetNode.lat, targetNode.lng]],
+          {
+            color: color,
+            weight: weight,
+            opacity: opacity,
+            dashArray: edge.synergy_rate > 0.1 ? null : '5, 10'
+          }
+        ).addTo(map);
+        
+        polylines.push(polyline);
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // QUANTUM CLUSTER FLOW (QCF)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function updateQCFState() {
+      const zoom = map.getZoom();
+      const bounds = map.getBounds();
+      
+      nodes.forEach(node => {
+        const inViewport = bounds.contains([node.lat, node.lng]);
+        
+        if (!inViewport) {
+          node.state = 'QUANTUM';
+        } else if (zoom >= CONFIG.ZOOM_OBSERVE_THRESHOLD) {
+          node.state = 'OBSERVED';
+        } else if (zoom <= CONFIG.ZOOM_COLLAPSE_THRESHOLD) {
+          node.state = 'COLLAPSED';
+        }
+      });
+      
+      // QCF 상태 표시 업데이트
+      const qcfState = zoom >= CONFIG.ZOOM_OBSERVE_THRESHOLD ? 'OBSERVED' :
+                       zoom <= CONFIG.ZOOM_COLLAPSE_THRESHOLD ? 'COLLAPSED' : 'MIXED';
+      document.getElementById('qcf-state').textContent = `QCF: ${qcfState}`;
+      document.getElementById('zoom-level').textContent = zoom.toFixed(1);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CANVAS EFFECTS (별똥별 트레일)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const canvas = document.getElementById('canvas-overlay');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    
+    class Particle {
+      constructor(edge) {
+        this.edge = edge;
+        this.progress = 0;
+        this.speed = 0.005 + Math.random() * 0.01;
+        this.size = 2 + Math.random() * 3;
+        this.opacity = 1;
+      }
+      
+      update() {
+        this.progress += this.speed;
+        this.opacity = 1 - this.progress;
+        return this.progress < 1;
+      }
+      
+      draw() {
+        const sourceNode = nodes.find(n => n.node_id === this.edge.source);
+        const targetNode = nodes.find(n => n.node_id === this.edge.target);
+        
+        if (!sourceNode || !targetNode) return;
+        
+        const sourcePoint = map.latLngToContainerPoint([sourceNode.lat, sourceNode.lng]);
+        const targetPoint = map.latLngToContainerPoint([targetNode.lat, targetNode.lng]);
+        
+        const x = sourcePoint.x + (targetPoint.x - sourcePoint.x) * this.progress;
+        const y = sourcePoint.y + (targetPoint.y - sourcePoint.y) * this.progress;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 215, 0, ${this.opacity})`;
+        ctx.fill();
+        
+        // Trail
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        const trailX = x - (targetPoint.x - sourcePoint.x) * 0.05;
+        const trailY = y - (targetPoint.y - sourcePoint.y) * 0.05;
+        ctx.lineTo(trailX, trailY);
+        ctx.strokeStyle = `rgba(255, 215, 0, ${this.opacity * 0.5})`;
+        ctx.lineWidth = this.size * 0.5;
+        ctx.stroke();
+      }
+    }
+    
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // 새 파티클 생성 (시너지 높은 엣지)
+      edges.forEach(edge => {
+        if (edge.synergy_rate > 0.05 && Math.random() < 0.02) {
+          particles.push(new Particle(edge));
+        }
+      });
+      
+      // 파티클 업데이트 및 그리기
+      particles = particles.filter(p => {
+        const alive = p.update();
+        if (alive) p.draw();
+        return alive;
+      });
+      
+      // 최대 파티클 수 제한
+      if (particles.length > CONFIG.TRAIL_PARTICLE_COUNT) {
+        particles = particles.slice(-CONFIG.TRAIL_PARTICLE_COUNT);
+      }
+      
+      requestAnimationFrame(animateParticles);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // KPI CALCULATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function updateKPIs() {
+      const totalNodes = nodes.length;
+      const totalValue = nodes.reduce((sum, n) => sum + (n.current_value || calculateValue(n)), 0);
+      const avgSynergy = nodes.reduce((sum, n) => sum + (n.synergy_rate || 0.05), 0) / totalNodes;
+      const avgEntropy = nodes.reduce((sum, n) => sum + calculateEntropy(n), 0) / totalNodes;
+      const velocity = edges.reduce((sum, e) => sum + (e.velocity || 0), 0);
+      
+      document.getElementById('velocity-value').textContent = formatMoney(velocity) + '/일';
+      document.getElementById('velocity-value').className = 'kpi-value' + (velocity < 0 ? ' negative' : '');
+      
+      document.getElementById('total-nodes').textContent = totalNodes.toLocaleString();
+      document.getElementById('total-value').textContent = formatMoney(totalValue);
+      document.getElementById('avg-synergy').textContent = (avgSynergy * 100).toFixed(1) + '%';
+      document.getElementById('entropy').textContent = (avgEntropy * 100).toFixed(1) + '%';
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // NODE SELECTION & INFO
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function selectNode(node) {
+      selectedNode = node.node_id;
+      
+      // 마커 업데이트
+      renderNodes();
+      
+      // Info 패널 표시
+      const panel = document.getElementById('node-info');
+      panel.classList.add('visible');
+      
+      const value = node.current_value || calculateValue(node);
+      
+      document.getElementById('node-name').textContent = node.name || node.node_id;
+      document.getElementById('node-value').textContent = formatMoney(value);
+      document.getElementById('node-in').textContent = formatMoney(node.money_in || 0);
+      document.getElementById('node-out').textContent = formatMoney(node.money_out || 0);
+      document.getElementById('node-synergy').textContent = ((node.synergy_rate || 0.05) * 100).toFixed(1) + '%';
+      document.getElementById('node-state').textContent = node.state || 'OBSERVED';
+      
+      const badge = document.getElementById('node-badge');
+      if (value > 0) {
+        badge.textContent = '+₩' + Math.abs(value / 1000000).toFixed(1) + 'M';
+        badge.className = 'node-badge positive';
+      } else {
+        badge.textContent = '-₩' + Math.abs(value / 1000000).toFixed(1) + 'M';
+        badge.className = 'node-badge negative';
+      }
+      
+      // 버튼 상태 업데이트
+      updateButtonStates(node);
+    }
+    
+    function deselectNode() {
+      selectedNode = null;
+      linkSourceNode = null;
+      document.getElementById('node-info').classList.remove('visible');
+      renderNodes();
+      updateButtonStates(null);
+    }
+    
+    function updateButtonStates(node) {
+      const btnCut = document.getElementById('btn-cut');
+      const btnLink = document.getElementById('btn-link');
+      const btnOutsource = document.getElementById('btn-outsource');
+      
+      if (!node) {
+        btnCut.classList.add('btn-disabled');
+        btnLink.classList.add('btn-disabled');
+        btnOutsource.classList.add('btn-disabled');
+        return;
+      }
+      
+      // CUT: 가치 <= 0
+      if (shouldCut(node)) {
+        btnCut.classList.remove('btn-disabled');
+      } else {
+        btnCut.classList.add('btn-disabled');
+      }
+      
+      // LINK: 항상 가능
+      btnLink.classList.remove('btn-disabled');
+      
+      // OUTSOURCE: 시간비용 > 순수익
+      const netMoney = (node.money_in || 0) - (node.money_out || 0);
+      if ((node.time_cost || 0) > netMoney * 0.5) {
+        btnOutsource.classList.remove('btn-disabled');
+      } else {
+        btnOutsource.classList.add('btn-disabled');
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 3 BUTTON ACTIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function executeCut() {
+      if (!selectedNode) {
+        showToast('노드를 먼저 선택하세요');
+        return;
+      }
+      
+      const node = nodes.find(n => n.node_id === selectedNode);
+      if (!node || !shouldCut(node)) {
+        showToast('CUT 조건을 충족하지 않습니다 (가치 > 0)');
+        return;
+      }
+      
+      // 노드 삭제
+      nodes = nodes.filter(n => n.node_id !== selectedNode);
+      
+      // 관련 엣지 삭제
+      edges = edges.filter(e => e.source !== selectedNode && e.target !== selectedNode);
+      
+      // 마커 제거
+      if (markers[selectedNode]) {
+        markers[selectedNode].remove();
+        delete markers[selectedNode];
+      }
+      
+      showToast(`✂️ CUT: ${node.name || node.node_id} 삭제됨`);
+      
+      deselectNode();
+      renderEdges();
+      updateKPIs();
+    }
+    
+    function executeLink() {
+      if (!selectedNode) {
+        showToast('첫 번째 노드를 선택하세요');
+        return;
+      }
+      
+      if (!linkSourceNode) {
+        linkSourceNode = selectedNode;
+        showToast('🔗 두 번째 노드를 선택하세요');
+        return;
+      }
+      
+      if (linkSourceNode === selectedNode) {
+        showToast('다른 노드를 선택하세요');
+        return;
+      }
+      
+      // 이미 연결되어 있는지 확인
+      const exists = edges.some(e => 
+        (e.source === linkSourceNode && e.target === selectedNode) ||
+        (e.source === selectedNode && e.target === linkSourceNode)
+      );
+      
+      if (exists) {
+        showToast('이미 연결되어 있습니다');
+        linkSourceNode = null;
+        return;
+      }
+      
+      // 새 엣지 생성
+      const newEdge = {
+        edge_id: `E${Date.now()}`,
+        source: linkSourceNode,
+        target: selectedNode,
+        amount: 1000000,
+        direction: 'IN',
+        synergy_rate: 0.1,
+        velocity: 50000
+      };
+      
+      edges.push(newEdge);
+      
+      // 양쪽 노드 시너지율 증가
+      const sourceNode = nodes.find(n => n.node_id === linkSourceNode);
+      const targetNode = nodes.find(n => n.node_id === selectedNode);
+      
+      if (sourceNode) {
+        sourceNode.synergy_rate = Math.min(0.25, (sourceNode.synergy_rate || 0.05) + 0.02);
+        sourceNode.current_value = calculateValue(sourceNode);
+      }
+      if (targetNode) {
+        targetNode.synergy_rate = Math.min(0.25, (targetNode.synergy_rate || 0.05) + 0.02);
+        targetNode.current_value = calculateValue(targetNode);
+      }
+      
+      showToast(`🔗 LINK: ${sourceNode?.name || linkSourceNode} ↔ ${targetNode?.name || selectedNode}`);
+      
+      linkSourceNode = null;
+      renderNodes();
+      renderEdges();
+      updateKPIs();
+    }
+    
+    function executeOutsource() {
+      if (!selectedNode) {
+        showToast('노드를 먼저 선택하세요');
+        return;
+      }
+      
+      const node = nodes.find(n => n.node_id === selectedNode);
+      if (!node) return;
+      
+      const netMoney = (node.money_in || 0) - (node.money_out || 0);
+      if ((node.time_cost || 0) <= netMoney * 0.5) {
+        showToast('OUTSOURCE 조건을 충족하지 않습니다');
+        return;
+      }
+      
+      // 시간 비용 30% 감소
+      node.time_cost = (node.time_cost || 0) * 0.7;
+      node.node_type = 'OUTSOURCED';
+      node.current_value = calculateValue(node);
+      
+      showToast(`📤 OUTSOURCE: ${node.name || node.node_id} 외주화 (비용 -30%)`);
+      
+      updateNodeMarker(node);
+      selectNode(node);
+      updateKPIs();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EVENT HANDLERS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function onZoomChange() {
+      updateQCFState();
+      renderNodes();
+    }
+    
+    function onViewportChange() {
+      updateQCFState();
+    }
+    
+    function onMapClick(e) {
+      deselectNode();
+    }
+    
+    function showTooltip(e, node) {
+      const tooltip = document.getElementById('tooltip');
+      const value = node.current_value || calculateValue(node);
+      
+      tooltip.innerHTML = `
+        <strong>${node.name || node.node_id}</strong><br>
+        가치: ${formatMoney(value)}<br>
+        시너지: ${((node.synergy_rate || 0.05) * 100).toFixed(1)}%
+      `;
+      
+      tooltip.style.left = e.containerPoint.x + 15 + 'px';
+      tooltip.style.top = e.containerPoint.y + 15 + 'px';
+      tooltip.style.display = 'block';
+    }
+    
+    function hideTooltip() {
+      document.getElementById('tooltip').style.display = 'none';
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UTILITIES
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      if (Math.abs(value) >= 100000000) {
+        return '₩' + (value / 100000000).toFixed(1) + '억';
+      }
+      if (Math.abs(value) >= 10000) {
+        return '₩' + (value / 10000).toFixed(0) + '만';
+      }
+      return '₩' + value.toLocaleString();
+    }
+    
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    async function init() {
+      // 캔버스 크기 설정
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      
+      // 지도 초기화
+      initMap();
+      
+      // 샘플 데이터 생성
+      const data = generateSampleData();
+      nodes = data.nodes;
+      edges = data.edges;
+      
+      // 렌더링
+      renderNodes();
+      renderEdges();
+      updateKPIs();
+      updateQCFState();
+      
+      // 파티클 애니메이션 시작
+      animateParticles();
+      
+      // 로딩 숨기기
+      document.getElementById('loading').style.display = 'none';
+      
+      console.log('♾️ AUTUS Physics Map initialized');
+      console.log(`   Nodes: ${nodes.length}`);
+      console.log(`   Edges: ${edges.length}`);
+    }
+    
+    // 페이지 로드 시 초기화
+    document.addEventListener('DOMContentLoaded', init);
+    
+    // 키보드 단축키
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        deselectNode();
+      }
+      if (e.key === 'c' && selectedNode) {
+        executeCut();
+      }
+      if (e.key === 'l' && selectedNode) {
+        executeLink();
+      }
+      if (e.key === 'o' && selectedNode) {
+        executeOutsource();
+      }
+    });
+  </script>
+</body>
+</html>

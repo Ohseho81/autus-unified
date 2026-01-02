@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUTUS 시너지율 복리 시뮬레이터 2025</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --card: rgba(18, 18, 26, 0.95);
+      --border: #1e1e2e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --accent: #00d4aa;
+      --gold: #ffd700;
+      --red: #ff4757;
+      --blue: #4a9eff;
+      --purple: #a855f7;
+      --pink: #ff00ff;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    /* Header */
+    header {
+      text-align: center;
+      padding: 40px 20px;
+      background: linear-gradient(180deg, rgba(0,212,170,0.15) 0%, transparent 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .header-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(135deg, var(--accent), var(--gold), var(--pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .subtitle {
+      color: var(--dim);
+      margin-top: 10px;
+      font-size: 1.1rem;
+    }
+    
+    /* Container */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    @media (max-width: 900px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 25px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--gold));
+    }
+    
+    .stat-card.highlight::before {
+      background: linear-gradient(90deg, var(--gold), var(--pink));
+      animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .stat-value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 5px;
+    }
+    
+    .stat-value.gold { color: var(--gold); }
+    .stat-value.pink { color: var(--pink); }
+    
+    .stat-label {
+      color: var(--dim);
+      font-size: 0.9rem;
+    }
+    
+    .stat-change {
+      font-size: 0.85rem;
+      margin-top: 8px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+    
+    .stat-change.positive {
+      background: rgba(0,212,170,0.2);
+      color: var(--accent);
+    }
+    
+    .stat-change.explosive {
+      background: rgba(255,0,255,0.2);
+      color: var(--pink);
+      animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    /* Grid Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+      margin-bottom: 30px;
+    }
+    
+    @media (max-width: 1000px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    
+    /* Card */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 25px;
+    }
+    
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    /* Input Controls */
+    .input-group {
+      margin-bottom: 25px;
+    }
+    
+    .input-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .input-label span {
+      color: var(--dim);
+    }
+    
+    .input-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    
+    .input-value.gold { color: var(--gold); }
+    
+    input[type="range"] {
+      width: 100%;
+      height: 10px;
+      background: var(--border);
+      border-radius: 5px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, var(--accent), var(--gold));
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 15px var(--accent);
+    }
+    
+    input[type="number"] {
+      width: 100%;
+      padding: 12px 15px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 1.1rem;
+      outline: none;
+    }
+    
+    input[type="number"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(0,212,170,0.3);
+    }
+    
+    /* Chart */
+    .chart-container {
+      height: 350px;
+      margin-top: 20px;
+    }
+    
+    /* Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    
+    .data-table th,
+    .data-table td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .data-table th {
+      color: var(--dim);
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+    }
+    
+    .data-table td {
+      font-size: 0.95rem;
+    }
+    
+    .data-table tr:hover {
+      background: rgba(0,212,170,0.05);
+    }
+    
+    .value-cell {
+      font-weight: 600;
+      color: var(--accent);
+    }
+    
+    .growth-cell {
+      color: var(--gold);
+    }
+    
+    .trail-cell {
+      display: flex;
+      justify-content: center;
+      gap: 2px;
+    }
+    
+    .trail-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gold);
+    }
+    
+    .trail-dot.dim { opacity: 0.3; }
+    .trail-dot.medium { opacity: 0.6; }
+    .trail-dot.bright { opacity: 1; box-shadow: 0 0 5px var(--gold); }
+    
+    /* Scenario Cards */
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    @media (max-width: 700px) {
+      .scenario-grid { grid-template-columns: 1fr; }
+    }
+    
+    .scenario-card {
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .scenario-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-3px);
+    }
+    
+    .scenario-card.active {
+      border-color: var(--gold);
+      box-shadow: 0 0 20px rgba(255,215,0,0.3);
+    }
+    
+    .scenario-title {
+      font-size: 0.9rem;
+      color: var(--dim);
+      margin-bottom: 8px;
+    }
+    
+    .scenario-rate {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    
+    .scenario-card.active .scenario-rate {
+      color: var(--gold);
+    }
+    
+    .scenario-result {
+      font-size: 1.1rem;
+      color: var(--text);
+      margin-top: 10px;
+    }
+    
+    .scenario-multiple {
+      font-size: 0.85rem;
+      color: var(--pink);
+      margin-top: 5px;
+    }
+    
+    /* Shooting Star Animation */
+    #shooting-stars {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    
+    .shooting-star {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: var(--gold);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--gold), 0 0 20px var(--gold);
+      animation: shoot linear forwards;
+    }
+    
+    @keyframes shoot {
+      0% {
+        transform: translateX(0) translateY(0);
+        opacity: 1;
+      }
+      100% {
+        transform: translateX(300px) translateY(300px);
+        opacity: 0;
+      }
+    }
+    
+    /* Formula Box */
+    .formula-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .formula {
+      font-size: 1.3rem;
+      color: var(--accent);
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    
+    .formula-vars {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      font-size: 0.9rem;
+      color: var(--dim);
+    }
+    
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn:hover { transform: translateY(-2px); }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--gold));
+      color: #000;
+    }
+    
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--dim);
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+    }
+    
+    .philosophy {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+    
+    .philosophy span {
+      padding: 8px 15px;
+      background: var(--card);
+      border-radius: 20px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Shooting Stars Background -->
+  <div id="shooting-stars"></div>
+  
+  <header>
+    <h1>⚡ 시너지율 복리 시뮬레이터</h1>
+    <p class="subtitle">AUTUS Synergy Compound Growth Simulator 2025</p>
+  </header>
+  
+  <div class="container">
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-initial">₩60M</div>
+        <div class="stat-label">초기 월 가치</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value gold" id="stat-synergy">30%</div>
+        <div class="stat-label">시너지율</div>
+      </div>
+      <div class="stat-card highlight">
+        <div class="stat-value pink" id="stat-final">₩550M</div>
+        <div class="stat-label">12개월 후 예측</div>
+        <div class="stat-change explosive" id="stat-multiple">9.2x 성장</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-trail">강함</div>
+        <div class="stat-label">별똥별 효과</div>
+      </div>
+    </div>
+    
+    <div class="grid">
+      <!-- Input Panel -->
+      <div class="card">
+        <h2 class="card-title">🎛️ 시뮬레이션 설정</h2>
+        
+        <div class="input-group">
+          <div class="input-label">
+            <span>💵 초기 월 가치</span>
+            <span class="input-value" id="initial-display">₩60,000,000</span>
+          </div>
+          <input type="number" id="initial-input" value="60000000" min="1000000" step="1000000" onchange="updateSimulation()">
+        </div>
+        
+        <div class="input-group">
+          <div class="input-label">
+            <span>⚡ 시너지율</span>
+            <span class="input-value gold" id="synergy-display">30%</span>
+          </div>
+          <input type="range" id="synergy-slider" min="5" max="60" value="30" oninput="updateSimulation()">
+        </div>
+        
+        <div class="input-group">
+          <div class="input-label">
+            <span>📅 시뮬레이션 기간</span>
+            <span class="input-value" id="months-display">12개월</span>
+          </div>
+          <input type="range" id="months-slider" min="3" max="36" value="12" oninput="updateSimulation()">
+        </div>
+        
+        <!-- Scenarios -->
+        <h3 style="margin-top: 25px; margin-bottom: 15px; color: var(--dim);">📊 시나리오 선택</h3>
+        <div class="scenario-grid">
+          <div class="scenario-card" data-synergy="20" onclick="selectScenario(20)">
+            <div class="scenario-title">평균 성장</div>
+            <div class="scenario-rate">20%</div>
+            <div class="scenario-result" id="scenario-20">₩2.9억</div>
+            <div class="scenario-multiple">4.8x</div>
+          </div>
+          <div class="scenario-card active" data-synergy="30" onclick="selectScenario(30)">
+            <div class="scenario-title">고성장 (추천)</div>
+            <div class="scenario-rate">30%</div>
+            <div class="scenario-result" id="scenario-30">₩5.5억</div>
+            <div class="scenario-multiple">9.2x</div>
+          </div>
+          <div class="scenario-card" data-synergy="40" onclick="selectScenario(40)">
+            <div class="scenario-title">지수 성장</div>
+            <div class="scenario-rate">40%</div>
+            <div class="scenario-result" id="scenario-40">₩13억</div>
+            <div class="scenario-multiple">21.7x</div>
+          </div>
+        </div>
+        
+        <!-- Formula -->
+        <div class="formula-box">
+          <div class="formula">V = V₀ × (1 + S)^n</div>
+          <div class="formula-vars">
+            <div>V = 최종 가치</div>
+            <div>V₀ = 초기 가치</div>
+            <div>S = 시너지율</div>
+            <div>n = 개월 수</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Chart -->
+      <div class="card">
+        <h2 class="card-title">📈 복리 성장 그래프</h2>
+        <div class="chart-container">
+          <canvas id="growthChart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Monthly Table -->
+    <div class="card">
+      <h2 class="card-title">📅 월별 예측 상세</h2>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>월</th>
+            <th>예측 가치</th>
+            <th>월간 증가</th>
+            <th>누적 성장</th>
+            <th>별똥별 효과</th>
+          </tr>
+        </thead>
+        <tbody id="monthly-table">
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Action -->
+    <div class="card">
+      <h2 class="card-title">🚀 다음 단계</h2>
+      <p style="color: var(--dim); margin-bottom: 20px;">
+        시뮬레이션 결과를 확인했습니다. 실제 데이터를 입력하여 맞춤 예측을 받아보세요.
+      </p>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="resetSimulation()">🔄 리셋</button>
+        <button class="btn btn-primary" onclick="exportResult()">📊 결과 저장</button>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <div class="philosophy">
+      <span>👤 모든 개체는 사람</span>
+      <span>💰 모든 액션은 돈</span>
+      <span>🚫 의미·판단은 없다</span>
+      <span>♾️ 자동화가 자동화를 낳는다</span>
+    </div>
+    <p>AUTUS 시너지율 복리 시뮬레이터 © 2025</p>
+  </footer>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CONFIGURATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let config = {
+      initialValue: 60000000,
+      synergyRate: 0.30,
+      months: 12
+    };
+    
+    let chart;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // COMPOUND GROWTH CALCULATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function calculateCompoundGrowth(initial, rate, months) {
+      const results = [];
+      let value = initial;
+      
+      for (let i = 0; i <= months; i++) {
+        results.push({
+          month: i,
+          value: value,
+          monthlyGrowth: i > 0 ? value - results[i-1].value : 0,
+          totalGrowth: ((value / initial) - 1) * 100,
+          multiple: value / initial
+        });
+        
+        value = value * (1 + rate);
+      }
+      
+      return results;
+    }
+    
+    function getTrailIntensity(synergyRate) {
+      if (synergyRate >= 0.35) return { text: '폭발', level: 5 };
+      if (synergyRate >= 0.25) return { text: '강함', level: 4 };
+      if (synergyRate >= 0.15) return { text: '중간', level: 3 };
+      return { text: '약함', level: 2 };
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UPDATE SIMULATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function updateSimulation() {
+      // Get values
+      config.initialValue = parseInt(document.getElementById('initial-input').value) || 60000000;
+      config.synergyRate = parseInt(document.getElementById('synergy-slider').value) / 100;
+      config.months = parseInt(document.getElementById('months-slider').value);
+      
+      // Update displays
+      document.getElementById('initial-display').textContent = formatMoney(config.initialValue);
+      document.getElementById('synergy-display').textContent = (config.synergyRate * 100).toFixed(0) + '%';
+      document.getElementById('months-display').textContent = config.months + '개월';
+      
+      // Calculate
+      const results = calculateCompoundGrowth(config.initialValue, config.synergyRate, config.months);
+      const finalResult = results[results.length - 1];
+      const trail = getTrailIntensity(config.synergyRate);
+      
+      // Update stats
+      document.getElementById('stat-initial').textContent = formatMoneyShort(config.initialValue);
+      document.getElementById('stat-synergy').textContent = (config.synergyRate * 100).toFixed(0) + '%';
+      document.getElementById('stat-final').textContent = formatMoneyShort(finalResult.value);
+      document.getElementById('stat-multiple').textContent = finalResult.multiple.toFixed(1) + 'x 성장';
+      document.getElementById('stat-trail').textContent = trail.text;
+      
+      // Update scenarios
+      updateScenarios();
+      
+      // Update chart
+      updateChart(results);
+      
+      // Update table
+      updateTable(results);
+      
+      // Update scenario cards active state
+      document.querySelectorAll('.scenario-card').forEach(card => {
+        const synergy = parseInt(card.dataset.synergy);
+        card.classList.toggle('active', synergy === Math.round(config.synergyRate * 100));
+      });
+      
+      // Trigger shooting stars based on synergy
+      if (config.synergyRate >= 0.25) {
+        triggerShootingStars(trail.level);
+      }
+    }
+    
+    function updateScenarios() {
+      [20, 30, 40].forEach(rate => {
+        const results = calculateCompoundGrowth(config.initialValue, rate / 100, 12);
+        const final = results[results.length - 1];
+        document.getElementById(`scenario-${rate}`).textContent = formatMoneyShort(final.value);
+        document.querySelector(`.scenario-card[data-synergy="${rate}"] .scenario-multiple`).textContent = 
+          final.multiple.toFixed(1) + 'x';
+      });
+    }
+    
+    function selectScenario(synergy) {
+      document.getElementById('synergy-slider').value = synergy;
+      updateSimulation();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CHART
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function initChart() {
+      const ctx = document.getElementById('growthChart').getContext('2d');
+      
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: '예측 가치',
+            data: [],
+            borderColor: '#00d4aa',
+            backgroundColor: 'rgba(0, 212, 170, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: '#00d4aa',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2
+          }, {
+            label: '평균 (20%)',
+            data: [],
+            borderColor: '#4a9eff',
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.4,
+            pointRadius: 0
+          }, {
+            label: '지수 (40%)',
+            data: [],
+            borderColor: '#ff00ff',
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.4,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#888' }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.dataset.label + ': ' + formatMoney(context.raw);
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#1e1e2e' },
+              ticks: { color: '#888' }
+            },
+            y: {
+              grid: { color: '#1e1e2e' },
+              ticks: {
+                color: '#888',
+                callback: function(value) {
+                  return formatMoneyShort(value);
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function updateChart(results) {
+      const labels = results.map(r => r.month + '개월');
+      const values = results.map(r => r.value);
+      
+      // Comparison data
+      const avgResults = calculateCompoundGrowth(config.initialValue, 0.20, config.months);
+      const expResults = calculateCompoundGrowth(config.initialValue, 0.40, config.months);
+      
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = values;
+      chart.data.datasets[1].data = avgResults.map(r => r.value);
+      chart.data.datasets[2].data = expResults.map(r => r.value);
+      chart.update();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TABLE
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function updateTable(results) {
+      const tbody = document.getElementById('monthly-table');
+      const trail = getTrailIntensity(config.synergyRate);
+      
+      // Show key months only
+      const keyMonths = [0, 1, 3, 6, 9, 12, 18, 24, 36].filter(m => m <= config.months);
+      
+      tbody.innerHTML = keyMonths.map(month => {
+        const r = results[month];
+        if (!r) return '';
+        
+        const dots = generateTrailDots(trail.level, month, config.months);
+        
+        return `
+          <tr>
+            <td>${month}개월</td>
+            <td class="value-cell">${formatMoney(r.value)}</td>
+            <td>${month > 0 ? '+' + formatMoneyShort(r.monthlyGrowth) : '-'}</td>
+            <td class="growth-cell">${month > 0 ? '+' + r.totalGrowth.toFixed(0) + '%' : '-'}</td>
+            <td>
+              <div class="trail-cell">${dots}</div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+    
+    function generateTrailDots(level, month, maxMonth) {
+      const intensity = Math.min(5, Math.ceil((month / maxMonth) * level));
+      let dots = '';
+      
+      for (let i = 0; i < 5; i++) {
+        const className = i < intensity 
+          ? (i >= intensity - 1 ? 'bright' : 'medium')
+          : 'dim';
+        dots += `<div class="trail-dot ${className}"></div>`;
+      }
+      
+      return dots;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SHOOTING STARS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function triggerShootingStars(count) {
+      const container = document.getElementById('shooting-stars');
+      
+      for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+          const star = document.createElement('div');
+          star.className = 'shooting-star';
+          star.style.left = Math.random() * window.innerWidth + 'px';
+          star.style.top = Math.random() * (window.innerHeight / 2) + 'px';
+          star.style.animationDuration = (1 + Math.random()) + 's';
+          
+          container.appendChild(star);
+          
+          setTimeout(() => star.remove(), 2000);
+        }, i * 200);
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UTILITIES
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      return '₩' + Math.round(value).toLocaleString();
+    }
+    
+    function formatMoneyShort(value) {
+      if (value >= 100000000) {
+        return '₩' + (value / 100000000).toFixed(1) + '억';
+      }
+      if (value >= 10000000) {
+        return '₩' + (value / 10000000).toFixed(0) + '천만';
+      }
+      if (value >= 1000000) {
+        return '₩' + (value / 1000000).toFixed(0) + 'M';
+      }
+      return '₩' + (value / 10000).toFixed(0) + '만';
+    }
+    
+    function resetSimulation() {
+      document.getElementById('initial-input').value = 60000000;
+      document.getElementById('synergy-slider').value = 30;
+      document.getElementById('months-slider').value = 12;
+      updateSimulation();
+    }
+    
+    function exportResult() {
+      const results = calculateCompoundGrowth(config.initialValue, config.synergyRate, config.months);
+      const final = results[results.length - 1];
+      
+      const text = `
+AUTUS 시너지율 복리 시뮬레이션 결과
+================================
+초기 가치: ${formatMoney(config.initialValue)}
+시너지율: ${(config.synergyRate * 100).toFixed(0)}%
+기간: ${config.months}개월
+
+최종 예측 가치: ${formatMoney(final.value)}
+성장 배율: ${final.multiple.toFixed(1)}x
+총 성장률: +${final.totalGrowth.toFixed(0)}%
+
+공식: V = V₀ × (1 + S)^n
+
+생성일: ${new Date().toLocaleDateString('ko-KR')}
+      `.trim();
+      
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'autus_synergy_simulation.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      initChart();
+      updateSimulation();
+      
+      // Periodic shooting stars
+      setInterval(() => {
+        if (config.synergyRate >= 0.2) {
+          triggerShootingStars(Math.ceil(config.synergyRate * 5));
+        }
+      }, 5000);
+      
+      console.log('⚡ AUTUS 시너지율 복리 시뮬레이터 로드 완료');
+    });
+  </script>
+</body>
+</html>

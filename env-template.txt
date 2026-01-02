@@ -1,0 +1,42 @@
+# AUTUS Integration Hub - Environment Variables
+# 이 파일을 .env로 복사하고 실제 값으로 변경하세요
+# cp env-template.txt .env
+
+# ═══════════════════════════════════════════════════════════════
+# 기본 설정
+# ═══════════════════════════════════════════════════════════════
+AUTUS_ENV=development
+AUTUS_SECRET_KEY=your_secret_key_here_change_in_production
+
+# ═══════════════════════════════════════════════════════════════
+# 데이터베이스
+# ═══════════════════════════════════════════════════════════════
+DB_PASSWORD=autus123
+NEO4J_PASSWORD=neo4j123
+
+# ═══════════════════════════════════════════════════════════════
+# n8n 워크플로우
+# ═══════════════════════════════════════════════════════════════
+N8N_PASSWORD=n8nadmin
+DOMAIN=localhost
+
+# ═══════════════════════════════════════════════════════════════
+# 외부 서비스 (선택적)
+# ═══════════════════════════════════════════════════════════════
+
+# Stripe
+STRIPE_WEBHOOK_SECRET=whsec_your_stripe_webhook_secret
+STRIPE_API_KEY=sk_test_your_stripe_api_key
+
+# Shopify
+SHOPIFY_API_SECRET=your_shopify_api_secret
+
+# 토스페이먼츠
+TOSS_SECRET_KEY=test_sk_your_toss_secret_key
+TOSS_CLIENT_KEY=test_ck_your_toss_client_key
+
+# ═══════════════════════════════════════════════════════════════
+# AI/ML (선택적)
+# ═══════════════════════════════════════════════════════════════
+# OPENAI_API_KEY=sk-your_openai_api_key
+# ANTHROPIC_API_KEY=sk-ant-your_anthropic_key

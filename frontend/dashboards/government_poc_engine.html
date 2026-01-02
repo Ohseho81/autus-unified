@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUTUS 정부 PoC 전략 - Zero Meaning Lock</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --card: rgba(18, 18, 26, 0.95);
+      --border: #1e1e2e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --gov: #1a5fb4;
+      --neutral: #00d4aa;    /* 중립 인프라 */
+      --defense: #cc0000;    /* 국방 */
+      --finance: #ffd700;    /* 재정 */
+      --accent: #00d4aa;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    
+    /* Header */
+    header {
+      text-align: center;
+      padding: 40px 20px;
+      background: linear-gradient(180deg, rgba(0,212,170,0.15) 0%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .zero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 25px;
+      background: rgba(0,212,170,0.2);
+      border: 2px solid var(--neutral);
+      border-radius: 30px;
+      color: var(--neutral);
+      font-weight: 700;
+      margin-bottom: 15px;
+      font-size: 1.1rem;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(90deg, var(--neutral), var(--finance), var(--defense));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle { color: var(--dim); margin-top: 10px; }
+    
+    .philosophy-box {
+      max-width: 800px;
+      margin: 25px auto 0;
+      padding: 20px;
+      background: var(--card);
+      border: 1px solid var(--neutral);
+      border-radius: 12px;
+    }
+    
+    .philosophy-title {
+      color: var(--neutral);
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .philosophy-text {
+      color: var(--dim);
+      line-height: 1.6;
+    }
+    
+    .philosophy-text strong {
+      color: var(--text);
+    }
+    
+    /* Container */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+    
+    /* Risk Zero Banner */
+    .risk-banner {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+    
+    .risk-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 15px 25px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 30px;
+    }
+    
+    .risk-icon { font-size: 1.5rem; }
+    
+    .risk-text {
+      font-weight: 600;
+    }
+    
+    .risk-value {
+      padding: 5px 12px;
+      background: rgba(0,212,170,0.2);
+      border-radius: 15px;
+      color: var(--neutral);
+      font-weight: 700;
+    }
+    
+    /* 3 Strategy Cards */
+    .strategy-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 25px;
+      margin-bottom: 40px;
+    }
+    
+    @media (max-width: 1000px) { .strategy-grid { grid-template-columns: 1fr; } }
+    
+    .strategy-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    
+    .strategy-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    }
+    
+    .strategy-card.active {
+      box-shadow: 0 0 40px rgba(0,212,170,0.4);
+    }
+    
+    .strategy-card.active.neutral { border-color: var(--neutral); }
+    .strategy-card.active.defense { border-color: var(--defense); }
+    .strategy-card.active.finance { border-color: var(--finance); }
+    
+    .strategy-header {
+      padding: 25px;
+      position: relative;
+    }
+    
+    .strategy-header.neutral { background: linear-gradient(135deg, rgba(0,212,170,0.3), rgba(0,212,170,0.1)); }
+    .strategy-header.defense { background: linear-gradient(135deg, rgba(204,0,0,0.3), rgba(204,0,0,0.1)); }
+    .strategy-header.finance { background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,215,0,0.1)); }
+    
+    .strategy-rank {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    
+    .strategy-rank.r1 { background: var(--neutral); color: #000; }
+    .strategy-rank.r2 { background: var(--finance); color: #000; }
+    .strategy-rank.r3 { background: var(--defense); color: #fff; }
+    
+    .strategy-icon { font-size: 3rem; margin-bottom: 15px; }
+    .strategy-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 5px; }
+    .strategy-subtitle { color: var(--dim); font-size: 0.9rem; }
+    
+    .strategy-body { padding: 25px; }
+    
+    .strategy-desc {
+      color: var(--dim);
+      line-height: 1.6;
+      margin-bottom: 20px;
+      min-height: 80px;
+    }
+    
+    .strategy-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .s-stat {
+      text-align: center;
+      padding: 15px;
+      background: var(--bg);
+      border-radius: 10px;
+    }
+    
+    .s-stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .s-stat.neutral .s-stat-value { color: var(--neutral); }
+    .s-stat.defense .s-stat-value { color: var(--defense); }
+    .s-stat.finance .s-stat-value { color: var(--finance); }
+    
+    .s-stat-label {
+      font-size: 0.8rem;
+      color: var(--dim);
+      margin-top: 5px;
+    }
+    
+    /* Execution Steps */
+    .exec-steps {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    
+    .exec-title {
+      font-size: 0.85rem;
+      color: var(--dim);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    
+    .exec-list {
+      list-style: none;
+    }
+    
+    .exec-list li {
+      padding: 8px 0;
+      padding-left: 25px;
+      position: relative;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+    
+    .exec-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--neutral);
+      font-weight: 700;
+    }
+    
+    /* PoC Simulator */
+    .poc-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 40px;
+    }
+    
+    .poc-title {
+      font-size: 1.5rem;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .poc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+    
+    @media (max-width: 900px) { .poc-grid { grid-template-columns: 1fr; } }
+    
+    /* Input Form */
+    .input-form { display: grid; gap: 20px; }
+    
+    .form-group {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      color: var(--dim);
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+    
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+    }
+    
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: var(--neutral);
+    }
+    
+    .form-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--neutral);
+      margin-top: 10px;
+    }
+    
+    /* Result Panel */
+    .result-panel {
+      background: linear-gradient(135deg, var(--bg), rgba(0,212,170,0.1));
+      border: 2px solid var(--neutral);
+      border-radius: 16px;
+      padding: 25px;
+    }
+    
+    .result-title {
+      font-size: 1.1rem;
+      color: var(--neutral);
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+    
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .result-item {
+      text-align: center;
+      padding: 15px;
+      background: var(--card);
+      border-radius: 10px;
+    }
+    
+    .result-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--neutral);
+    }
+    
+    .result-value.gold { color: var(--finance); }
+    
+    .result-label {
+      font-size: 0.8rem;
+      color: var(--dim);
+      margin-top: 5px;
+    }
+    
+    /* Timeline */
+    .timeline {
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    
+    .timeline-title {
+      font-size: 0.9rem;
+      color: var(--dim);
+      margin-bottom: 15px;
+    }
+    
+    .timeline-steps {
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .timeline-step {
+      text-align: center;
+      flex: 1;
+      position: relative;
+    }
+    
+    .timeline-step::after {
+      content: '';
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+    }
+    
+    .timeline-step:last-child::after { display: none; }
+    
+    .timeline-dot {
+      width: 30px;
+      height: 30px;
+      background: var(--neutral);
+      border-radius: 50%;
+      margin: 0 auto 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #000;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .timeline-label {
+      font-size: 0.75rem;
+      color: var(--dim);
+    }
+    
+    .timeline-value {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 5px;
+    }
+    
+    /* Target Table */
+    .target-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 40px;
+    }
+    
+    .target-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    
+    .target-table th, .target-table td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .target-table th {
+      color: var(--dim);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    
+    .target-table tr:hover {
+      background: rgba(0,212,170,0.05);
+    }
+    
+    .target-name {
+      font-weight: 600;
+    }
+    
+    .target-type {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 15px;
+      font-size: 0.75rem;
+    }
+    
+    .target-type.neutral { background: rgba(0,212,170,0.2); color: var(--neutral); }
+    .target-type.defense { background: rgba(204,0,0,0.2); color: var(--defense); }
+    .target-type.finance { background: rgba(255,215,0,0.2); color: var(--finance); }
+    
+    .target-value { font-weight: 700; color: var(--neutral); }
+    .target-prob { color: var(--finance); font-weight: 600; }
+    
+    /* Action Section */
+    .action-section {
+      background: linear-gradient(135deg, var(--card), rgba(0,212,170,0.1));
+      border: 2px solid var(--neutral);
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .action-title {
+      font-size: 1.8rem;
+      margin-bottom: 15px;
+    }
+    
+    .action-desc {
+      color: var(--dim);
+      margin-bottom: 25px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .btn-row {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: 15px 40px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn:hover { transform: translateY(-3px); }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--neutral), #00a88a);
+      color: #000;
+      box-shadow: 0 10px 30px rgba(0,212,170,0.3);
+    }
+    
+    .btn-gold {
+      background: linear-gradient(135deg, var(--finance), #cc9900);
+      color: #000;
+    }
+    
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      border-top: 1px solid var(--border);
+      color: var(--dim);
+    }
+    
+    .zero-principles {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .principle {
+      padding: 10px 20px;
+      background: var(--card);
+      border-radius: 10px;
+      border-left: 3px solid var(--neutral);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="zero-badge">
+      🔒 ZERO MEANING LOCK
+    </div>
+    <h1>정부 PoC 전략 엔진</h1>
+    <p class="subtitle">정치·윤리·의미 제거 = 정부 리스크 0 = 성공률 80%+</p>
+    
+    <div class="philosophy-box">
+      <div class="philosophy-title">💡 왜 아우투스가 정부 연계에 천재적인가?</div>
+      <div class="philosophy-text">
+        <strong>"의미·판단 완전 배제"</strong>로 정치·규제 리스크 0에 가깝습니다.<br>
+        정부는 <strong>판단·책임 회피</strong>를 원합니다. 아우투스는 <strong>"결과만 보여주고 원인은 말하지 않음"</strong>으로 완벽 대응.<br>
+        → <strong>"중립적 물리 시뮬레이션 엔진"</strong>으로 포지셔닝 = 장기 계약 보장
+      </div>
+    </div>
+  </header>
+  
+  <div class="container">
+    <!-- Risk Zero Banner -->
+    <div class="risk-banner">
+      <div class="risk-item">
+        <div class="risk-icon">🚫</div>
+        <div class="risk-text">정치 리스크</div>
+        <div class="risk-value">0</div>
+      </div>
+      <div class="risk-item">
+        <div class="risk-icon">⚖️</div>
+        <div class="risk-text">규제 충돌</div>
+        <div class="risk-value">0</div>
+      </div>
+      <div class="risk-item">
+        <div class="risk-icon">🎯</div>
+        <div class="risk-text">성공 확률</div>
+        <div class="risk-value">80%+</div>
+      </div>
+      <div class="risk-item">
+        <div class="risk-icon">📈</div>
+        <div class="risk-text">정부 매출 목표</div>
+        <div class="risk-value">70%</div>
+      </div>
+    </div>
+    
+    <!-- 3 Strategy Cards -->
+    <div class="strategy-grid">
+      <!-- Strategy 1: Neutral Infrastructure -->
+      <div class="strategy-card active neutral" data-strategy="neutral" onclick="selectStrategy('neutral')">
+        <div class="strategy-header neutral">
+          <div class="strategy-rank r1">1</div>
+          <div class="strategy-icon">🏛️</div>
+          <div class="strategy-title">중립 인프라 공급자</div>
+          <div class="strategy-subtitle">Neutral Infrastructure Provider</div>
+        </div>
+        <div class="strategy-body">
+          <div class="strategy-desc">
+            아우투스를 "정부 데이터 흐름의 물리 엔진"으로 제시.<br>
+            "정책 판단·의사결정은 하지 않음. 오직 흐름 최적화만"
+          </div>
+          <div class="strategy-stats">
+            <div class="s-stat neutral">
+              <div class="s-stat-value">80%</div>
+              <div class="s-stat-label">성공 확률</div>
+            </div>
+            <div class="s-stat neutral">
+              <div class="s-stat-value">0</div>
+              <div class="s-stat-label">리스크</div>
+            </div>
+            <div class="s-stat neutral">
+              <div class="s-stat-value">70%</div>
+              <div class="s-stat-label">정부 매출 비중</div>
+            </div>
+            <div class="s-stat neutral">
+              <div class="s-stat-value">3개월</div>
+              <div class="s-stat-label">PoC 기간</div>
+            </div>
+          </div>
+          <div class="exec-steps">
+            <div class="exec-title">📋 실행 방법</div>
+            <ul class="exec-list">
+              <li>초기 무료 PoC 제공 (3개월)</li>
+              <li>"Zero Meaning Lock" 강조</li>
+              <li>정치 리스크 0 증명</li>
+              <li>장기 인프라 계약 전환</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Strategy 2: Public Finance -->
+      <div class="strategy-card finance" data-strategy="finance" onclick="selectStrategy('finance')">
+        <div class="strategy-header finance">
+          <div class="strategy-rank r2">2</div>
+          <div class="strategy-icon">💰</div>
+          <div class="strategy-title">공공 재정 투명화</div>
+          <div class="strategy-subtitle">Public Finance Physics Engine</div>
+        </div>
+        <div class="strategy-body">
+          <div class="strategy-desc">
+            예산·세금·복지 흐름을 시각화.<br>
+            "낭비 자동 탐지" → 정치적 성과로 활용
+          </div>
+          <div class="strategy-stats">
+            <div class="s-stat finance">
+              <div class="s-stat-value">70%</div>
+              <div class="s-stat-label">성공 확률</div>
+            </div>
+            <div class="s-stat finance">
+              <div class="s-stat-value">낮음</div>
+              <div class="s-stat-label">리스크</div>
+            </div>
+            <div class="s-stat finance">
+              <div class="s-stat-value">수백억</div>
+              <div class="s-stat-label">연간 잠재 매출</div>
+            </div>
+            <div class="s-stat finance">
+              <div class="s-stat-value">빠름</div>
+              <div class="s-stat-label">PoC 속도</div>
+            </div>
+          </div>
+          <div class="exec-steps">
+            <div class="exec-title">📋 실행 방법</div>
+            <ul class="exec-list">
+              <li>지자체에 "예산 물리 시뮬레이션" 무료</li>
+              <li>가치 ≤ 0 모션(낭비) 자동 표시</li>
+              <li>삭제 제안으로 효율화</li>
+              <li>성공 시 전국 확산</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Strategy 3: Defense -->
+      <div class="strategy-card defense" data-strategy="defense" onclick="selectStrategy('defense')">
+        <div class="strategy-header defense">
+          <div class="strategy-rank r3">3</div>
+          <div class="strategy-icon">🛡️</div>
+          <div class="strategy-title">국방·안보 최적화</div>
+          <div class="strategy-subtitle">Defense Flow Optimizer</div>
+        </div>
+        <div class="strategy-body">
+          <div class="strategy-desc">
+            국방·치안 자원 배분 시뮬레이션.<br>
+            정치 논란 적고 장기 계약 안정적
+          </div>
+          <div class="strategy-stats">
+            <div class="s-stat defense">
+              <div class="s-stat-value">60%</div>
+              <div class="s-stat-label">성공 확률</div>
+            </div>
+            <div class="s-stat defense">
+              <div class="s-stat-value">높음</div>
+              <div class="s-stat-label">진입 장벽</div>
+            </div>
+            <div class="s-stat defense">
+              <div class="s-stat-value">100억+</div>
+              <div class="s-stat-label">계약당 규모</div>
+            </div>
+            <div class="s-stat defense">
+              <div class="s-stat-value">5년</div>
+              <div class="s-stat-label">계약 기간</div>
+            </div>
+          </div>
+          <div class="exec-steps">
+            <div class="exec-title">📋 실행 방법</div>
+            <ul class="exec-list">
+              <li>국방부·경찰청에 무료 데모</li>
+              <li>자원 배분 효율 시뮬레이션</li>
+              <li>소규모 치안 프로젝트부터</li>
+              <li>성공 시 다년 계약</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- PoC Simulator -->
+    <div class="poc-section">
+      <h2 class="poc-title">🎮 PoC 성공 시뮬레이터</h2>
+      
+      <div class="poc-grid">
+        <div class="input-form">
+          <div class="form-group">
+            <label>🏛️ 타겟 기관 유형</label>
+            <select id="input-target" onchange="runPocSim()">
+              <option value="local">지방자치단체 (시·군·구)</option>
+              <option value="metro">광역자치단체 (시·도)</option>
+              <option value="ministry">중앙부처</option>
+              <option value="public">공공기관</option>
+              <option value="police">경찰청/소방청</option>
+              <option value="defense">국방부</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>📊 전략 선택</label>
+            <select id="input-strategy" onchange="runPocSim()">
+              <option value="neutral">중립 인프라 공급자 (추천)</option>
+              <option value="finance">공공 재정 투명화</option>
+              <option value="defense">국방·안보 최적화</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>💵 예상 초기 투자</label>
+            <input type="number" id="input-investment" value="50000000" onchange="runPocSim()">
+            <div class="form-value" id="display-investment">₩5천만</div>
+          </div>
+          
+          <div class="form-group">
+            <label>📅 PoC 기간</label>
+            <input type="range" id="input-months" min="1" max="6" value="3" oninput="runPocSim()">
+            <div class="form-value" id="display-months">3개월</div>
+          </div>
+        </div>
+        
+        <div class="result-panel">
+          <div class="result-title">📈 예측 결과</div>
+          
+          <div class="result-grid">
+            <div class="result-item">
+              <div class="result-value" id="result-prob">80%</div>
+              <div class="result-label">성공 확률</div>
+            </div>
+            <div class="result-item">
+              <div class="result-value gold" id="result-contract">₩5억</div>
+              <div class="result-label">예상 계약 규모</div>
+            </div>
+            <div class="result-item">
+              <div class="result-value" id="result-roi">10x</div>
+              <div class="result-label">ROI</div>
+            </div>
+            <div class="result-item">
+              <div class="result-value gold" id="result-annual">₩20억</div>
+              <div class="result-label">연간 잠재 매출</div>
+            </div>
+          </div>
+          
+          <div class="timeline">
+            <div class="timeline-title">📅 PoC 타임라인</div>
+            <div class="timeline-steps">
+              <div class="timeline-step">
+                <div class="timeline-dot">1</div>
+                <div class="timeline-label">제안</div>
+                <div class="timeline-value">Week 1-2</div>
+              </div>
+              <div class="timeline-step">
+                <div class="timeline-dot">2</div>
+                <div class="timeline-label">데이터 연계</div>
+                <div class="timeline-value">Week 3-6</div>
+              </div>
+              <div class="timeline-step">
+                <div class="timeline-dot">3</div>
+                <div class="timeline-label">시뮬레이션</div>
+                <div class="timeline-value">Week 7-10</div>
+              </div>
+              <div class="timeline-step">
+                <div class="timeline-dot">4</div>
+                <div class="timeline-label">계약 전환</div>
+                <div class="timeline-value">Week 11-12</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Target Recommendations -->
+    <div class="target-section">
+      <h2 class="poc-title">🎯 추천 타겟 기관</h2>
+      <table class="target-table">
+        <thead>
+          <tr>
+            <th>기관</th>
+            <th>전략</th>
+            <th>예상 계약</th>
+            <th>성공률</th>
+            <th>특징</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="target-name">세종시</td>
+            <td><span class="target-type neutral">중립 인프라</span></td>
+            <td class="target-value">₩3억</td>
+            <td class="target-prob">85%</td>
+            <td>스마트시티 선도, 데이터 개방적</td>
+          </tr>
+          <tr>
+            <td class="target-name">경기도</td>
+            <td><span class="target-type finance">재정 투명화</span></td>
+            <td class="target-value">₩10억</td>
+            <td class="target-prob">75%</td>
+            <td>최대 예산, 효율화 니즈</td>
+          </tr>
+          <tr>
+            <td class="target-name">인천시</td>
+            <td><span class="target-type neutral">중립 인프라</span></td>
+            <td class="target-value">₩5억</td>
+            <td class="target-prob">80%</td>
+            <td>공항·항만 데이터 풍부</td>
+          </tr>
+          <tr>
+            <td class="target-name">서울시</td>
+            <td><span class="target-type finance">재정 투명화</span></td>
+            <td class="target-value">₩20억</td>
+            <td class="target-prob">70%</td>
+            <td>최대 시장, 높은 경쟁</td>
+          </tr>
+          <tr>
+            <td class="target-name">국민연금공단</td>
+            <td><span class="target-type neutral">중립 인프라</span></td>
+            <td class="target-value">₩15억</td>
+            <td class="target-prob">65%</td>
+            <td>자산 운용 최적화</td>
+          </tr>
+          <tr>
+            <td class="target-name">지방 경찰서</td>
+            <td><span class="target-type defense">국방·안보</span></td>
+            <td class="target-value">₩1억</td>
+            <td class="target-prob">75%</td>
+            <td>진입점, 확장 가능</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Action Section -->
+    <div class="action-section">
+      <h2 class="action-title">🚀 첫 액션: 지자체 1곳 PoC</h2>
+      <p class="action-desc">
+        <strong>중립 인프라 전략</strong>으로 <strong>세종시</strong> 또는 <strong>인천시</strong>에<br>
+        무료 PoC 제안부터 시작하세요. <strong>3개월 내 성공 확률 80%</strong>
+      </p>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="exportPocPlan()">📄 PoC 제안서 다운로드</button>
+        <button class="btn btn-gold" onclick="window.location.href='government_strategy_engine.html'">🏛️ 6대 기업 전략</button>
+        <button class="btn btn-primary" onclick="startPoc()">🚀 PoC 시작하기</button>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <div class="zero-principles">
+      <div class="principle">🚫 정치 판단 0</div>
+      <div class="principle">⚖️ 규제 충돌 0</div>
+      <div class="principle">🔒 Zero Meaning Lock</div>
+      <div class="principle">📈 돈 흐름만 최적화</div>
+    </div>
+    <p>AUTUS 정부 PoC 전략 - Zero Meaning Lock © 2025</p>
+  </footer>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STRATEGY DATA
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const strategies = {
+      neutral: { name: '중립 인프라', prob: 0.80, contractMultiple: 10, riskLevel: 0 },
+      finance: { name: '재정 투명화', prob: 0.70, contractMultiple: 15, riskLevel: 0.1 },
+      defense: { name: '국방·안보', prob: 0.60, contractMultiple: 20, riskLevel: 0.2 }
+    };
+    
+    const targets = {
+      local: { name: '지자체', baseContract: 200000000, probBonus: 0.1 },
+      metro: { name: '광역', baseContract: 500000000, probBonus: 0.05 },
+      ministry: { name: '중앙부처', baseContract: 1000000000, probBonus: -0.05 },
+      public: { name: '공공기관', baseContract: 800000000, probBonus: 0 },
+      police: { name: '경찰/소방', baseContract: 300000000, probBonus: 0.05 },
+      defense: { name: '국방부', baseContract: 2000000000, probBonus: -0.1 }
+    };
+    
+    let config = {
+      target: 'local',
+      strategy: 'neutral',
+      investment: 50000000,
+      months: 3
+    };
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SIMULATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function runPocSim() {
+      config.target = document.getElementById('input-target').value;
+      config.strategy = document.getElementById('input-strategy').value;
+      config.investment = parseInt(document.getElementById('input-investment').value) || 50000000;
+      config.months = parseInt(document.getElementById('input-months').value);
+      
+      const strategy = strategies[config.strategy];
+      const target = targets[config.target];
+      
+      // Calculate
+      const successProb = Math.min(0.95, strategy.prob + target.probBonus + (config.months * 0.02));
+      const contractSize = target.baseContract * (1 + config.months * 0.1);
+      const roi = contractSize / config.investment;
+      const annualPotential = contractSize * 4; // 4 similar contracts per year
+      
+      // Update displays
+      document.getElementById('display-investment').textContent = formatMoneyShort(config.investment);
+      document.getElementById('display-months').textContent = config.months + '개월';
+      
+      document.getElementById('result-prob').textContent = (successProb * 100).toFixed(0) + '%';
+      document.getElementById('result-contract').textContent = formatMoneyShort(contractSize);
+      document.getElementById('result-roi').textContent = roi.toFixed(0) + 'x';
+      document.getElementById('result-annual').textContent = formatMoneyShort(annualPotential);
+    }
+    
+    function selectStrategy(strategyKey) {
+      document.querySelectorAll('.strategy-card').forEach(card => {
+        card.classList.remove('active');
+      });
+      document.querySelector(`.strategy-card[data-strategy="${strategyKey}"]`).classList.add('active');
+      document.getElementById('input-strategy').value = strategyKey;
+      runPocSim();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UTILITIES
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoneyShort(value) {
+      if (Math.abs(value) >= 100000000) return '₩' + (value / 100000000).toFixed(0) + '억';
+      if (Math.abs(value) >= 10000000) return '₩' + (value / 10000000).toFixed(0) + '천만';
+      return '₩' + Math.round(value / 10000) + '만';
+    }
+    
+    function exportPocPlan() {
+      const strategy = strategies[config.strategy];
+      const target = targets[config.target];
+      const successProb = Math.min(0.95, strategy.prob + target.probBonus + (config.months * 0.02));
+      const contractSize = target.baseContract * (1 + config.months * 0.1);
+      
+      const plan = `
+AUTUS 정부 PoC 제안서
+=====================
+
+1. 프로젝트 개요
+- 전략: ${strategy.name}
+- 타겟: ${target.name}
+- 기간: ${config.months}개월
+- 투자: ${formatMoneyShort(config.investment)}
+
+2. 핵심 가치 제안
+- Zero Meaning Lock: 정치·윤리·의미 완전 배제
+- 중립적 물리 시뮬레이션 엔진
+- 정책 판단 없음, 오직 흐름 최적화만
+- 정부 리스크 0
+
+3. 예상 결과
+- 성공 확률: ${(successProb * 100).toFixed(0)}%
+- 예상 계약: ${formatMoneyShort(contractSize)}
+- ROI: ${(contractSize / config.investment).toFixed(0)}x
+
+4. 실행 타임라인
+- Week 1-2: 제안 및 승인
+- Week 3-6: 데이터 연계
+- Week 7-10: 시뮬레이션 실행
+- Week 11-12: 결과 보고 및 계약 전환
+
+5. 왜 아우투스인가?
+- 의미 제거 = 정치 리스크 0
+- 물리 법칙 기반 = 객관성 100%
+- 판단 회피 = 정부 니즈 완벽 충족
+
+생성일: ${new Date().toLocaleDateString('ko-KR')}
+      `.trim();
+      
+      const blob = new Blob([plan], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'autus_gov_poc_proposal.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    
+    function startPoc() {
+      alert('🚀 PoC 시작 준비 완료!\n\n추천 첫 타겟:\n- 세종시 (성공률 85%)\n- 인천시 (성공률 80%)\n\n다음 단계:\n1. 타겟 기관 담당자 연락\n2. Zero Meaning Lock 강조\n3. 무료 3개월 PoC 제안\n4. 데이터 연계 시작');
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      runPocSim();
+      console.log('🏛️ AUTUS 정부 PoC 전략 엔진 로드 완료');
+    });
+  </script>
+</body>
+</html>

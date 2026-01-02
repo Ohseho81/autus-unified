@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌌 AUTUS Physics Map - Global Visualization</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #0a0a1a; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #1a1a2e;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .header-left h1 {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .header-left p {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 24px;
+        }
+        
+        .stat {
+            text-align: right;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .stat-value.green { color: #00ff88; }
+        .stat-value.cyan { color: #00ccff; }
+        .stat-value.white { color: #fff; }
+        
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 100px);
+        }
+        
+        #map-canvas {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        
+        #map-canvas:active {
+            cursor: grabbing;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid #3a3a5a;
+            border-radius: 12px;
+            padding: 16px;
+            min-width: 220px;
+            display: none;
+        }
+        
+        .info-panel.visible {
+            display: block;
+        }
+        
+        .info-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #3a3a5a;
+        }
+        
+        .info-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+        
+        .info-name {
+            color: #fff;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .info-role {
+            color: #888;
+            font-size: 12px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .info-row-label {
+            color: #888;
+        }
+        
+        .info-row-value {
+            font-weight: bold;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            background: rgba(26, 26, 46, 0.9);
+            border: 1px solid #3a3a5a;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        
+        .legend-title {
+            color: #666;
+            font-size: 10px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+            font-size: 11px;
+            color: #aaa;
+        }
+        
+        .legend-line {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
+        
+        .legend-line.synergy { background: linear-gradient(90deg, #00ff88, #00ccff); }
+        .legend-line.investment { background: linear-gradient(90deg, #ff3366, #ff6600); }
+        .legend-line.supply { background: linear-gradient(90deg, #9966ff, #33cccc); }
+        
+        .formula-panel {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(26, 26, 46, 0.9);
+            border: 1px solid #3a3a5a;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        
+        .formula-title {
+            color: #666;
+            font-size: 10px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        
+        .formula-main {
+            color: #00ccff;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .formula-desc {
+            color: #666;
+            font-size: 10px;
+            line-height: 1.5;
+        }
+        
+        .zoom-controls {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            background: rgba(26, 26, 46, 0.9);
+            border: 1px solid #3a3a5a;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .zoom-btn {
+            width: 32px;
+            height: 32px;
+            background: #2a2a4a;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .zoom-btn:hover {
+            background: #3a3a5a;
+        }
+        
+        .zoom-level {
+            color: #666;
+            font-size: 10px;
+            text-align: center;
+            padding: 4px 0;
+        }
+        
+        .footer {
+            background: #1a1a2e;
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #555;
+            border-top: 1px solid #2a2a4a;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <span style="font-size: 24px;">🌌</span>
+            <div>
+                <h1>AUTUS Physics Map</h1>
+                <p>Global Money Flow Visualization</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="stat">
+                <div class="stat-label">Total Value</div>
+                <div class="stat-value green" id="total-value">₩7.09억</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Synergy</div>
+                <div class="stat-value cyan" id="total-synergy">₩2,281만</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Nodes</div>
+                <div class="stat-value white" id="node-count">7</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">12M Forecast</div>
+                <div class="stat-value green" id="forecast">₩8.08억</div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="canvas-container">
+        <canvas id="map-canvas"></canvas>
+        
+        <div class="info-panel" id="info-panel">
+            <div class="info-header">
+                <div class="info-color" id="info-color"></div>
+                <div>
+                    <div class="info-name" id="info-name">P03</div>
+                    <div class="info-role" id="info-role">CONTROLLER</div>
+                </div>
+            </div>
+            <div class="info-row">
+                <span class="info-row-label">Total Value</span>
+                <span class="info-row-value green" id="info-value">₩1.83억</span>
+            </div>
+            <div class="info-row">
+                <span class="info-row-label">Direct Money</span>
+                <span class="info-row-value" style="color: #00ff88" id="info-direct">₩1.75억</span>
+            </div>
+            <div class="info-row">
+                <span class="info-row-label">Time Cost</span>
+                <span class="info-row-value" style="color: #ff6666" id="info-time">-₩400만</span>
+            </div>
+            <div class="info-row">
+                <span class="info-row-label">Synergy</span>
+                <span class="info-row-value" style="color: #00ccff" id="info-synergy">+₩1,141만</span>
+            </div>
+            <div class="info-row">
+                <span class="info-row-label">Connections</span>
+                <span class="info-row-value" style="color: #ffcc00" id="info-connections">3</span>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-title">Flow Types</div>
+            <div class="legend-item">
+                <div class="legend-line synergy"></div>
+                <span>Synergy (시너지)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line investment"></div>
+                <span>Investment (투자)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line supply"></div>
+                <span>Supply (공급)</span>
+            </div>
+        </div>
+        
+        <div class="formula-panel">
+            <div class="formula-title">Physics Formula</div>
+            <div class="formula-main">V = D - T + S</div>
+            <div class="formula-desc">
+                D: Direct Money (직접 돈)<br>
+                T: Time Cost (시간 비용)<br>
+                S: Synergy = k(N₁×N₂)/d²
+            </div>
+        </div>
+        
+        <div class="zoom-controls">
+            <button class="zoom-btn" id="zoom-in">+</button>
+            <div class="zoom-level" id="zoom-level">100%</div>
+            <button class="zoom-btn" id="zoom-out">-</button>
+            <button class="zoom-btn" id="zoom-reset" style="margin-top: 8px; font-size: 14px;">↺</button>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <span>🖱️ Drag to pan | Scroll to zoom | Click node for details</span>
+        <span>AUTUS Physics Map v3.0 | Priority: Quality → Automation → Cost</span>
+    </div>
+    
+    <script>
+        // Physics Map 데이터 (AUTUS 결과 기반)
+        const nodes = [
+            { id: 'P03', name: 'CONTROLLER', lat: 37.5665, lon: 126.978, 
+              value: 182886563, direct: 175480000, time: 4000000, synergy: 11406562, 
+              color: '#00ff88', role: 'CONTROLLER' },
+            { id: 'P05', name: 'BUILDER', lat: 35.6762, lon: 139.6503, 
+              value: 175282188, direct: 175480000, time: 4000000, synergy: 3802187, 
+              color: '#00ccff', role: 'BUILDER' },
+            { id: 'P11', name: 'CONNECTOR', lat: 22.3193, lon: 114.1694, 
+              value: 175282188, direct: 175480000, time: 4000000, synergy: 3802187, 
+              color: '#ffcc00', role: 'CONNECTOR' },
+            { id: 'P01', name: 'RAINMAKER', lat: 1.3521, lon: 103.8198, 
+              value: 175282188, direct: 175480000, time: 4000000, synergy: 3802187, 
+              color: '#ff6600', role: 'RAINMAKER' },
+            { id: 'P07', name: 'PARTNER', lat: 40.7128, lon: -74.006, 
+              value: 50000000, direct: 60000000, time: 4000000, synergy: -6000000, 
+              color: '#9966ff', role: 'PARTNER' },
+            { id: 'P08', name: 'INVESTOR', lat: 51.5074, lon: -0.1278, 
+              value: 80000000, direct: 85000000, time: 4000000, synergy: -1000000, 
+              color: '#ff3366', role: 'INVESTOR' },
+            { id: 'P12', name: 'SUPPLIER', lat: -33.8688, lon: 151.2093, 
+              value: 30000000, direct: 35000000, time: 4000000, synergy: -1000000, 
+              color: '#33cccc', role: 'SUPPLIER' },
+        ];
+        
+        const links = [
+            { source: 'P03', target: 'P11', value: 11406562, type: 'synergy' },
+            { source: 'P03', target: 'P05', value: 3802187, type: 'synergy' },
+            { source: 'P01', target: 'P03', value: 3802187, type: 'synergy' },
+            { source: 'P07', target: 'P01', value: 15000000, type: 'flow' },
+            { source: 'P08', target: 'P03', value: 25000000, type: 'investment' },
+            { source: 'P12', target: 'P05', value: 8000000, type: 'supply' },
+        ];
+        
+        // 캔버스 설정
+        const canvas = document.getElementById('map-canvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+        
+        let zoom = 1;
+        let offsetX = 0;
+        let offsetY = 0;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let selectedNode = null;
+        let hoveredNode = null;
+        let time = 0;
+        
+        function resize() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        
+        window.addEventListener('resize', resize);
+        resize();
+        
+        // 위경도 → 화면 좌표
+        function latLonToXY(lat, lon) {
+            const x = ((lon + 180) / 360) * canvas.width;
+            const latRad = (lat * Math.PI) / 180;
+            const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
+            const y = (canvas.height / 2) - (canvas.width * mercN) / (2 * Math.PI);
+            return { x, y };
+        }
+        
+        // 세계 지도 배경
+        function drawWorldMap() {
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 격자
+            ctx.strokeStyle = '#1a2a3a';
+            ctx.lineWidth = 0.5;
+            for (let lon = -180; lon <= 180; lon += 30) {
+                const pos = latLonToXY(0, lon);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, 0);
+                ctx.lineTo(pos.x, canvas.height);
+                ctx.stroke();
+            }
+            for (let lat = -60; lat <= 80; lat += 20) {
+                const pos = latLonToXY(lat, 0);
+                ctx.beginPath();
+                ctx.moveTo(0, pos.y);
+                ctx.lineTo(canvas.width, pos.y);
+                ctx.stroke();
+            }
+            
+            // 대륙 (간단한 형태)
+            const continents = [
+                { x1: -170, y1: 70, x2: -50, y2: 15 },   // North America
+                { x1: -85, y1: 15, x2: -35, y2: -55 },   // South America
+                { x1: -10, y1: 70, x2: 40, y2: 35 },     // Europe
+                { x1: -20, y1: 35, x2: 55, y2: -35 },    // Africa
+                { x1: 40, y1: 75, x2: 180, y2: 5 },      // Asia
+                { x1: 110, y1: -10, x2: 155, y2: -45 },  // Australia
+            ];
+            
+            ctx.fillStyle = '#1a2a3a';
+            continents.forEach(cont => {
+                const p1 = latLonToXY(cont.y1, cont.x1);
+                const p2 = latLonToXY(cont.y2, cont.x2);
+                ctx.beginPath();
+                ctx.roundRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y, 10);
+                ctx.fill();
+            });
+        }
+        
+        // 링크 그리기
+        function drawLink(link) {
+            const sourceNode = nodes.find(n => n.id === link.source);
+            const targetNode = nodes.find(n => n.id === link.target);
+            if (!sourceNode || !targetNode) return;
+            
+            const source = latLonToXY(sourceNode.lat, sourceNode.lon);
+            const target = latLonToXY(targetNode.lat, targetNode.lon);
+            
+            const midX = (source.x + target.x) / 2;
+            const midY = (source.y + target.y) / 2 - 50;
+            
+            const lineWidth = Math.max(1, Math.sqrt(link.value) / 1000);
+            
+            // 그라데이션
+            const gradient = ctx.createLinearGradient(source.x, source.y, target.x, target.y);
+            if (link.type === 'synergy') {
+                gradient.addColorStop(0, 'rgba(0, 255, 136, 0.4)');
+                gradient.addColorStop(1, 'rgba(0, 204, 255, 0.4)');
+            } else if (link.type === 'investment') {
+                gradient.addColorStop(0, 'rgba(255, 51, 102, 0.4)');
+                gradient.addColorStop(1, 'rgba(255, 102, 0, 0.4)');
+            } else {
+                gradient.addColorStop(0, 'rgba(153, 102, 255, 0.4)');
+                gradient.addColorStop(1, 'rgba(51, 204, 204, 0.4)');
+            }
+            
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = lineWidth;
+            ctx.beginPath();
+            ctx.moveTo(source.x, source.y);
+            ctx.quadraticCurveTo(midX, midY, target.x, target.y);
+            ctx.stroke();
+            
+            // 파티클
+            const numParticles = Math.min(5, Math.floor(link.value / 5000000));
+            for (let i = 0; i < numParticles; i++) {
+                const t = ((time / 2000) + i / numParticles) % 1;
+                const px = Math.pow(1-t, 2) * source.x + 2 * (1-t) * t * midX + Math.pow(t, 2) * target.x;
+                const py = Math.pow(1-t, 2) * source.y + 2 * (1-t) * t * midY + Math.pow(t, 2) * target.y;
+                
+                ctx.beginPath();
+                ctx.arc(px, py, 3, 0, Math.PI * 2);
+                ctx.fillStyle = link.type === 'synergy' ? '#00ff88' : 
+                               link.type === 'investment' ? '#ff3366' : '#9966ff';
+                ctx.fill();
+                
+                // 글로우
+                const glow = ctx.createRadialGradient(px, py, 0, px, py, 10);
+                glow.addColorStop(0, link.type === 'synergy' ? 'rgba(0, 255, 136, 0.5)' : 
+                                     link.type === 'investment' ? 'rgba(255, 51, 102, 0.5)' : 
+                                     'rgba(153, 102, 255, 0.5)');
+                glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.beginPath();
+                ctx.arc(px, py, 10, 0, Math.PI * 2);
+                ctx.fillStyle = glow;
+                ctx.fill();
+            }
+        }
+        
+        // 노드 그리기
+        function drawNode(node) {
+            const pos = latLonToXY(node.lat, node.lon);
+            const isHovered = hoveredNode === node.id;
+            const isSelected = selectedNode === node.id;
+            
+            const baseRadius = Math.sqrt(node.value) / 5000;
+            const radius = baseRadius * (isHovered ? 1.3 : 1) + Math.sin(time / 500 + node.value) * 2;
+            
+            // 글로우
+            const glow = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, radius * 2);
+            glow.addColorStop(0, node.color + '40');
+            glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, radius * 2, 0, Math.PI * 2);
+            ctx.fillStyle = glow;
+            ctx.fill();
+            
+            // 노드
+            const nodeGradient = ctx.createRadialGradient(
+                pos.x - radius/3, pos.y - radius/3, 0, 
+                pos.x, pos.y, radius
+            );
+            nodeGradient.addColorStop(0, '#ffffff');
+            nodeGradient.addColorStop(0.3, node.color);
+            nodeGradient.addColorStop(1, node.color + '88');
+            
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = nodeGradient;
+            ctx.fill();
+            
+            // 선택 링
+            if (isSelected) {
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, radius + 5, 0, Math.PI * 2);
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            
+            // 레이블
+            ctx.font = isHovered ? 'bold 14px Arial' : '11px Arial';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText(node.id, pos.x, pos.y + radius + 15);
+            
+            if (isHovered) {
+                ctx.font = '10px Arial';
+                ctx.fillStyle = '#aaaaaa';
+                ctx.fillText(node.role, pos.x, pos.y + radius + 28);
+            }
+            
+            return { x: pos.x, y: pos.y, radius };
+        }
+        
+        // 메인 렌더링
+        function render() {
+            time += 16;
+            
+            ctx.save();
+            ctx.translate(offsetX, offsetY);
+            ctx.scale(zoom, zoom);
+            
+            drawWorldMap();
+            
+            links.forEach(drawLink);
+            nodes.forEach(drawNode);
+            
+            ctx.restore();
+            
+            requestAnimationFrame(render);
+        }
+        
+        // 마우스 이벤트
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left - offsetX) / zoom;
+            const y = (e.clientY - rect.top - offsetY) / zoom;
+            
+            hoveredNode = null;
+            for (const node of nodes) {
+                const pos = latLonToXY(node.lat, node.lon);
+                const dist = Math.sqrt(Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2));
+                if (dist < 30) {
+                    hoveredNode = node.id;
+                    break;
+                }
+            }
+            
+            canvas.style.cursor = hoveredNode ? 'pointer' : (isDragging ? 'grabbing' : 'grab');
+            
+            if (isDragging) {
+                offsetX += e.clientX - dragStartX;
+                offsetY += e.clientY - dragStartY;
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+            }
+        });
+        
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+        });
+        
+        canvas.addEventListener('click', () => {
+            if (hoveredNode) {
+                selectedNode = hoveredNode === selectedNode ? null : hoveredNode;
+                updateInfoPanel();
+            }
+        });
+        
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            zoom = Math.max(0.5, Math.min(3, zoom - e.deltaY * 0.001));
+            document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+        });
+        
+        // 줌 컨트롤
+        document.getElementById('zoom-in').addEventListener('click', () => {
+            zoom = Math.min(3, zoom + 0.2);
+            document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+        });
+        
+        document.getElementById('zoom-out').addEventListener('click', () => {
+            zoom = Math.max(0.5, zoom - 0.2);
+            document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+        });
+        
+        document.getElementById('zoom-reset').addEventListener('click', () => {
+            zoom = 1;
+            offsetX = 0;
+            offsetY = 0;
+            document.getElementById('zoom-level').textContent = '100%';
+        });
+        
+        // 정보 패널 업데이트
+        function updateInfoPanel() {
+            const panel = document.getElementById('info-panel');
+            
+            if (selectedNode) {
+                const node = nodes.find(n => n.id === selectedNode);
+                if (node) {
+                    panel.classList.add('visible');
+                    document.getElementById('info-color').style.backgroundColor = node.color;
+                    document.getElementById('info-name').textContent = node.id;
+                    document.getElementById('info-role').textContent = node.role;
+                    document.getElementById('info-value').textContent = formatMoney(node.value);
+                    document.getElementById('info-direct').textContent = formatMoney(node.direct);
+                    document.getElementById('info-time').textContent = '-' + formatMoney(node.time);
+                    document.getElementById('info-synergy').textContent = 
+                        (node.synergy >= 0 ? '+' : '') + formatMoney(node.synergy);
+                    document.getElementById('info-connections').textContent = 
+                        links.filter(l => l.source === node.id || l.target === node.id).length;
+                }
+            } else {
+                panel.classList.remove('visible');
+            }
+        }
+        
+        // 돈 포맷
+        function formatMoney(value) {
+            if (Math.abs(value) >= 100000000) return '₩' + (value / 100000000).toFixed(2) + '억';
+            if (Math.abs(value) >= 10000) return '₩' + Math.round(value / 10000).toLocaleString() + '만';
+            return '₩' + value.toLocaleString();
+        }
+        
+        // 시작
+        render();
+    </script>
+</body>
+</html>

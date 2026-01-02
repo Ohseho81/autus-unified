@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌌 AUTUS Physics Map - D3.js Force Graph</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body { 
+      background: #0a0a1a; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+    
+    svg { 
+      width: 100vw; 
+      height: 100vh; 
+      display: block;
+    }
+    
+    /* 링크 스타일 */
+    .link {
+      fill: none;
+      stroke-opacity: 0.6;
+    }
+    
+    .link.synergy {
+      stroke: url(#synergy-gradient);
+    }
+    
+    .link.prediction {
+      stroke: url(#prediction-gradient);
+      stroke-dasharray: 10, 5;
+      animation: dash 2s linear infinite;
+    }
+    
+    .link.investment {
+      stroke: url(#investment-gradient);
+    }
+    
+    .link.flow {
+      stroke: url(#flow-gradient);
+    }
+    
+    @keyframes dash {
+      to { stroke-dashoffset: -30; }
+    }
+    
+    /* 노드 스타일 */
+    .node circle {
+      stroke: #fff;
+      stroke-width: 2px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .node circle:hover {
+      stroke-width: 4px;
+      filter: brightness(1.3);
+    }
+    
+    .node.prediction circle {
+      stroke-dasharray: 5, 3;
+    }
+    
+    .node text {
+      fill: #ffffff;
+      font-size: 11px;
+      pointer-events: none;
+      text-anchor: middle;
+    }
+    
+    .node .role {
+      fill: #888888;
+      font-size: 9px;
+    }
+    
+    .node .value {
+      fill: #00ff88;
+      font-size: 10px;
+      font-weight: bold;
+    }
+    
+    /* 파티클 */
+    .particle {
+      fill: #ffffff;
+      filter: drop-shadow(0 0 8px currentColor);
+    }
+    
+    /* 헤더 */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(10, 10, 26, 0.95) 0%, rgba(10, 10, 26, 0) 100%);
+      padding: 16px 24px;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    .header h1 {
+      color: #fff;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    
+    .header p {
+      color: #666;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    
+    .stats {
+      display: flex;
+      gap: 24px;
+    }
+    
+    .stat {
+      text-align: right;
+    }
+    
+    .stat-label {
+      color: #555;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+    
+    .stat-value {
+      font-size: 16px;
+      font-weight: bold;
+      margin-top: 2px;
+    }
+    
+    .green { color: #00ff88; text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+    .cyan { color: #00ccff; text-shadow: 0 0 10px rgba(0, 204, 255, 0.5); }
+    .gold { color: #ffcc00; text-shadow: 0 0 10px rgba(255, 204, 0, 0.5); }
+    
+    /* 패널 */
+    .panel {
+      position: fixed;
+      background: rgba(10, 10, 26, 0.95);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+    
+    .formula-panel {
+      top: 80px;
+      right: 24px;
+      width: 180px;
+    }
+    
+    .formula-title {
+      color: #555;
+      font-size: 10px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    
+    .formula-main {
+      color: #00ccff;
+      font-family: 'Courier New', monospace;
+      font-size: 18px;
+      font-weight: bold;
+      text-shadow: 0 0 15px rgba(0, 204, 255, 0.5);
+    }
+    
+    .formula-desc {
+      color: #666;
+      font-size: 10px;
+      line-height: 1.6;
+      margin-top: 10px;
+    }
+    
+    .info-panel {
+      top: 80px;
+      left: 24px;
+      min-width: 220px;
+      display: none;
+    }
+    
+    .info-panel.visible {
+      display: block;
+    }
+    
+    .info-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 12px;
+    }
+    
+    .info-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+    }
+    
+    .info-name {
+      color: #fff;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    
+    .info-role {
+      color: #888;
+      font-size: 11px;
+    }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+    
+    .info-row-label { color: #666; }
+    .info-row-value { font-weight: bold; }
+    
+    .legend-panel {
+      bottom: 24px;
+      left: 24px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-size: 11px;
+      color: #888;
+    }
+    
+    .legend-line {
+      width: 30px;
+      height: 3px;
+      border-radius: 2px;
+    }
+    
+    .legend-line.synergy { background: linear-gradient(90deg, #00ff88, #00ccff); }
+    .legend-line.prediction { background: linear-gradient(90deg, #ffcc00, #ff6600); }
+    .legend-line.investment { background: linear-gradient(90deg, #ff3366, #ff6600); }
+    
+    .controls {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 100;
+    }
+    
+    .control-btn {
+      width: 40px;
+      height: 40px;
+      background: rgba(10, 10, 26, 0.9);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .control-btn:hover {
+      background: rgba(0, 204, 255, 0.2);
+      border-color: #00ccff;
+    }
+    
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(0deg, rgba(10, 10, 26, 0.9) 0%, rgba(10, 10, 26, 0) 100%);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #444;
+      z-index: 50;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>🌌 AUTUS Physics Map - D3.js Force Graph</h1>
+      <p>Interactive Force-directed Network • Drag nodes to explore</p>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Total Value</div>
+        <div class="stat-value green" id="stat-value">₩7.09억</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Synergy</div>
+        <div class="stat-value cyan" id="stat-synergy">₩2,281만</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">12M Forecast</div>
+        <div class="stat-value gold" id="stat-forecast">₩8.08억</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="panel formula-panel">
+    <div class="formula-title">Physics Formula</div>
+    <div class="formula-main">V = D - T + S</div>
+    <div class="formula-desc">
+      <strong>D</strong>: Direct Money<br>
+      <strong>T</strong>: Time Cost<br>
+      <strong>S</strong>: Synergy = k(N₁×N₂)/d²
+    </div>
+  </div>
+  
+  <div class="panel info-panel" id="info-panel">
+    <div class="info-header">
+      <div class="info-color" id="info-color"></div>
+      <div>
+        <div class="info-name" id="info-name">-</div>
+        <div class="info-role" id="info-role">-</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Total Value</span>
+      <span class="info-row-value green" id="info-value">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Direct Money</span>
+      <span class="info-row-value" style="color: #00ff88" id="info-direct">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Time Cost</span>
+      <span class="info-row-value" style="color: #ff6666" id="info-time">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Synergy</span>
+      <span class="info-row-value cyan" id="info-synergy">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Forecast</span>
+      <span class="info-row-value gold" id="info-forecast">-</span>
+    </div>
+  </div>
+  
+  <div class="panel legend-panel">
+    <div class="formula-title">Flow Types</div>
+    <div class="legend-item">
+      <div class="legend-line synergy"></div>
+      <span>Synergy (시너지)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line prediction"></div>
+      <span>Prediction ⭐ (예측)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line investment"></div>
+      <span>Investment (투자)</span>
+    </div>
+  </div>
+  
+  <div class="controls">
+    <button class="control-btn" id="zoom-in">+</button>
+    <button class="control-btn" id="zoom-out">-</button>
+    <button class="control-btn" id="reset">↺</button>
+    <button class="control-btn" id="pause">⏯</button>
+  </div>
+  
+  <div class="footer">
+    <span>🖱️ Drag: Move nodes | Scroll: Zoom | Click: Details</span>
+    <span>AUTUS Physics Map v3.0 • D3.js Force-directed</span>
+  </div>
+  
+  <svg id="graph"></svg>
+  
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 데이터
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const data = {
+      nodes: [
+        { id: 'P03', role: 'CONTROLLER', value: 182886563, direct: 175480000, time: 4000000, synergy: 11406562, forecast: 210000000, color: '#00ff88' },
+        { id: 'P05', role: 'BUILDER', value: 175282188, direct: 175480000, time: 4000000, synergy: 3802187, forecast: 200000000, color: '#00ccff' },
+        { id: 'P11', role: 'CONNECTOR', value: 175282188, direct: 175480000, time: 4000000, synergy: 3802187, forecast: 200000000, color: '#ffcc00' },
+        { id: 'P01', role: 'RAINMAKER', value: 175282188, direct: 175480000, time: 4000000, synergy: 3802187, forecast: 200000000, color: '#ff6600' },
+        { id: 'P07', role: 'PARTNER', value: 50000000, direct: 60000000, time: 4000000, synergy: -6000000, forecast: 65000000, color: '#9966ff' },
+        { id: 'P08', role: 'INVESTOR', value: 80000000, direct: 85000000, time: 4000000, synergy: -1000000, forecast: 95000000, color: '#ff3366' },
+        { id: 'P12', role: 'SUPPLIER', value: 30000000, direct: 35000000, time: 4000000, synergy: -1000000, forecast: 40000000, color: '#33cccc' },
+        { id: 'FUTURE1', role: 'PREDICTION', value: 0, direct: 0, time: 0, synergy: 0, forecast: 150000000, color: '#ffcc00', isPrediction: true },
+      ],
+      links: [
+        { source: 'P03', target: 'P11', value: 11406562, type: 'synergy' },
+        { source: 'P03', target: 'P05', value: 3802187, type: 'synergy' },
+        { source: 'P01', target: 'P03', value: 3802187, type: 'synergy' },
+        { source: 'P07', target: 'P01', value: 15000000, type: 'flow' },
+        { source: 'P08', target: 'P03', value: 25000000, type: 'investment' },
+        { source: 'P12', target: 'P05', value: 8000000, type: 'flow' },
+        { source: 'P03', target: 'FUTURE1', value: 50000000, type: 'prediction' },
+      ]
+    };
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SVG 설정
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    
+    const svg = d3.select('#graph')
+      .attr('viewBox', [0, 0, width, height]);
+    
+    // 그라데이션 정의
+    const defs = svg.append('defs');
+    
+    // Synergy 그라데이션
+    const synergyGradient = defs.append('linearGradient')
+      .attr('id', 'synergy-gradient')
+      .attr('gradientUnits', 'userSpaceOnUse');
+    synergyGradient.append('stop').attr('offset', '0%').attr('stop-color', '#00ff88');
+    synergyGradient.append('stop').attr('offset', '100%').attr('stop-color', '#00ccff');
+    
+    // Prediction 그라데이션
+    const predictionGradient = defs.append('linearGradient')
+      .attr('id', 'prediction-gradient')
+      .attr('gradientUnits', 'userSpaceOnUse');
+    predictionGradient.append('stop').attr('offset', '0%').attr('stop-color', '#ffcc00');
+    predictionGradient.append('stop').attr('offset', '100%').attr('stop-color', '#ff6600');
+    
+    // Investment 그라데이션
+    const investmentGradient = defs.append('linearGradient')
+      .attr('id', 'investment-gradient')
+      .attr('gradientUnits', 'userSpaceOnUse');
+    investmentGradient.append('stop').attr('offset', '0%').attr('stop-color', '#ff3366');
+    investmentGradient.append('stop').attr('offset', '100%').attr('stop-color', '#ff6600');
+    
+    // Flow 그라데이션
+    const flowGradient = defs.append('linearGradient')
+      .attr('id', 'flow-gradient')
+      .attr('gradientUnits', 'userSpaceOnUse');
+    flowGradient.append('stop').attr('offset', '0%').attr('stop-color', '#9966ff');
+    flowGradient.append('stop').attr('offset', '100%').attr('stop-color', '#33cccc');
+    
+    // 글로우 필터
+    const glowFilter = defs.append('filter')
+      .attr('id', 'glow')
+      .attr('x', '-50%')
+      .attr('y', '-50%')
+      .attr('width', '200%')
+      .attr('height', '200%');
+    glowFilter.append('feGaussianBlur')
+      .attr('stdDeviation', '4')
+      .attr('result', 'coloredBlur');
+    const feMerge = glowFilter.append('feMerge');
+    feMerge.append('feMergeNode').attr('in', 'coloredBlur');
+    feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+    
+    // 줌 설정
+    const g = svg.append('g');
+    
+    const zoom = d3.zoom()
+      .scaleExtent([0.3, 5])
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform);
+      });
+    
+    svg.call(zoom);
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Force 시뮬레이션
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const simulation = d3.forceSimulation(data.nodes)
+      .force('link', d3.forceLink(data.links).id(d => d.id).distance(180))
+      .force('charge', d3.forceManyBody().strength(-800))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collision', d3.forceCollide().radius(d => Math.sqrt(d.value) / 3000 + 30));
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 링크 그리기
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const link = g.append('g')
+      .selectAll('path')
+      .data(data.links)
+      .enter()
+      .append('path')
+      .attr('class', d => `link ${d.type}`)
+      .attr('stroke-width', d => Math.max(2, Math.sqrt(d.value) / 800));
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 파티클 (별똥별 효과)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const particleGroup = g.append('g').attr('class', 'particles');
+    
+    function createParticles() {
+      data.links.forEach((link, i) => {
+        const numParticles = link.type === 'prediction' ? 5 : 3;
+        
+        for (let j = 0; j < numParticles; j++) {
+          particleGroup.append('circle')
+            .attr('class', 'particle')
+            .attr('r', link.type === 'prediction' ? 4 : 2)
+            .attr('fill', link.type === 'synergy' ? '#00ff88' : 
+                         link.type === 'prediction' ? '#ffcc00' : 
+                         link.type === 'investment' ? '#ff3366' : '#9966ff')
+            .datum({ linkIndex: i, offset: j / numParticles });
+        }
+      });
+    }
+    
+    createParticles();
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 노드 그리기
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const node = g.append('g')
+      .selectAll('.node')
+      .data(data.nodes)
+      .enter()
+      .append('g')
+      .attr('class', d => `node ${d.isPrediction ? 'prediction' : ''}`)
+      .call(d3.drag()
+        .on('start', dragstarted)
+        .on('drag', dragged)
+        .on('end', dragended))
+      .on('click', showNodeInfo);
+    
+    // 글로우 원
+    node.append('circle')
+      .attr('r', d => Math.sqrt(d.value || d.forecast) / 3000 + 35)
+      .attr('fill', d => d.color + '20')
+      .attr('filter', 'url(#glow)');
+    
+    // 메인 원
+    node.append('circle')
+      .attr('r', d => Math.sqrt(d.value || d.forecast) / 3000 + 20)
+      .attr('fill', d => d.color)
+      .attr('filter', 'url(#glow)');
+    
+    // ID 레이블
+    node.append('text')
+      .attr('dy', -30)
+      .text(d => d.id)
+      .attr('font-weight', 'bold');
+    
+    // 역할 레이블
+    node.append('text')
+      .attr('class', 'role')
+      .attr('dy', -18)
+      .text(d => d.role);
+    
+    // 가치 레이블
+    node.append('text')
+      .attr('class', 'value')
+      .attr('dy', 35)
+      .text(d => formatMoney(d.value || d.forecast));
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 애니메이션
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let time = 0;
+    let isRunning = true;
+    
+    function tick() {
+      time += 0.02;
+      
+      // 링크 경로 업데이트 (곡선)
+      link.attr('d', d => {
+        const dx = d.target.x - d.source.x;
+        const dy = d.target.y - d.source.y;
+        const dr = Math.sqrt(dx * dx + dy * dy) * 0.8;
+        return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+      });
+      
+      // 그라데이션 업데이트
+      link.each(function(d) {
+        const type = d.type;
+        const gradient = defs.select(`#${type}-gradient`);
+        if (gradient.node()) {
+          gradient.attr('x1', d.source.x)
+                  .attr('y1', d.source.y)
+                  .attr('x2', d.target.x)
+                  .attr('y2', d.target.y);
+        }
+      });
+      
+      // 노드 위치 업데이트
+      node.attr('transform', d => `translate(${d.x},${d.y})`);
+      
+      // 파티클 애니메이션
+      particleGroup.selectAll('.particle')
+        .attr('cx', function(d) {
+          const link = data.links[d.linkIndex];
+          const t = (time + d.offset) % 1;
+          
+          const dx = link.target.x - link.source.x;
+          const dy = link.target.y - link.source.y;
+          const dr = Math.sqrt(dx * dx + dy * dy) * 0.8;
+          
+          // 곡선 경로를 따라 이동
+          const angle = Math.atan2(dy, dx);
+          const midX = (link.source.x + link.target.x) / 2 + Math.sin(angle) * dr * 0.3;
+          
+          return link.source.x + (midX - link.source.x) * t * 2 * (t < 0.5 ? 1 : 0) +
+                 (link.target.x - midX) * (t - 0.5) * 2 * (t >= 0.5 ? 1 : 0) +
+                 midX * (t >= 0.5 ? 0 : 0);
+        })
+        .attr('cy', function(d) {
+          const link = data.links[d.linkIndex];
+          const t = (time + d.offset) % 1;
+          
+          const dx = link.target.x - link.source.x;
+          const dy = link.target.y - link.source.y;
+          const dr = Math.sqrt(dx * dx + dy * dy) * 0.8;
+          
+          const angle = Math.atan2(dy, dx);
+          const midY = (link.source.y + link.target.y) / 2 - Math.cos(angle) * dr * 0.3;
+          
+          // 베지어 곡선 보간
+          const x0 = link.source.y;
+          const x1 = midY;
+          const x2 = link.target.y;
+          
+          return (1-t)*(1-t)*x0 + 2*(1-t)*t*x1 + t*t*x2;
+        })
+        .attr('opacity', function(d) {
+          const t = (time + d.offset) % 1;
+          return Math.sin(t * Math.PI) * 0.8 + 0.2;
+        });
+    }
+    
+    simulation.on('tick', tick);
+    
+    function animate() {
+      if (isRunning) {
+        time += 0.005;
+        tick();
+      }
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 드래그 함수
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function dragstarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+    
+    function dragged(event, d) {
+      d.fx = event.x;
+      d.fy = event.y;
+    }
+    
+    function dragended(event, d) {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 노드 정보 표시
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function showNodeInfo(event, d) {
+      const panel = document.getElementById('info-panel');
+      panel.classList.add('visible');
+      
+      document.getElementById('info-color').style.backgroundColor = d.color;
+      document.getElementById('info-color').style.boxShadow = `0 0 15px ${d.color}`;
+      document.getElementById('info-name').textContent = d.id;
+      document.getElementById('info-role').textContent = d.role;
+      document.getElementById('info-value').textContent = formatMoney(d.value);
+      document.getElementById('info-direct').textContent = formatMoney(d.direct);
+      document.getElementById('info-time').textContent = '-' + formatMoney(d.time);
+      document.getElementById('info-synergy').textContent = (d.synergy >= 0 ? '+' : '') + formatMoney(d.synergy);
+      document.getElementById('info-forecast').textContent = formatMoney(d.forecast);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 유틸리티
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      if (Math.abs(value) >= 100000000) return '₩' + (value / 100000000).toFixed(2) + '억';
+      if (Math.abs(value) >= 10000) return '₩' + Math.round(value / 10000).toLocaleString() + '만';
+      return '₩' + value.toLocaleString();
+    }
+    
+    // 컨트롤
+    document.getElementById('zoom-in').addEventListener('click', () => {
+      svg.transition().call(zoom.scaleBy, 1.3);
+    });
+    
+    document.getElementById('zoom-out').addEventListener('click', () => {
+      svg.transition().call(zoom.scaleBy, 0.7);
+    });
+    
+    document.getElementById('reset').addEventListener('click', () => {
+      svg.transition().call(zoom.transform, d3.zoomIdentity);
+      simulation.alpha(1).restart();
+    });
+    
+    document.getElementById('pause').addEventListener('click', () => {
+      isRunning = !isRunning;
+      if (isRunning) simulation.alpha(0.3).restart();
+      else simulation.stop();
+    });
+    
+    // 윈도우 리사이즈
+    window.addEventListener('resize', () => {
+      const newWidth = window.innerWidth;
+      const newHeight = window.innerHeight;
+      svg.attr('viewBox', [0, 0, newWidth, newHeight]);
+      simulation.force('center', d3.forceCenter(newWidth / 2, newHeight / 2));
+      simulation.alpha(0.3).restart();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>아우투스 - 시작</title>
+  
+  <!-- Leaflet (무료) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --card: rgba(18, 18, 26, 0.95);
+      --border: #1e1e2e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --accent: #00d4aa;
+      --cyan: #00ffff;
+      --gold: #ffd700;
+      --red: #ff4757;
+      --blue: #4a9eff;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+    
+    /* Intro Animation */
+    #intro {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: opacity 1s, visibility 1s;
+    }
+    
+    #intro.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+    
+    .intro-title {
+      font-size: 4rem;
+      font-weight: 700;
+      color: var(--cyan);
+      text-shadow: 0 0 30px var(--cyan), 0 0 60px var(--cyan);
+      animation: glow 2s infinite alternate, float 3s ease-in-out infinite;
+      margin-bottom: 20px;
+    }
+    
+    .intro-subtitle {
+      font-size: 1.5rem;
+      color: var(--dim);
+      animation: fadeIn 2s ease;
+    }
+    
+    .intro-loader {
+      margin-top: 40px;
+      width: 60px;
+      height: 60px;
+      border: 3px solid var(--border);
+      border-top-color: var(--cyan);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes glow {
+      from { text-shadow: 0 0 20px var(--cyan), 0 0 40px var(--cyan); }
+      to { text-shadow: 0 0 40px var(--cyan), 0 0 80px var(--cyan), 0 0 120px var(--cyan); }
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Map */
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    
+    /* Canvas Overlay */
+    #canvas-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+    
+    /* Header */
+    #header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 20px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--cyan);
+      text-shadow: 0 0 20px var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .logo-symbol {
+      font-size: 2rem;
+    }
+    
+    .user-info {
+      text-align: right;
+    }
+    
+    .user-name {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    
+    .user-role {
+      font-size: 0.85rem;
+      color: var(--dim);
+    }
+    
+    /* KPI Panel */
+    #kpi-panel {
+      position: absolute;
+      top: 80px;
+      left: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      z-index: 10;
+      min-width: 280px;
+    }
+    
+    .kpi-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .kpi-title {
+      font-size: 0.9rem;
+      color: var(--dim);
+    }
+    
+    .kpi-main {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--cyan);
+      text-shadow: 0 0 20px var(--cyan);
+    }
+    
+    .kpi-label {
+      font-size: 0.85rem;
+      color: var(--dim);
+      margin-top: 5px;
+    }
+    
+    .kpi-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-top: 1px solid var(--border);
+    }
+    
+    .kpi-row-label { color: var(--dim); }
+    .kpi-row-value { font-weight: 600; }
+    .kpi-row-value.positive { color: var(--accent); }
+    .kpi-row-value.negative { color: var(--red); }
+    
+    /* Member Panel */
+    #member-panel {
+      position: absolute;
+      top: 80px;
+      right: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      z-index: 10;
+      min-width: 260px;
+    }
+    
+    .member-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .member-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      margin: 8px 0;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .member-item:hover {
+      background: rgba(0,255,255,0.1);
+      transform: translateX(5px);
+    }
+    
+    .member-item.selected {
+      background: rgba(0,255,255,0.15);
+      border: 1px solid var(--cyan);
+    }
+    
+    .member-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      margin-right: 12px;
+      font-size: 0.9rem;
+    }
+    
+    .member-info {
+      flex: 1;
+    }
+    
+    .member-name {
+      font-weight: 600;
+    }
+    
+    .member-role {
+      font-size: 0.8rem;
+      color: var(--dim);
+    }
+    
+    .member-value {
+      text-align: right;
+    }
+    
+    .member-money {
+      font-weight: 700;
+      color: var(--accent);
+    }
+    
+    .member-synergy {
+      font-size: 0.8rem;
+      color: var(--dim);
+    }
+    
+    /* 3 Buttons */
+    #buttons {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 15px;
+      z-index: 10;
+    }
+    
+    .action-btn {
+      padding: 15px 35px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .action-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    
+    .btn-cut { background: var(--red); color: white; }
+    .btn-link { background: var(--cyan); color: black; }
+    .btn-outsource { background: var(--gold); color: black; }
+    
+    .btn-disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* Flywheel Status */
+    #flywheel-status {
+      position: absolute;
+      bottom: 100px;
+      left: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 15px 20px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .flywheel-icon {
+      font-size: 2rem;
+      animation: rotate 3s linear infinite;
+    }
+    
+    @keyframes rotate {
+      to { transform: rotate(360deg); }
+    }
+    
+    .flywheel-info {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .flywheel-label {
+      font-size: 0.8rem;
+      color: var(--dim);
+    }
+    
+    .flywheel-speed {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+    
+    /* Connection Lines */
+    .connection-line {
+      stroke: var(--cyan);
+      stroke-width: 2;
+      opacity: 0.6;
+      filter: drop-shadow(0 0 5px var(--cyan));
+    }
+    
+    .connection-line.prediction {
+      stroke: var(--gold);
+      stroke-dasharray: 10, 5;
+      animation: dash 1s linear infinite;
+    }
+    
+    @keyframes dash {
+      to { stroke-dashoffset: -15; }
+    }
+    
+    /* Custom Markers */
+    .custom-marker {
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.5);
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: white;
+      text-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    
+    .custom-marker:hover {
+      transform: scale(1.2);
+      z-index: 1000 !important;
+    }
+    
+    .custom-marker.selected {
+      border-color: var(--gold);
+      box-shadow: 0 0 30px var(--gold);
+    }
+    
+    /* Tooltip */
+    .member-tooltip {
+      position: absolute;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 15px;
+      z-index: 100;
+      pointer-events: none;
+      min-width: 200px;
+    }
+    
+    .tooltip-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: 0.9rem;
+    }
+    
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 150px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--cyan);
+      color: #000;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-weight: 600;
+      z-index: 200;
+      display: none;
+    }
+    
+    #toast.show {
+      display: block;
+      animation: slideUp 0.3s ease;
+    }
+    
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    
+    /* Legend */
+    #legend {
+      position: absolute;
+      bottom: 100px;
+      right: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 15px;
+      z-index: 10;
+      font-size: 0.85rem;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 6px 0;
+    }
+    
+    .legend-line {
+      width: 25px;
+      height: 3px;
+      border-radius: 2px;
+    }
+    
+    /* Leaflet Custom */
+    .leaflet-container { background: #0a0a0f; }
+  </style>
+</head>
+<body>
+  <!-- Intro Screen -->
+  <div id="intro">
+    <div class="intro-title">아우투스</div>
+    <div class="intro-subtitle">시작되었습니다</div>
+    <div class="intro-loader"></div>
+  </div>
+  
+  <!-- Header -->
+  <div id="header">
+    <div class="logo">
+      <span class="logo-symbol">♾️</span>
+      <span>아우투스</span>
+    </div>
+    <div class="user-info">
+      <div class="user-name">오세호</div>
+      <div class="user-role">옥수동 어울림더리버</div>
+    </div>
+  </div>
+  
+  <!-- Map -->
+  <div id="map"></div>
+  
+  <!-- Canvas for Effects -->
+  <canvas id="canvas-overlay"></canvas>
+  
+  <!-- KPI Panel -->
+  <div id="kpi-panel">
+    <div class="kpi-header">
+      <span class="kpi-title">💰 총 가치</span>
+    </div>
+    <div class="kpi-main" id="total-value">₩1.22억</div>
+    <div class="kpi-label">월간 돈 흐름</div>
+    
+    <div class="kpi-row">
+      <span class="kpi-row-label">구성원</span>
+      <span class="kpi-row-value">5명</span>
+    </div>
+    <div class="kpi-row">
+      <span class="kpi-row-label">연결</span>
+      <span class="kpi-row-value">5개</span>
+    </div>
+    <div class="kpi-row">
+      <span class="kpi-row-label">평균 시너지</span>
+      <span class="kpi-row-value positive">12%</span>
+    </div>
+    <div class="kpi-row">
+      <span class="kpi-row-label">12개월 예측</span>
+      <span class="kpi-row-value positive" id="predicted-value">₩5.5억</span>
+    </div>
+  </div>
+  
+  <!-- Member Panel -->
+  <div id="member-panel">
+    <div class="member-title">👥 구성원</div>
+    <div id="member-list"></div>
+  </div>
+  
+  <!-- Flywheel Status -->
+  <div id="flywheel-status">
+    <div class="flywheel-icon">🔄</div>
+    <div class="flywheel-info">
+      <div class="flywheel-label">Flywheel 속도</div>
+      <div class="flywheel-speed" id="flywheel-speed">1.0x</div>
+    </div>
+  </div>
+  
+  <!-- Legend -->
+  <div id="legend">
+    <div class="legend-item">
+      <div class="legend-line" style="background: var(--cyan);"></div>
+      <span>현재 돈 흐름</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line" style="background: var(--gold); background: repeating-linear-gradient(90deg, var(--gold) 0, var(--gold) 10px, transparent 10px, transparent 15px);"></div>
+      <span>예측 연결</span>
+    </div>
+  </div>
+  
+  <!-- 3 Buttons -->
+  <div id="buttons">
+    <button class="action-btn btn-cut btn-disabled" id="btn-cut" onclick="executeCut()">
+      ✂️ CUT
+    </button>
+    <button class="action-btn btn-link" id="btn-link" onclick="executeLink()">
+      🔗 LINK
+    </button>
+    <button class="action-btn btn-outsource btn-disabled" id="btn-outsource" onclick="executeOutsource()">
+      📤 OUTSOURCE
+    </button>
+  </div>
+  
+  <!-- Toast -->
+  <div id="toast"></div>
+  
+  <!-- Tooltip -->
+  <div class="member-tooltip" id="tooltip" style="display: none;"></div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DATA - 실제 학원 데이터
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const members = [
+      { 
+        id: "오세호", 
+        name: "오세호", 
+        role: "대표",
+        value: 56000000,      // 5,600만원
+        lat: 37.5415, 
+        lng: 127.0155,
+        color: "#00ffff",     // cyan - 리더
+        synergy: 0.15,
+        timeIn: 480,          // 분/일
+        moneyIn: 35000000,
+        moneyOut: 15000000
+      },
+      { 
+        id: "김경희", 
+        name: "김경희", 
+        role: "부대표",
+        value: 25000000,
+        lat: 37.5420, 
+        lng: 127.0160,
+        color: "#ff69b4",     // pink
+        synergy: 0.12,
+        timeIn: 360,
+        moneyIn: 20000000,
+        moneyOut: 8000000
+      },
+      { 
+        id: "오선우", 
+        name: "오선우", 
+        role: "학생",
+        value: 23000000,
+        lat: 37.5410, 
+        lng: 127.0150,
+        color: "#4a9eff",     // blue
+        synergy: 0.10,
+        timeIn: 300,
+        moneyIn: 15000000,
+        moneyOut: 5000000
+      },
+      { 
+        id: "오연유", 
+        name: "오연유", 
+        role: "학생",
+        value: 11000000,
+        lat: 37.5425, 
+        lng: 127.0165,
+        color: "#ffd700",     // gold
+        synergy: 0.08,
+        timeIn: 240,
+        moneyIn: 8000000,
+        moneyOut: 3000000
+      },
+      { 
+        id: "오은우", 
+        name: "오은우", 
+        role: "학생",
+        value: 7000000,
+        lat: 37.5408, 
+        lng: 127.0145,
+        color: "#00d4aa",     // accent green
+        synergy: 0.05,
+        timeIn: 180,
+        moneyIn: 5000000,
+        moneyOut: 2000000
+      }
+    ];
+    
+    const connections = [
+      { source: "오세호", target: "김경희", value: 15000000, type: "current" },
+      { source: "김경희", target: "오선우", value: 12000000, type: "current" },
+      { source: "오선우", target: "오연유", value: 8000000, type: "current" },
+      { source: "오선우", target: "오은우", value: 6000000, type: "current" },
+      { source: "오세호", target: "오은우", value: 20000000, type: "prediction" }  // 예측 연결
+    ];
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let map;
+    let markers = {};
+    let polylines = [];
+    let selectedMember = null;
+    let linkSource = null;
+    let flywheelSpeed = 1.0;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHYSICS ENGINE
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function calculateValue(member) {
+      const netMoney = member.moneyIn - member.moneyOut;
+      const timeCost = member.timeIn * 500;  // 분당 500원
+      return (netMoney - timeCost) * (1 + member.synergy);
+    }
+    
+    function calculateTotalValue() {
+      return members.reduce((sum, m) => sum + m.value, 0);
+    }
+    
+    function calculateAvgSynergy() {
+      return members.reduce((sum, m) => sum + m.synergy, 0) / members.length;
+    }
+    
+    function calculateFlywheelSpeed() {
+      const cuts = 0;  // TODO: track
+      const links = connections.length;
+      const outsources = 0;
+      
+      return 1 + (cuts * 0.05) + (links * 0.02) + (outsources * 0.03);
+    }
+    
+    function predict12Months(initialValue) {
+      const monthlyGrowth = 0.05 * flywheelSpeed * (1 + calculateAvgSynergy());
+      return initialValue * Math.pow(1 + monthlyGrowth, 12);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MAP INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function initMap() {
+      map = L.map('map', {
+        center: [37.5415, 127.0155],  // 옥수동 어울림더리버
+        zoom: 17,
+        zoomControl: false
+      });
+      
+      // Dark 타일
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap, &copy; CartoDB',
+        maxZoom: 19
+      }).addTo(map);
+      
+      // 줌 컨트롤
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+      
+      // 이벤트
+      map.on('click', () => {
+        selectedMember = null;
+        linkSource = null;
+        updateMemberList();
+        updateMarkers();
+        updateButtonStates();
+      });
+      
+      map.on('move', updateConnections);
+      map.on('zoom', updateConnections);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MARKERS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function createMarkers() {
+      members.forEach(member => {
+        const size = 30 + Math.sqrt(member.value) / 500;
+        
+        const icon = L.divIcon({
+          className: `custom-marker ${selectedMember === member.id ? 'selected' : ''}`,
+          html: `<div style="
+            width: ${size}px;
+            height: ${size}px;
+            background: ${member.color};
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: ${size/3}px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+            box-shadow: 0 0 ${size/2}px ${member.color};
+          ">${member.name.charAt(0)}</div>`,
+          iconSize: [size, size],
+          iconAnchor: [size/2, size/2]
+        });
+        
+        const marker = L.marker([member.lat, member.lng], { icon })
+          .addTo(map)
+          .on('click', (e) => {
+            L.DomEvent.stopPropagation(e);
+            selectMember(member);
+          })
+          .on('mouseover', (e) => showTooltip(e, member))
+          .on('mouseout', hideTooltip);
+        
+        markers[member.id] = marker;
+      });
+    }
+    
+    function updateMarkers() {
+      Object.values(markers).forEach(m => m.remove());
+      markers = {};
+      createMarkers();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CONNECTIONS (SVG Lines)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function updateConnections() {
+      // 기존 연결선 제거
+      polylines.forEach(p => p.remove());
+      polylines = [];
+      
+      connections.forEach(conn => {
+        const source = members.find(m => m.id === conn.source);
+        const target = members.find(m => m.id === conn.target);
+        
+        if (!source || !target) return;
+        
+        const color = conn.type === 'prediction' ? '#ffd700' : '#00ffff';
+        const dashArray = conn.type === 'prediction' ? '10, 5' : null;
+        const weight = Math.max(2, conn.value / 5000000);
+        
+        const polyline = L.polyline(
+          [[source.lat, source.lng], [target.lat, target.lng]],
+          {
+            color: color,
+            weight: weight,
+            opacity: 0.7,
+            dashArray: dashArray
+          }
+        ).addTo(map);
+        
+        polylines.push(polyline);
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MEMBER LIST
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function renderMemberList() {
+      const list = document.getElementById('member-list');
+      list.innerHTML = '';
+      
+      members.forEach(member => {
+        const isSelected = selectedMember === member.id;
+        const html = `
+          <div class="member-item ${isSelected ? 'selected' : ''}" onclick="selectMember(members.find(m => m.id === '${member.id}'))">
+            <div class="member-avatar" style="background: ${member.color};">
+              ${member.name.charAt(0)}
+            </div>
+            <div class="member-info">
+              <div class="member-name">${member.name}</div>
+              <div class="member-role">${member.role}</div>
+            </div>
+            <div class="member-value">
+              <div class="member-money">${formatMoney(member.value)}</div>
+              <div class="member-synergy">시너지 ${(member.synergy * 100).toFixed(0)}%</div>
+            </div>
+          </div>
+        `;
+        list.innerHTML += html;
+      });
+    }
+    
+    function updateMemberList() {
+      renderMemberList();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SELECTION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function selectMember(member) {
+      selectedMember = member.id;
+      updateMemberList();
+      updateMarkers();
+      updateButtonStates();
+      
+      // 지도 이동
+      map.panTo([member.lat, member.lng]);
+    }
+    
+    function updateButtonStates() {
+      const btnCut = document.getElementById('btn-cut');
+      const btnLink = document.getElementById('btn-link');
+      const btnOutsource = document.getElementById('btn-outsource');
+      
+      if (!selectedMember) {
+        btnCut.classList.add('btn-disabled');
+        btnLink.classList.remove('btn-disabled');
+        btnOutsource.classList.add('btn-disabled');
+        return;
+      }
+      
+      const member = members.find(m => m.id === selectedMember);
+      
+      // CUT: 가치 <= 0 (현재는 모두 양수이므로 비활성)
+      if (member.value <= 0) {
+        btnCut.classList.remove('btn-disabled');
+      } else {
+        btnCut.classList.add('btn-disabled');
+      }
+      
+      // LINK: 항상 가능
+      btnLink.classList.remove('btn-disabled');
+      
+      // OUTSOURCE: 시간비용 높으면 활성화
+      const timeCost = member.timeIn * 500;
+      const netMoney = member.moneyIn - member.moneyOut;
+      if (timeCost > netMoney * 0.3) {
+        btnOutsource.classList.remove('btn-disabled');
+      } else {
+        btnOutsource.classList.add('btn-disabled');
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ACTIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function executeCut() {
+      if (!selectedMember) return;
+      
+      const member = members.find(m => m.id === selectedMember);
+      if (!member || member.value > 0) {
+        showToast('가치가 0 이하인 노드만 CUT 가능합니다');
+        return;
+      }
+      
+      // 실제 삭제
+      const idx = members.findIndex(m => m.id === selectedMember);
+      if (idx > -1) {
+        members.splice(idx, 1);
+        showToast(`✂️ ${member.name} CUT 완료`);
+        selectedMember = null;
+        updateAll();
+      }
+    }
+    
+    function executeLink() {
+      if (!selectedMember) {
+        showToast('첫 번째 구성원을 선택하세요');
+        return;
+      }
+      
+      if (!linkSource) {
+        linkSource = selectedMember;
+        showToast(`🔗 ${linkSource}에서 연결할 대상을 선택하세요`);
+        return;
+      }
+      
+      if (linkSource === selectedMember) {
+        showToast('다른 구성원을 선택하세요');
+        return;
+      }
+      
+      // 이미 연결 확인
+      const exists = connections.some(c => 
+        (c.source === linkSource && c.target === selectedMember) ||
+        (c.source === selectedMember && c.target === linkSource)
+      );
+      
+      if (exists) {
+        showToast('이미 연결되어 있습니다');
+        linkSource = null;
+        return;
+      }
+      
+      // 새 연결 생성
+      connections.push({
+        source: linkSource,
+        target: selectedMember,
+        value: 5000000,
+        type: 'current'
+      });
+      
+      // 시너지 증가
+      const source = members.find(m => m.id === linkSource);
+      const target = members.find(m => m.id === selectedMember);
+      if (source) source.synergy = Math.min(0.25, source.synergy + 0.02);
+      if (target) target.synergy = Math.min(0.25, target.synergy + 0.02);
+      
+      showToast(`🔗 ${linkSource} ↔ ${selectedMember} 연결 완료!`);
+      
+      linkSource = null;
+      flywheelSpeed = calculateFlywheelSpeed();
+      updateAll();
+    }
+    
+    function executeOutsource() {
+      if (!selectedMember) return;
+      
+      const member = members.find(m => m.id === selectedMember);
+      if (!member) return;
+      
+      // 시간 비용 30% 감소
+      member.timeIn = Math.floor(member.timeIn * 0.7);
+      member.value = calculateValue(member);
+      
+      showToast(`📤 ${member.name} 외주화 완료 (시간 -30%)`);
+      updateAll();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // KPI UPDATE
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function updateKPIs() {
+      const total = calculateTotalValue();
+      const predicted = predict12Months(total);
+      
+      document.getElementById('total-value').textContent = formatMoney(total);
+      document.getElementById('predicted-value').textContent = formatMoney(predicted);
+      document.getElementById('flywheel-speed').textContent = flywheelSpeed.toFixed(1) + 'x';
+    }
+    
+    function updateAll() {
+      updateMarkers();
+      updateConnections();
+      updateMemberList();
+      updateKPIs();
+      updateButtonStates();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TOOLTIP
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function showTooltip(e, member) {
+      const tooltip = document.getElementById('tooltip');
+      tooltip.innerHTML = `
+        <div class="tooltip-name" style="color: ${member.color};">${member.name}</div>
+        <div class="tooltip-row">
+          <span>역할</span>
+          <span>${member.role}</span>
+        </div>
+        <div class="tooltip-row">
+          <span>현재 가치</span>
+          <span style="color: var(--accent);">${formatMoney(member.value)}</span>
+        </div>
+        <div class="tooltip-row">
+          <span>돈 유입</span>
+          <span>${formatMoney(member.moneyIn)}</span>
+        </div>
+        <div class="tooltip-row">
+          <span>돈 유출</span>
+          <span>${formatMoney(member.moneyOut)}</span>
+        </div>
+        <div class="tooltip-row">
+          <span>시너지율</span>
+          <span>${(member.synergy * 100).toFixed(0)}%</span>
+        </div>
+      `;
+      
+      tooltip.style.left = e.containerPoint.x + 20 + 'px';
+      tooltip.style.top = e.containerPoint.y + 20 + 'px';
+      tooltip.style.display = 'block';
+    }
+    
+    function hideTooltip() {
+      document.getElementById('tooltip').style.display = 'none';
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CANVAS EFFECTS (별똥별)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const canvas = document.getElementById('canvas-overlay');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    
+    class Particle {
+      constructor(conn) {
+        this.conn = conn;
+        this.progress = 0;
+        this.speed = 0.005 + Math.random() * 0.01;
+        this.size = 3 + Math.random() * 3;
+      }
+      
+      update() {
+        this.progress += this.speed;
+        return this.progress < 1;
+      }
+      
+      draw() {
+        const source = members.find(m => m.id === this.conn.source);
+        const target = members.find(m => m.id === this.conn.target);
+        if (!source || !target) return;
+        
+        const sp = map.latLngToContainerPoint([source.lat, source.lng]);
+        const tp = map.latLngToContainerPoint([target.lat, target.lng]);
+        
+        const x = sp.x + (tp.x - sp.x) * this.progress;
+        const y = sp.y + (tp.y - sp.y) * this.progress;
+        const opacity = 1 - this.progress;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = this.conn.type === 'prediction' 
+          ? `rgba(255, 215, 0, ${opacity})` 
+          : `rgba(0, 255, 255, ${opacity})`;
+        ctx.fill();
+        
+        // Trail
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - (tp.x - sp.x) * 0.03, y - (tp.y - sp.y) * 0.03);
+        ctx.strokeStyle = ctx.fillStyle;
+        ctx.lineWidth = this.size * 0.5;
+        ctx.stroke();
+      }
+    }
+    
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // 새 파티클 생성
+      connections.forEach(conn => {
+        if (Math.random() < 0.03) {
+          particles.push(new Particle(conn));
+        }
+      });
+      
+      // 업데이트 & 그리기
+      particles = particles.filter(p => {
+        const alive = p.update();
+        if (alive) p.draw();
+        return alive;
+      });
+      
+      if (particles.length > 100) {
+        particles = particles.slice(-100);
+      }
+      
+      requestAnimationFrame(animateParticles);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UTILITIES
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      if (value >= 100000000) {
+        return '₩' + (value / 100000000).toFixed(2) + '억';
+      }
+      if (value >= 10000000) {
+        return '₩' + (value / 10000000).toFixed(0) + '천만';
+      }
+      if (value >= 1000000) {
+        return '₩' + (value / 1000000).toFixed(0) + '백만';
+      }
+      return '₩' + value.toLocaleString();
+    }
+    
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    async function init() {
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      
+      // Intro 애니메이션 후 시작
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      
+      document.getElementById('intro').classList.add('hidden');
+      
+      initMap();
+      createMarkers();
+      updateConnections();
+      renderMemberList();
+      updateKPIs();
+      
+      flywheelSpeed = calculateFlywheelSpeed();
+      
+      // 별똥별 시작
+      animateParticles();
+      
+      console.log('♾️ 아우투스 시작됨');
+      console.log(`   구성원: ${members.length}명`);
+      console.log(`   총 가치: ${formatMoney(calculateTotalValue())}`);
+    }
+    
+    document.addEventListener('DOMContentLoaded', init);
+    
+    // 키보드 단축키
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        selectedMember = null;
+        linkSource = null;
+        updateAll();
+      }
+      if (e.key === 'c') executeCut();
+      if (e.key === 'l') executeLink();
+      if (e.key === 'o') executeOutsource();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎓 AUTUS Physics Map - 강남 엘리트 학원</title>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(ellipse at center, #0a1628 0%, #000 100%);
+      overflow: hidden;
+      color: #fff;
+    }
+    
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    
+    /* 헤더 */
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, transparent 100%);
+      padding: 24px 32px;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    .header-left h1 {
+      font-size: 22px;
+      font-weight: 700;
+      text-shadow: 0 2px 20px rgba(0, 255, 136, 0.5);
+    }
+    
+    .header-left .subtitle {
+      color: #666;
+      font-size: 11px;
+      margin-top: 6px;
+      letter-spacing: 1px;
+    }
+    
+    .header-left .location {
+      color: #00ccff;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    
+    .header-right {
+      display: flex;
+      gap: 30px;
+    }
+    
+    .stat { text-align: right; }
+    .stat-label { color: #555; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+    .stat-value { font-size: 20px; font-weight: 700; margin-top: 2px; }
+    
+    .green { color: #00ff88; text-shadow: 0 0 15px rgba(0, 255, 136, 0.6); }
+    .cyan { color: #00ccff; text-shadow: 0 0 15px rgba(0, 204, 255, 0.6); }
+    .gold { color: #ffcc00; text-shadow: 0 0 15px rgba(255, 204, 0, 0.6); }
+    .purple { color: #9966ff; text-shadow: 0 0 15px rgba(153, 102, 255, 0.6); }
+    .red { color: #ff4466; }
+    
+    /* 수식 패널 */
+    .formula-panel {
+      position: absolute;
+      top: 120px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 14px;
+      padding: 16px;
+      backdrop-filter: blur(20px);
+      z-index: 100;
+      min-width: 220px;
+    }
+    
+    .formula-title {
+      color: #555;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+    
+    .formula-main {
+      color: #00ccff;
+      font-family: 'Courier New', monospace;
+      font-size: 22px;
+      font-weight: bold;
+      text-shadow: 0 0 20px rgba(0, 204, 255, 0.7);
+      margin-bottom: 12px;
+    }
+    
+    .formula-desc {
+      color: #666;
+      font-size: 10px;
+      line-height: 1.7;
+    }
+    
+    .formula-desc strong { color: #888; }
+    
+    /* 시너지율 패널 */
+    .synergy-panel {
+      position: absolute;
+      top: 320px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(153, 102, 255, 0.3);
+      border-radius: 14px;
+      padding: 16px;
+      z-index: 100;
+      min-width: 220px;
+    }
+    
+    .synergy-bar {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      margin: 8px 0;
+      overflow: hidden;
+    }
+    
+    .synergy-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s;
+    }
+    
+    .synergy-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 11px;
+    }
+    
+    .synergy-row .name { color: #888; }
+    .synergy-row .rate { font-weight: bold; }
+    
+    /* 노드 정보 패널 */
+    .info-panel {
+      position: absolute;
+      top: 120px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.95);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      border-radius: 14px;
+      padding: 20px;
+      backdrop-filter: blur(20px);
+      z-index: 100;
+      min-width: 280px;
+      display: none;
+    }
+    
+    .info-panel.visible { display: block; }
+    
+    .info-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 14px;
+    }
+    
+    .info-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 0 25px currentColor;
+    }
+    
+    .info-name { font-weight: bold; font-size: 18px; }
+    .info-type { color: #888; font-size: 11px; margin-top: 3px; }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+    
+    .info-row-label { color: #666; }
+    .info-row-value { font-weight: bold; }
+    
+    .info-judgment {
+      margin-top: 14px;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    
+    /* 복리 예측 패널 */
+    .forecast-panel {
+      position: absolute;
+      bottom: 100px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(255, 204, 0, 0.3);
+      border-radius: 14px;
+      padding: 16px;
+      z-index: 100;
+      min-width: 320px;
+    }
+    
+    .forecast-item {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+    
+    .forecast-item .name { font-size: 12px; font-weight: bold; margin-bottom: 4px; }
+    .forecast-item .detail { font-size: 10px; color: #666; }
+    .forecast-item .value { font-size: 14px; font-weight: bold; margin-top: 4px; }
+    
+    /* 경고/기회 패널 */
+    .alert-panel {
+      position: absolute;
+      bottom: 100px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(255, 68, 102, 0.3);
+      border-radius: 14px;
+      padding: 16px;
+      z-index: 100;
+      min-width: 260px;
+    }
+    
+    .alert-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 10px;
+    }
+    
+    .alert-warning {
+      background: rgba(255, 68, 102, 0.1);
+      border: 1px solid rgba(255, 68, 102, 0.3);
+      color: #ff6666;
+    }
+    
+    .alert-opportunity {
+      background: rgba(0, 255, 136, 0.1);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      color: #00ff88;
+    }
+    
+    /* 컨트롤 */
+    .controls {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 100;
+    }
+    
+    .control-btn {
+      padding: 10px 20px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(0, 204, 255, 0.4);
+      border-radius: 20px;
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .control-btn:hover {
+      background: rgba(0, 204, 255, 0.2);
+      border-color: #00ccff;
+    }
+    
+    .control-btn.active {
+      background: rgba(0, 255, 136, 0.2);
+      border-color: #00ff88;
+    }
+    
+    /* 푸터 */
+    .footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: #444;
+      z-index: 50;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="header-left">
+      <h1>🎓 강남 엘리트 영어·수학 학원</h1>
+      <div class="subtitle">V = D - T + S • 시너지 복리 가속 • Future = Present × (1+s)^t</div>
+      <div class="location">📍 서울 강남구 • 학생 120명 • 시급 ₩12만</div>
+    </div>
+    <div class="header-right">
+      <div class="stat">
+        <div class="stat-label">Total Value</div>
+        <div class="stat-value green">₩2.54억</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Direct Money</div>
+        <div class="stat-value cyan">₩2.09억</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Time Cost</div>
+        <div class="stat-value red">-₩3,060만</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Synergy</div>
+        <div class="stat-value purple">+₩7,600만</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Avg Rate</div>
+        <div class="stat-value gold">20%</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 수식 패널 -->
+  <div class="formula-panel">
+    <div class="formula-title">Physics Formula</div>
+    <div class="formula-main">V = D - T + S</div>
+    <div class="formula-desc">
+      <strong>D</strong>: Direct Money (직접 돈)<br>
+      <strong>T</strong>: Time = Hours × ₩12만<br>
+      <strong>S</strong>: Synergy = k(N₁×N₂)/d²<br>
+      ──────────────<br>
+      <strong>복리</strong>: F = V × (1+s)^t
+    </div>
+  </div>
+  
+  <!-- 시너지율 패널 -->
+  <div class="synergy-panel">
+    <div class="formula-title">시너지율 순위</div>
+    
+    <div class="synergy-row">
+      <span class="name">🏢 스폰서</span>
+      <span class="rate gold">30%</span>
+    </div>
+    <div class="synergy-bar"><div class="synergy-fill" style="width: 60%; background: linear-gradient(90deg, #ffcc00, #ff6600);"></div></div>
+    
+    <div class="synergy-row">
+      <span class="name">📚 영어 헤드</span>
+      <span class="rate cyan">25%</span>
+    </div>
+    <div class="synergy-bar"><div class="synergy-fill" style="width: 50%; background: linear-gradient(90deg, #00ccff, #00ff88);"></div></div>
+    
+    <div class="synergy-row">
+      <span class="name">📐 수학 헤드</span>
+      <span class="rate cyan">23%</span>
+    </div>
+    <div class="synergy-bar"><div class="synergy-fill" style="width: 46%; background: linear-gradient(90deg, #00ccff, #00ff88);"></div></div>
+    
+    <div class="synergy-row">
+      <span class="name">👤 매니저</span>
+      <span class="rate cyan">22%</span>
+    </div>
+    <div class="synergy-bar"><div class="synergy-fill" style="width: 44%; background: linear-gradient(90deg, #00ccff, #00ff88);"></div></div>
+    
+    <div class="synergy-row">
+      <span class="name">📋 행정</span>
+      <span class="rate" style="color: #ff6666;">12%</span>
+    </div>
+    <div class="synergy-bar"><div class="synergy-fill" style="width: 24%; background: linear-gradient(90deg, #ff4466, #ff6600);"></div></div>
+    
+    <div style="margin-top: 12px; font-size: 9px; color: #666;">
+      ⚠️ 15% 미만 = 경고 | ✅ 30% 이상 = 자동화 추천
+    </div>
+  </div>
+  
+  <!-- 노드 정보 패널 -->
+  <div class="info-panel" id="info-panel">
+    <div class="info-header">
+      <div class="info-icon" id="info-icon">👑</div>
+      <div>
+        <div class="info-name" id="info-name">대표 (당신)</div>
+        <div class="info-type" id="info-type">SOVEREIGN • 중앙 핵심</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">직접 돈 (D)</span>
+      <span class="info-row-value cyan" id="info-direct">₩6,000만</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">시간 비용 (T)</span>
+      <span class="info-row-value red" id="info-time">-₩600만</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">시너지 (S)</span>
+      <span class="info-row-value purple" id="info-synergy">+₩1,200만</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">시너지율</span>
+      <span class="info-row-value gold" id="info-rate">20%</span>
+    </div>
+    <div class="info-row" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; margin-top: 6px;">
+      <span class="info-row-label">종합 가치 (V)</span>
+      <span class="info-row-value green" id="info-value">₩6,600만</span>
+    </div>
+    <div class="info-judgment" id="info-judgment" style="background: rgba(0,255,136,0.15); border: 1px solid rgba(0,255,136,0.4); color: #00ff88;">
+      👑 중앙 핵심
+    </div>
+  </div>
+  
+  <!-- 복리 예측 패널 -->
+  <div class="forecast-panel">
+    <div class="formula-title" style="color: #ffcc00;">📈 12개월 복리 예측</div>
+    
+    <div class="forecast-item">
+      <div class="name" style="color: #888;">현재 구조 유지 (s=20%)</div>
+      <div class="detail">2.4억 × (1.2)^1</div>
+      <div class="value cyan">→ ₩2.88억 (+20%)</div>
+    </div>
+    
+    <div class="forecast-item">
+      <div class="name" style="color: #ffcc00;">행정 삭제 후 (s=25%)</div>
+      <div class="detail">2.34억 × (1.3)^1</div>
+      <div class="value gold">→ ₩3.12억 (+30%)</div>
+    </div>
+    
+    <div class="forecast-item">
+      <div class="name" style="color: #9966ff;">자동화 강화 (s=35%)</div>
+      <div class="detail">2.4억 × (1.35)^2</div>
+      <div class="value purple">→ ₩4.8억 (+100%)</div>
+    </div>
+    
+    <div class="forecast-item" style="border: 1px solid rgba(0,255,136,0.3);">
+      <div class="name green">⭐ 스폰서 추가 (s=45%)</div>
+      <div class="detail">2.4억 × (1.45)^3</div>
+      <div class="value green">→ ₩9억 (+250%)</div>
+    </div>
+  </div>
+  
+  <!-- 경고/기회 패널 -->
+  <div class="alert-panel">
+    <div class="formula-title" style="color: #ff6666;">⚠️ 경고 / ✅ 기회</div>
+    
+    <div class="alert-item alert-warning">
+      <strong>📋 행정</strong> - 시너지율 12%<br>
+      → 강화 또는 삭제 검토
+    </div>
+    
+    <div class="alert-item alert-warning">
+      <strong>👤 강사B</strong> - 시너지율 16%<br>
+      → 자동화로 효율화 권장
+    </div>
+    
+    <div class="alert-item alert-opportunity">
+      <strong>🏢 스폰서</strong> - 시너지율 30%<br>
+      → 이 연결 강화/자동화 추천
+    </div>
+    
+    <div class="alert-item alert-opportunity">
+      <strong>⭐ 스폰서 예측</strong> - 시너지율 35%<br>
+      → 스폰서 확대 강력 권장
+    </div>
+  </div>
+  
+  <!-- 컨트롤 -->
+  <div class="controls">
+    <button class="control-btn" id="btn-center">🏠 중심</button>
+    <button class="control-btn active" id="btn-animate">✨ 별똥별</button>
+    <button class="control-btn active" id="btn-synergy">📊 시너지</button>
+    <button class="control-btn" id="btn-forecast">📈 예측만</button>
+  </div>
+  
+  <!-- 푸터 -->
+  <div class="footer">
+    <span>드래그: 이동 | 스크롤: 줌 | 노드 클릭: 상세 | 화살표 굵기 = 돈 | 밝기 = 시너지율</span>
+    <span>AUTUS Physics Map v3.0 • 시너지 복리 가속 • F = V × (1+s)^t</span>
+  </div>
+  
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 가상 학원 데이터: 강남 엘리트 영어·수학 학원
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const CENTER = { lat: 37.5172, lon: 127.0473 };
+    
+    const nodes = [
+      { id: 'N1', name: '대표 (당신)', label: '대표', role: 'SOVEREIGN',
+        lat: 37.5172, lon: 127.0473,
+        directMoney: 60000000, timeCost: 6000000, synergy: 12000000, synergyRate: 0.20,
+        totalValue: 66000000, judgment: '중앙 핵심', icon: '👑', color: '#00ff88' },
+      
+      { id: 'N2', name: '총괄 매니저', label: '매니저', role: 'OPERATOR',
+        lat: 37.5190, lon: 127.0490,
+        directMoney: 20000000, timeCost: 3600000, synergy: 8000000, synergyRate: 0.22,
+        totalValue: 24400000, judgment: '가속 대상', icon: '👤', color: '#00ccff' },
+      
+      { id: 'N3', name: '헤드 강사 (영어)', label: '영어 헤드', role: 'EXECUTOR',
+        lat: 37.5155, lon: 127.0450,
+        directMoney: 18000000, timeCost: 4800000, synergy: 12000000, synergyRate: 0.25,
+        totalValue: 25200000, judgment: '시너지 중심', icon: '📚', color: '#00ccff' },
+      
+      { id: 'N4', name: '헤드 강사 (수학)', label: '수학 헤드', role: 'EXECUTOR',
+        lat: 37.5150, lon: 127.0500,
+        directMoney: 16000000, timeCost: 4800000, synergy: 10000000, synergyRate: 0.23,
+        totalValue: 21200000, judgment: '시너지 중심', icon: '📐', color: '#00ccff' },
+      
+      { id: 'N5', name: '전문 강사 A', label: '강사A', role: 'EXECUTOR',
+        lat: 37.5140, lon: 127.0440,
+        directMoney: 9000000, timeCost: 3600000, synergy: 6000000, synergyRate: 0.18,
+        totalValue: 11400000, judgment: '자동화 대상', icon: '👤', color: '#ffcc00' },
+      
+      { id: 'N6', name: '전문 강사 B', label: '강사B', role: 'EXECUTOR',
+        lat: 37.5135, lon: 127.0510,
+        directMoney: 8000000, timeCost: 3600000, synergy: 5000000, synergyRate: 0.16,
+        totalValue: 9400000, judgment: '자동화 대상', icon: '👤', color: '#ffcc00' },
+      
+      { id: 'N7', name: '행정 직원', label: '행정', role: 'SUPPORT',
+        lat: 37.5185, lon: 127.0510,
+        directMoney: 6000000, timeCost: 2400000, synergy: 3000000, synergyRate: 0.12,
+        totalValue: 6600000, judgment: '보존 대상', icon: '📋', color: '#ff6666' },
+      
+      { id: 'N8', name: '학생군 (120명)', label: '학생 120명', role: 'CUSTOMER',
+        lat: 37.5160, lon: 127.0420,
+        directMoney: 60000000, timeCost: 0, synergy: 6000000, synergyRate: 0.10,
+        totalValue: 66000000, judgment: '주요 유입', icon: '👥', color: '#ffcc00' },
+      
+      { id: 'N9', name: '학부모군', label: '학부모', role: 'SPONSOR',
+        lat: 37.5200, lon: 127.0440,
+        directMoney: 0, timeCost: 1200000, synergy: 10000000, synergyRate: 0.15,
+        totalValue: 8800000, judgment: '시너지 대상', icon: '💰', color: '#ff6600' },
+      
+      { id: 'N10', name: '스폰서 (기업)', label: '스폰서', role: 'INVESTOR',
+        lat: 37.5210, lon: 127.0520,
+        directMoney: 12000000, timeCost: 600000, synergy: 4000000, synergyRate: 0.30,
+        totalValue: 15400000, judgment: '외부 가속', icon: '🏢', color: '#ff6600' }
+    ];
+    
+    const flows = [
+      { from: 'N1', to: 'N2', value: 15000000, synergy: 5000000, type: 'current', synergyRate: 0.22 },
+      { from: 'N2', to: 'N3', value: 10000000, synergy: 4000000, type: 'current', synergyRate: 0.25 },
+      { from: 'N2', to: 'N4', value: 9000000, synergy: 3000000, type: 'current', synergyRate: 0.23 },
+      { from: 'N3', to: 'N5', value: 8000000, synergy: 3000000, type: 'current', synergyRate: 0.18 },
+      { from: 'N4', to: 'N6', value: 7000000, synergy: 2000000, type: 'current', synergyRate: 0.16 },
+      { from: 'N5', to: 'N8', value: 20000000, synergy: 6000000, type: 'current', synergyRate: 0.21 },
+      { from: 'N6', to: 'N8', value: 18000000, synergy: 5000000, type: 'current', synergyRate: 0.19 },
+      { from: 'N8', to: 'N9', value: 8000000, synergy: 4000000, type: 'current', synergyRate: 0.15 },
+      { from: 'N1', to: 'N10', value: 12000000, synergy: 4000000, type: 'current', synergyRate: 0.30 },
+      { from: 'N10', to: 'N1', value: 12000000, synergy: 6000000, type: 'prediction', synergyRate: 0.35 },
+      { from: 'N9', to: 'N8', value: 5000000, synergy: 3000000, type: 'prediction', synergyRate: 0.20 },
+      { from: 'N3', to: 'N4', value: 5000000, synergy: 2000000, type: 'current', synergyRate: 0.22 },
+      { from: 'N7', to: 'N1', value: 6000000, synergy: 1000000, type: 'current', synergyRate: 0.12 },
+      { from: 'N2', to: 'N7', value: 4000000, synergy: 1000000, type: 'current', synergyRate: 0.12 },
+      { from: 'N1', to: 'N8', value: 10000000, synergy: 5000000, type: 'prediction', synergyRate: 0.25 }
+    ];
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 캔버스 초기화
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let width, height;
+    let offsetX = 0, offsetY = 0;
+    let scale = 1;
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let isAnimating = true;
+    let showSynergy = true;
+    let showForecastOnly = false;
+    let particles = [];
+    let screenNodes = [];
+    
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      scale = 12000;
+      updateScreenPositions();
+    }
+    
+    window.addEventListener('resize', resize);
+    resize();
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 좌표 변환
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function lonLatToScreen(lon, lat) {
+      const x = width / 2 + (lon - CENTER.lon) * scale + offsetX;
+      const y = height / 2 - (lat - CENTER.lat) * scale + offsetY;
+      return { x, y };
+    }
+    
+    function updateScreenPositions() {
+      screenNodes = nodes.map(node => {
+        const pos = lonLatToScreen(node.lon, node.lat);
+        return { ...node, x: pos.x, y: pos.y };
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 파티클 시스템 (시너지율 반영)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function initParticles() {
+      particles = [];
+      flows.forEach(flow => {
+        if (showForecastOnly && flow.type !== 'prediction') return;
+        
+        // 시너지율에 비례한 파티클 수
+        const count = Math.floor(3 + flow.synergyRate * 20);
+        for (let i = 0; i < count; i++) {
+          particles.push({
+            flowFrom: flow.from,
+            flowTo: flow.to,
+            flowType: flow.type,
+            flowValue: flow.value,
+            flowSynergyRate: flow.synergyRate,
+            progress: Math.random(),
+            speed: 0.002 + flow.synergyRate * 0.01, // 시너지율 높으면 빠름
+            size: 3 + flow.synergyRate * 8, // 시너지율 높으면 큼
+            trail: []
+          });
+        }
+      });
+    }
+    
+    function updateParticles() {
+      particles.forEach(p => {
+        p.progress += p.speed;
+        if (p.progress > 1) {
+          p.progress = 0;
+          p.trail = [];
+        }
+        
+        const fromNode = screenNodes.find(n => n.id === p.flowFrom);
+        const toNode = screenNodes.find(n => n.id === p.flowTo);
+        if (!fromNode || !toNode) return;
+        
+        const midX = (fromNode.x + toNode.x) / 2;
+        const midY = (fromNode.y + toNode.y) / 2 - 50;
+        
+        const t = p.progress;
+        p.x = Math.pow(1-t, 2) * fromNode.x + 2 * (1-t) * t * midX + Math.pow(t, 2) * toNode.x;
+        p.y = Math.pow(1-t, 2) * fromNode.y + 2 * (1-t) * t * midY + Math.pow(t, 2) * toNode.y;
+        
+        // 시너지율 높으면 트레일 길어짐
+        const trailLength = Math.floor(15 + p.flowSynergyRate * 40);
+        p.trail.push({ x: p.x, y: p.y });
+        if (p.trail.length > trailLength) p.trail.shift();
+      });
+    }
+    
+    initParticles();
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 렌더링
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function render() {
+      ctx.fillStyle = 'rgba(10, 22, 40, 0.15)';
+      ctx.fillRect(0, 0, width, height);
+      
+      renderGrid();
+      renderFlows();
+      if (isAnimating) renderParticles();
+      renderNodes();
+    }
+    
+    function renderGrid() {
+      ctx.strokeStyle = 'rgba(0, 204, 255, 0.03)';
+      ctx.lineWidth = 1;
+      const gridSize = 50;
+      for (let x = 0; x < width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+    }
+    
+    function renderFlows() {
+      flows.forEach(flow => {
+        if (showForecastOnly && flow.type !== 'prediction') return;
+        
+        const fromNode = screenNodes.find(n => n.id === flow.from);
+        const toNode = screenNodes.find(n => n.id === flow.to);
+        if (!fromNode || !toNode) return;
+        
+        const midX = (fromNode.x + toNode.x) / 2;
+        const midY = (fromNode.y + toNode.y) / 2 - 50;
+        
+        // 시너지율에 따른 색상 강도
+        const alpha = 0.3 + flow.synergyRate * 1.5;
+        
+        const gradient = ctx.createLinearGradient(fromNode.x, fromNode.y, toNode.x, toNode.y);
+        
+        if (flow.type === 'prediction') {
+          gradient.addColorStop(0, `rgba(255, 204, 0, ${alpha})`);
+          gradient.addColorStop(1, `rgba(255, 102, 0, ${alpha})`);
+        } else if (flow.synergyRate >= 0.25) {
+          gradient.addColorStop(0, `rgba(0, 255, 136, ${alpha})`);
+          gradient.addColorStop(1, `rgba(0, 204, 255, ${alpha})`);
+        } else if (flow.synergyRate >= 0.15) {
+          gradient.addColorStop(0, `rgba(0, 204, 255, ${alpha})`);
+          gradient.addColorStop(1, `rgba(153, 102, 255, ${alpha})`);
+        } else {
+          gradient.addColorStop(0, `rgba(255, 68, 102, ${alpha})`);
+          gradient.addColorStop(1, `rgba(255, 102, 0, ${alpha})`);
+        }
+        
+        // 돈 크기에 비례한 선 굵기
+        const flowWidth = Math.max(2, Math.sqrt(flow.value) / 1200);
+        
+        ctx.beginPath();
+        ctx.moveTo(fromNode.x, fromNode.y);
+        ctx.quadraticCurveTo(midX, midY, toNode.x, toNode.y);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = flowWidth;
+        
+        if (flow.type === 'prediction') {
+          ctx.setLineDash([10, 8]);
+        } else {
+          ctx.setLineDash([]);
+        }
+        
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // 시너지율 라벨
+        if (showSynergy) {
+          const labelX = midX;
+          const labelY = midY - 15;
+          ctx.font = '10px sans-serif';
+          ctx.fillStyle = flow.synergyRate >= 0.25 ? '#00ff88' : 
+                          flow.synergyRate >= 0.15 ? '#ffcc00' : '#ff6666';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${Math.round(flow.synergyRate * 100)}%`, labelX, labelY);
+        }
+      });
+    }
+    
+    function renderParticles() {
+      particles.forEach(p => {
+        if (!p.x || !p.y) return;
+        
+        // 시너지율에 따른 색상
+        let color;
+        if (p.flowType === 'prediction') {
+          color = '#ffcc00';
+        } else if (p.flowSynergyRate >= 0.25) {
+          color = '#00ff88';
+        } else if (p.flowSynergyRate >= 0.15) {
+          color = '#00ccff';
+        } else {
+          color = '#ff6666';
+        }
+        
+        // 트레일
+        if (p.trail.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(p.trail[0].x, p.trail[0].y);
+          for (let i = 1; i < p.trail.length; i++) {
+            ctx.lineTo(p.trail[i].x, p.trail[i].y);
+          }
+          const trailGradient = ctx.createLinearGradient(p.trail[0].x, p.trail[0].y, p.x, p.y);
+          trailGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+          trailGradient.addColorStop(1, color);
+          ctx.strokeStyle = trailGradient;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+        
+        // 파티클
+        const opacity = 0.5 + 0.5 * Math.sin(p.progress * Math.PI);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 15 + p.flowSynergyRate * 20;
+        ctx.globalAlpha = opacity;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+      });
+    }
+    
+    function renderNodes() {
+      screenNodes.forEach(node => {
+        const size = Math.max(20, Math.sqrt(node.totalValue) / 600);
+        
+        // 글로우 (시너지율 반영)
+        const glowIntensity = node.synergyRate * 3;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, size * (1.5 + glowIntensity), 0, Math.PI * 2);
+        ctx.fillStyle = node.color + '15';
+        ctx.fill();
+        
+        // 경고 링 (시너지율 낮으면)
+        if (node.synergyRate < 0.15) {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, size * 1.8, 0, Math.PI * 2);
+          ctx.strokeStyle = '#ff4466';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        
+        // 메인 노드
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = node.color;
+        ctx.shadowColor = node.color;
+        ctx.shadowBlur = 15;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // 아이콘
+        ctx.font = `${size * 0.9}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(node.icon, node.x, node.y);
+        
+        // 라벨
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(node.name, node.x, node.y + size + 16);
+        
+        // 시너지율 표시
+        if (showSynergy) {
+          ctx.font = '10px sans-serif';
+          ctx.fillStyle = node.synergyRate >= 0.25 ? '#00ff88' : 
+                          node.synergyRate >= 0.15 ? '#ffcc00' : '#ff6666';
+          ctx.fillText(`s=${Math.round(node.synergyRate * 100)}%`, node.x, node.y - size - 10);
+        }
+        
+        // 가치 표시
+        ctx.font = 'bold 10px sans-serif';
+        ctx.fillStyle = '#00ff88';
+        ctx.fillText(formatMoney(node.totalValue), node.x, node.y - size - 24);
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 애니메이션 루프
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function animate() {
+      updateParticles();
+      render();
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 이벤트
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    canvas.addEventListener('mousedown', e => {
+      isDragging = true;
+      dragStart = { x: e.clientX - offsetX, y: e.clientY - offsetY };
+    });
+    
+    canvas.addEventListener('mousemove', e => {
+      if (isDragging) {
+        offsetX = e.clientX - dragStart.x;
+        offsetY = e.clientY - dragStart.y;
+        updateScreenPositions();
+      }
+    });
+    
+    canvas.addEventListener('mouseup', () => isDragging = false);
+    canvas.addEventListener('mouseleave', () => isDragging = false);
+    
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      scale = Math.max(3000, Math.min(50000, scale * delta));
+      updateScreenPositions();
+      initParticles();
+    });
+    
+    canvas.addEventListener('click', e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      let clicked = null;
+      let minDist = Infinity;
+      
+      screenNodes.forEach(node => {
+        const dist = Math.sqrt(Math.pow(node.x - x, 2) + Math.pow(node.y - y, 2));
+        const size = Math.max(20, Math.sqrt(node.totalValue) / 600) * 2;
+        if (dist < size && dist < minDist) {
+          minDist = dist;
+          clicked = node;
+        }
+      });
+      
+      if (clicked) showNodeInfo(clicked);
+      else document.getElementById('info-panel').classList.remove('visible');
+    });
+    
+    function showNodeInfo(node) {
+      const panel = document.getElementById('info-panel');
+      panel.classList.add('visible');
+      
+      document.getElementById('info-icon').textContent = node.icon;
+      document.getElementById('info-icon').style.background = node.color;
+      document.getElementById('info-name').textContent = node.name;
+      document.getElementById('info-type').textContent = `${node.role} • ${node.judgment}`;
+      document.getElementById('info-direct').textContent = formatMoney(node.directMoney);
+      document.getElementById('info-time').textContent = '-' + formatMoney(node.timeCost);
+      document.getElementById('info-synergy').textContent = '+' + formatMoney(node.synergy);
+      document.getElementById('info-rate').textContent = Math.round(node.synergyRate * 100) + '%';
+      document.getElementById('info-value').textContent = formatMoney(node.totalValue);
+      
+      const judgmentEl = document.getElementById('info-judgment');
+      if (node.synergyRate >= 0.25) {
+        judgmentEl.style.background = 'rgba(0,255,136,0.15)';
+        judgmentEl.style.borderColor = 'rgba(0,255,136,0.4)';
+        judgmentEl.style.color = '#00ff88';
+      } else if (node.synergyRate >= 0.15) {
+        judgmentEl.style.background = 'rgba(255,204,0,0.15)';
+        judgmentEl.style.borderColor = 'rgba(255,204,0,0.4)';
+        judgmentEl.style.color = '#ffcc00';
+      } else {
+        judgmentEl.style.background = 'rgba(255,68,102,0.15)';
+        judgmentEl.style.borderColor = 'rgba(255,68,102,0.4)';
+        judgmentEl.style.color = '#ff6666';
+      }
+      judgmentEl.textContent = `${node.icon} ${node.judgment}`;
+    }
+    
+    // 컨트롤 버튼
+    document.getElementById('btn-center').addEventListener('click', () => {
+      scale = 12000;
+      offsetX = 0;
+      offsetY = 0;
+      updateScreenPositions();
+      initParticles();
+    });
+    
+    document.getElementById('btn-animate').addEventListener('click', function() {
+      isAnimating = !isAnimating;
+      this.classList.toggle('active', isAnimating);
+    });
+    
+    document.getElementById('btn-synergy').addEventListener('click', function() {
+      showSynergy = !showSynergy;
+      this.classList.toggle('active', showSynergy);
+    });
+    
+    document.getElementById('btn-forecast').addEventListener('click', function() {
+      showForecastOnly = !showForecastOnly;
+      this.classList.toggle('active', showForecastOnly);
+      initParticles();
+    });
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 유틸리티
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      if (Math.abs(value) >= 100000000) return '₩' + (value / 100000000).toFixed(2) + '억';
+      if (Math.abs(value) >= 10000) return '₩' + Math.round(value / 10000).toLocaleString() + '만';
+      return '₩' + value.toLocaleString();
+    }
+    
+    console.log('🎓 강남 엘리트 학원 Physics Map initialized');
+    console.log('📊 시너지 복리 가속: F = V × (1+s)^t');
+  </script>
+</body>
+</html>

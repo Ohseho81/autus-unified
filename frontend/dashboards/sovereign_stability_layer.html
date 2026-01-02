@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUTUS Sovereign Stability Layer - 국가/도시 레벨</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --card: rgba(18, 18, 26, 0.95);
+      --border: #1e1e2e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --stable: #00d4aa;
+      --overheated: #ffd700;
+      --decaying: #ff6b6b;
+      --sovereign: #1a5fb4;
+      --accent: #00d4aa;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    
+    /* Header */
+    header {
+      text-align: center;
+      padding: 40px 20px;
+      background: linear-gradient(180deg, rgba(26,95,180,0.3) 0%, rgba(0,212,170,0.1) 50%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    
+    .sovereign-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 30px;
+      background: linear-gradient(135deg, rgba(26,95,180,0.3), rgba(0,212,170,0.2));
+      border: 2px solid var(--sovereign);
+      border-radius: 40px;
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      font-size: 2.8rem;
+      background: linear-gradient(90deg, var(--sovereign), var(--stable), var(--overheated));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle { color: var(--dim); font-size: 1.1rem; margin-bottom: 20px; }
+    
+    .declaration-box {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px 30px;
+      background: var(--card);
+      border: 2px solid var(--stable);
+      border-radius: 16px;
+    }
+    
+    .declaration-text {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--stable);
+      text-align: center;
+    }
+    
+    .declaration-sub {
+      color: var(--dim);
+      font-size: 0.95rem;
+      margin-top: 10px;
+      text-align: center;
+    }
+    
+    /* Container */
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    /* Level Selector */
+    .level-selector {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    
+    .level-btn {
+      padding: 20px 50px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .level-btn:hover {
+      border-color: var(--sovereign);
+      transform: translateY(-3px);
+    }
+    
+    .level-btn.active {
+      border-color: var(--stable);
+      background: linear-gradient(135deg, rgba(0,212,170,0.2), rgba(26,95,180,0.1));
+      box-shadow: 0 0 30px rgba(0,212,170,0.3);
+    }
+    
+    .level-icon { font-size: 2rem; margin-bottom: 10px; display: block; }
+    
+    /* Main Status Display */
+    .status-section {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 24px;
+      padding: 40px;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+    
+    .status-label {
+      font-size: 4rem;
+      font-weight: 700;
+      letter-spacing: 10px;
+      margin-bottom: 20px;
+      transition: all 0.5s;
+    }
+    
+    .status-label.stable { color: var(--stable); text-shadow: 0 0 50px var(--stable); }
+    .status-label.overheated { color: var(--overheated); text-shadow: 0 0 50px var(--overheated); }
+    .status-label.decaying { color: var(--decaying); text-shadow: 0 0 50px var(--decaying); }
+    
+    .status-meaning {
+      font-size: 1.3rem;
+      color: var(--dim);
+      margin-bottom: 30px;
+    }
+    
+    .status-indicator {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+    }
+    
+    .indicator {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid var(--border);
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    
+    .indicator:hover { transform: scale(1.05); }
+    
+    .indicator.active.stable { 
+      border-color: var(--stable); 
+      background: rgba(0,212,170,0.2);
+      box-shadow: 0 0 40px rgba(0,212,170,0.5);
+    }
+    .indicator.active.overheated { 
+      border-color: var(--overheated); 
+      background: rgba(255,215,0,0.2);
+      box-shadow: 0 0 40px rgba(255,215,0,0.5);
+    }
+    .indicator.active.decaying { 
+      border-color: var(--decaying); 
+      background: rgba(255,107,107,0.2);
+      box-shadow: 0 0 40px rgba(255,107,107,0.5);
+    }
+    
+    .indicator-icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .indicator-label { font-weight: 600; font-size: 0.9rem; }
+    
+    /* 3 Buttons Section */
+    .buttons-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px;
+      margin-bottom: 40px;
+    }
+    
+    .section-title {
+      font-size: 1.5rem;
+      margin-bottom: 30px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .action-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 25px;
+    }
+    
+    @media (max-width: 900px) { .action-buttons { grid-template-columns: 1fr; } }
+    
+    .action-btn {
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: 20px;
+      padding: 35px 25px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .action-btn:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    }
+    
+    .action-btn.delete { border-color: var(--decaying); }
+    .action-btn.delete:hover { background: rgba(255,107,107,0.1); }
+    
+    .action-btn.automate { border-color: var(--stable); }
+    .action-btn.automate:hover { background: rgba(0,212,170,0.1); }
+    
+    .action-btn.outsource { border-color: var(--overheated); }
+    .action-btn.outsource:hover { background: rgba(255,215,0,0.1); }
+    
+    .action-icon { font-size: 3rem; margin-bottom: 15px; }
+    
+    .action-name {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    
+    .action-btn.delete .action-name { color: var(--decaying); }
+    .action-btn.automate .action-name { color: var(--stable); }
+    .action-btn.outsource .action-name { color: var(--overheated); }
+    
+    .action-public { color: var(--dim); font-size: 0.9rem; margin-bottom: 15px; }
+    
+    .action-effect {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+    
+    /* Public Mask Table */
+    .mask-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px;
+      margin-bottom: 40px;
+    }
+    
+    .mask-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+    
+    @media (max-width: 800px) { .mask-grid { grid-template-columns: 1fr; } }
+    
+    .mask-box {
+      background: var(--bg);
+      border-radius: 16px;
+      padding: 25px;
+    }
+    
+    .mask-box.visible { border: 2px solid var(--stable); }
+    .mask-box.hidden { border: 2px solid var(--decaying); }
+    
+    .mask-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .mask-box.visible .mask-title { color: var(--stable); }
+    .mask-box.hidden .mask-title { color: var(--decaying); }
+    
+    .mask-list {
+      list-style: none;
+    }
+    
+    .mask-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .mask-list li:last-child { border-bottom: none; }
+    
+    .mask-icon { font-size: 1.2rem; }
+    
+    /* Scenario Section */
+    .scenario-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px;
+      margin-bottom: 40px;
+    }
+    
+    .scenario-tabs {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    
+    .scenario-tab {
+      padding: 12px 30px;
+      border: 2px solid var(--border);
+      border-radius: 25px;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .scenario-tab:hover { border-color: var(--sovereign); }
+    
+    .scenario-tab.active {
+      border-color: var(--stable);
+      background: rgba(0,212,170,0.2);
+    }
+    
+    .scenario-flow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .scenario-step {
+      flex: 1;
+      min-width: 200px;
+      background: var(--bg);
+      border-radius: 16px;
+      padding: 25px;
+      text-align: center;
+      position: relative;
+    }
+    
+    .scenario-step::after {
+      content: '→';
+      position: absolute;
+      right: -25px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.5rem;
+      color: var(--dim);
+    }
+    
+    .scenario-step:last-child::after { display: none; }
+    
+    .step-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--sovereign);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 15px;
+      font-weight: 700;
+    }
+    
+    .step-status {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+    }
+    
+    .step-status.overheated { color: var(--overheated); }
+    .step-status.stable { color: var(--stable); }
+    .step-status.decaying { color: var(--decaying); }
+    
+    .step-action {
+      color: var(--dim);
+      font-size: 0.9rem;
+    }
+    
+    .scenario-result {
+      margin-top: 25px;
+      padding: 20px;
+      background: rgba(0,212,170,0.1);
+      border: 1px solid var(--stable);
+      border-radius: 12px;
+      text-align: center;
+    }
+    
+    .result-label { color: var(--dim); font-size: 0.9rem; margin-bottom: 5px; }
+    .result-text { font-size: 1.2rem; font-weight: 600; color: var(--stable); }
+    
+    /* Defense Structure */
+    .defense-section {
+      background: linear-gradient(135deg, var(--card), rgba(255,107,107,0.1));
+      border: 2px solid var(--decaying);
+      border-radius: 24px;
+      padding: 40px;
+      margin-bottom: 40px;
+    }
+    
+    .defense-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+    
+    @media (max-width: 800px) { .defense-grid { grid-template-columns: 1fr; } }
+    
+    .defense-box {
+      background: var(--bg);
+      border-radius: 16px;
+      padding: 25px;
+    }
+    
+    .defense-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .defense-list {
+      list-style: none;
+    }
+    
+    .defense-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    
+    .defense-list li:last-child { border-bottom: none; }
+    
+    .defense-no { color: var(--decaying); }
+    .defense-yes { color: var(--stable); }
+    
+    /* Emergency Lock */
+    .emergency-section {
+      background: var(--card);
+      border: 2px solid var(--overheated);
+      border-radius: 24px;
+      padding: 40px;
+      margin-bottom: 40px;
+    }
+    
+    .emergency-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      align-items: center;
+    }
+    
+    @media (max-width: 800px) { .emergency-content { grid-template-columns: 1fr; } }
+    
+    .emergency-trigger {
+      background: var(--bg);
+      border-radius: 16px;
+      padding: 25px;
+    }
+    
+    .emergency-trigger-title {
+      color: var(--overheated);
+      font-weight: 700;
+      margin-bottom: 15px;
+    }
+    
+    .emergency-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .emergency-action {
+      padding: 15px;
+      background: rgba(255,215,0,0.1);
+      border: 1px solid var(--overheated);
+      border-radius: 10px;
+      font-size: 0.9rem;
+    }
+    
+    /* Global Section */
+    .global-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px;
+      margin-bottom: 40px;
+    }
+    
+    .global-features {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    
+    @media (max-width: 900px) { .global-features { grid-template-columns: repeat(2, 1fr); } }
+    
+    .global-feature {
+      background: var(--bg);
+      border-radius: 16px;
+      padding: 25px;
+      text-align: center;
+    }
+    
+    .global-icon { font-size: 2.5rem; margin-bottom: 15px; }
+    .global-title { font-weight: 600; margin-bottom: 8px; }
+    .global-desc { font-size: 0.85rem; color: var(--dim); }
+    
+    /* Action Section */
+    .action-section {
+      background: linear-gradient(135deg, var(--card), rgba(0,212,170,0.1));
+      border: 2px solid var(--stable);
+      border-radius: 24px;
+      padding: 50px;
+      text-align: center;
+    }
+    
+    .action-title { font-size: 2rem; margin-bottom: 15px; }
+    .action-subtitle { color: var(--dim); margin-bottom: 30px; }
+    
+    .btn-row {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: 18px 50px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 35px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn:hover { transform: translateY(-3px); }
+    
+    .btn-deploy {
+      background: linear-gradient(135deg, var(--stable), #00a88a);
+      color: #000;
+      box-shadow: 0 15px 40px rgba(0,212,170,0.3);
+    }
+    
+    .btn-sovereign {
+      background: linear-gradient(135deg, var(--sovereign), #1450a0);
+      color: #fff;
+    }
+    
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 50px 20px;
+      border-top: 1px solid var(--border);
+      color: var(--dim);
+    }
+    
+    .final-declaration {
+      max-width: 600px;
+      margin: 0 auto 30px;
+      padding: 25px;
+      background: var(--card);
+      border: 2px solid var(--stable);
+      border-radius: 16px;
+    }
+    
+    .final-text {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--stable);
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="sovereign-badge">
+      <span>🏛️</span>
+      <span>AUTUS SOVEREIGN STABILITY LAYER</span>
+      <span>🌐</span>
+    </div>
+    <h1>국가/도시 레벨 적용</h1>
+    <p class="subtitle">사람·돈만 표기 | 의미·정책·책임·판단 영구 배제 | 폭주 방지 브레이크</p>
+    
+    <div class="declaration-box">
+      <div class="declaration-text">AUTUS stabilizes execution.</div>
+      <div class="declaration-sub">It does not make policy.</div>
+    </div>
+  </header>
+  
+  <div class="container">
+    <!-- Level Selector -->
+    <div class="level-selector">
+      <button class="level-btn active" onclick="selectLevel('city')">
+        <span class="level-icon">🏙️</span>
+        도시 레벨
+      </button>
+      <button class="level-btn" onclick="selectLevel('nation')">
+        <span class="level-icon">🌐</span>
+        국가 레벨
+      </button>
+    </div>
+    
+    <!-- Main Status Display -->
+    <div class="status-section">
+      <div class="status-label stable" id="mainStatus">STABLE</div>
+      <div class="status-meaning" id="statusMeaning">"문제없이 돌아간다"</div>
+      
+      <div class="status-indicator">
+        <div class="indicator active stable" onclick="setStatus('stable')">
+          <div class="indicator-icon">✓</div>
+          <div class="indicator-label">STABLE</div>
+        </div>
+        <div class="indicator overheated" onclick="setStatus('overheated')">
+          <div class="indicator-icon">⚡</div>
+          <div class="indicator-label">OVERHEATED</div>
+        </div>
+        <div class="indicator decaying" onclick="setStatus('decaying')">
+          <div class="indicator-icon">⏳</div>
+          <div class="indicator-label">DECAYING</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 3 Buttons Section -->
+    <div class="buttons-section">
+      <h2 class="section-title">🎮 공공용 3버튼</h2>
+      <div class="action-buttons">
+        <div class="action-btn delete" onclick="executeAction('delete')">
+          <div class="action-icon">🗑️</div>
+          <div class="action-name">DELETE</div>
+          <div class="action-public">Decommission Asset</div>
+          <div class="action-effect">비효율 사업 외부 궤도 이전 → 돈 유출 차단</div>
+        </div>
+        <div class="action-btn automate" onclick="executeAction('automate')">
+          <div class="action-icon">⚙️</div>
+          <div class="action-name">AUTOMATE</div>
+          <div class="action-public">Standardize Flow</div>
+          <div class="action-effect">집행·정산 규칙 고정 → 시간 비용 ↓</div>
+        </div>
+        <div class="action-btn outsource" onclick="executeAction('outsource')">
+          <div class="action-icon">🔗</div>
+          <div class="action-name">OUTSOURCE</div>
+          <div class="action-public">External Execute</div>
+          <div class="action-effect">민간/외부 노드로 이전 → 시너지 ↑</div>
+        </div>
+      </div>
+      <p style="text-align: center; color: var(--dim); margin-top: 20px; font-size: 0.9rem;">
+        ⚠️ 확인 팝업·경고·되돌리기 없음 — 시스템이 책임진다
+      </p>
+    </div>
+    
+    <!-- Public Mask Table -->
+    <div class="mask-section">
+      <h2 class="section-title">👁️ Public Mask (표기 규칙)</h2>
+      <div class="mask-grid">
+        <div class="mask-box visible">
+          <div class="mask-title">✓ 표기 (보이는 정보)</div>
+          <ul class="mask-list">
+            <li><span class="mask-icon">🏢</span> 노드: 도시·구·공공기관·공기업·인프라 (NFT)</li>
+            <li><span class="mask-icon">💰</span> 모션: 예산 집행·보조금·조달·세입·세출 (Coin)</li>
+            <li><span class="mask-icon">📊</span> 상태: STABLE / OVERHEATED / DECAYING</li>
+            <li><span class="mask-icon">🔢</span> 숫자: 금액·속도·균형 지표만</li>
+          </ul>
+        </div>
+        <div class="mask-box hidden">
+          <div class="mask-title">✗ 비표기 (Zero Meaning Lock)</div>
+          <ul class="mask-list">
+            <li><span class="mask-icon">🚫</span> 개인·공무원·정치인·시민 신원</li>
+            <li><span class="mask-icon">🚫</span> 정책 문구·사업명·정치적 의도</li>
+            <li><span class="mask-icon">🚫</span> 원인·책임·판단·평가</li>
+            <li><span class="mask-icon">🚫</span> 우선순위·성과·제안</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Scenario Section -->
+    <div class="scenario-section">
+      <h2 class="section-title">📋 사용 시나리오</h2>
+      
+      <div class="scenario-tabs">
+        <button class="scenario-tab active" onclick="showScenario('city')">🏙️ 도시 레벨</button>
+        <button class="scenario-tab" onclick="showScenario('nation')">🌐 국가 레벨</button>
+      </div>
+      
+      <div id="cityScenario">
+        <div class="scenario-flow">
+          <div class="scenario-step">
+            <div class="step-number">1</div>
+            <div class="step-status overheated">OVERHEATED</div>
+            <div class="step-action">분기 초 특정 구역<br>예산 집중</div>
+          </div>
+          <div class="scenario-step">
+            <div class="step-number">2</div>
+            <div class="step-status" style="color: var(--stable);">AUTOMATE</div>
+            <div class="step-action">집행 주기 분산<br>규칙 고정</div>
+          </div>
+          <div class="scenario-step">
+            <div class="step-number">3</div>
+            <div class="step-status stable">STABLE</div>
+            <div class="step-action">균형 회복<br>정상 운영</div>
+          </div>
+        </div>
+        <div class="scenario-result">
+          <div class="result-label">체감 결과</div>
+          <div class="result-text">"갑자기 막힘이 풀렸다."</div>
+        </div>
+      </div>
+      
+      <div id="nationScenario" style="display: none;">
+        <div class="scenario-flow">
+          <div class="scenario-step">
+            <div class="step-number">1</div>
+            <div class="step-status decaying">DECAYING</div>
+            <div class="step-action">예산 집행 후반<br>정산 지연</div>
+          </div>
+          <div class="scenario-step">
+            <div class="step-number">2</div>
+            <div class="step-status" style="color: var(--overheated);">OUTSOURCE</div>
+            <div class="step-action">외부 노드로<br>집행 이전</div>
+          </div>
+          <div class="scenario-step">
+            <div class="step-number">3</div>
+            <div class="step-status stable">STABLE</div>
+            <div class="step-action">균형 회복<br>정상 운영</div>
+          </div>
+        </div>
+        <div class="scenario-result">
+          <div class="result-label">체감 결과</div>
+          <div class="result-text">"낭비가 사라졌다."</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Defense Structure -->
+    <div class="defense-section">
+      <h2 class="section-title" style="color: var(--decaying);">⚖️ 정치·법적 방어 구조</h2>
+      <div class="defense-grid">
+        <div class="defense-box">
+          <div class="defense-title">
+            <span style="color: var(--decaying);">✗</span>
+            AUTUS는 절대 하지 않는다
+          </div>
+          <ul class="defense-list">
+            <li class="defense-no">❌ 정책 제안</li>
+            <li class="defense-no">❌ 우선순위 판단</li>
+            <li class="defense-no">❌ 성과 평가</li>
+            <li class="defense-no">❌ 책임 귀속</li>
+          </ul>
+        </div>
+        <div class="defense-box">
+          <div class="defense-title">
+            <span style="color: var(--stable);">✓</span>
+            AUTUS는 오직
+          </div>
+          <ul class="defense-list">
+            <li class="defense-yes">✅ 집행의 물리 안정성 관측</li>
+            <li class="defense-yes">✅ 돈 흐름 정렬</li>
+            <li class="defense-yes">✅ 상태 라벨 표시</li>
+            <li class="defense-yes">✅ 버튼 실행 (결정 미개입)</li>
+          </ul>
+        </div>
+      </div>
+      <p style="text-align: center; margin-top: 20px; color: var(--dim);">
+        감사 대응 문서: <strong>"집행 규칙 엔진, 결정 미개입"</strong>
+      </p>
+    </div>
+    
+    <!-- Emergency Lock -->
+    <div class="emergency-section">
+      <h2 class="section-title" style="color: var(--overheated);">🚨 Emergency Lock 모드</h2>
+      <div class="emergency-content">
+        <div class="emergency-trigger">
+          <div class="emergency-trigger-title">발동 조건</div>
+          <p style="color: var(--text); margin-bottom: 15px;">DECAYING 상태 <strong>2구간 연속</strong> 시 자동 발동</p>
+          <div style="display: flex; gap: 10px;">
+            <div style="padding: 15px; background: rgba(255,107,107,0.2); border-radius: 10px; flex: 1; text-align: center;">
+              <div style="font-size: 1.5rem;">⏳</div>
+              <div style="font-size: 0.8rem; margin-top: 5px;">DECAYING</div>
+            </div>
+            <div style="padding: 15px; text-align: center; color: var(--dim);">→</div>
+            <div style="padding: 15px; background: rgba(255,107,107,0.2); border-radius: 10px; flex: 1; text-align: center;">
+              <div style="font-size: 1.5rem;">⏳</div>
+              <div style="font-size: 0.8rem; margin-top: 5px;">DECAYING</div>
+            </div>
+            <div style="padding: 15px; text-align: center; color: var(--dim);">→</div>
+            <div style="padding: 15px; background: rgba(255,215,0,0.2); border: 2px solid var(--overheated); border-radius: 10px; flex: 1; text-align: center;">
+              <div style="font-size: 1.5rem;">🚨</div>
+              <div style="font-size: 0.8rem; margin-top: 5px;">EMERGENCY</div>
+            </div>
+          </div>
+        </div>
+        <div class="emergency-actions">
+          <div class="emergency-action">🔘 버튼 3개만 활성화</div>
+          <div class="emergency-action">🔒 세부 화면 자동 잠금</div>
+          <div class="emergency-action">🚫 설명 완전 제거</div>
+          <div class="emergency-action">✓ 행동 단순화 (선택지 최소화)</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Global Section -->
+    <div class="global-section">
+      <h2 class="section-title">🌍 글로벌 적용성</h2>
+      <div class="global-features">
+        <div class="global-feature">
+          <div class="global-icon">💱</div>
+          <div class="global-title">통화 무관</div>
+          <div class="global-desc">Coin = 내부 물리 단위</div>
+        </div>
+        <div class="global-feature">
+          <div class="global-icon">📜</div>
+          <div class="global-title">제도 무관</div>
+          <div class="global-desc">의미 없으므로 적용 가능</div>
+        </div>
+        <div class="global-feature">
+          <div class="global-icon">🎭</div>
+          <div class="global-title">문화 무관</div>
+          <div class="global-desc">숫자만 → 해석 불필요</div>
+        </div>
+        <div class="global-feature">
+          <div class="global-icon">🏛️</div>
+          <div class="global-title">NFT 자산</div>
+          <div class="global-desc">공공 자산 추상화</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Action Section -->
+    <div class="action-section">
+      <h2 class="action-title">🚀 지금 배포</h2>
+      <p class="action-subtitle">국가/도시 레벨 적용 시나리오 완전 고정</p>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="exportSovereign()">📄 문서 다운로드</button>
+        <button class="btn btn-sovereign" onclick="window.location.href='government_master_strategy.html'">🏛️ 정부 전략</button>
+        <button class="btn btn-deploy" onclick="deployNow()">🚀 배포 시작</button>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <div class="final-declaration">
+      <div class="final-text">
+        AUTUS stabilizes execution.<br>
+        It does not make policy.
+      </div>
+    </div>
+    <p>AUTUS Sovereign Stability Layer © 2025</p>
+  </footer>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STATUS DATA
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const statusData = {
+      stable: { label: 'STABLE', meaning: '"문제없이 돌아간다"', calc: '집행·회수 균형 (Velocity 안정)' },
+      overheated: { label: 'OVERHEATED', meaning: '"집중·피크 발생"', calc: '단기 집중 집행 (Velocity 급등)' },
+      decaying: { label: 'DECAYING', meaning: '"막힘·지연 발생"', calc: '회수·정산 지연 (엔트로피 증가)' }
+    };
+    
+    let currentLevel = 'city';
+    let currentStatus = 'stable';
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function selectLevel(level) {
+      currentLevel = level;
+      document.querySelectorAll('.level-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.includes(level === 'city' ? '도시' : '국가'));
+      });
+    }
+    
+    function setStatus(status) {
+      currentStatus = status;
+      const data = statusData[status];
+      
+      // Update main status
+      const statusLabel = document.getElementById('mainStatus');
+      statusLabel.textContent = data.label;
+      statusLabel.className = 'status-label ' + status;
+      
+      document.getElementById('statusMeaning').textContent = data.meaning;
+      
+      // Update indicators
+      document.querySelectorAll('.indicator').forEach(ind => {
+        ind.classList.remove('active');
+      });
+      document.querySelector(`.indicator.${status}`).classList.add('active');
+    }
+    
+    function showScenario(type) {
+      document.querySelectorAll('.scenario-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.textContent.includes(type === 'city' ? '도시' : '국가'));
+      });
+      
+      document.getElementById('cityScenario').style.display = type === 'city' ? 'block' : 'none';
+      document.getElementById('nationScenario').style.display = type === 'nation' ? 'block' : 'none';
+    }
+    
+    function executeAction(action) {
+      const actions = {
+        delete: { name: 'DELETE', effect: '비효율 사업 외부 궤도 이전 완료', newStatus: 'stable' },
+        automate: { name: 'AUTOMATE', effect: '집행·정산 규칙 고정 완료', newStatus: 'stable' },
+        outsource: { name: 'OUTSOURCE', effect: '외부 노드로 집행 이전 완료', newStatus: 'stable' }
+      };
+      
+      const act = actions[action];
+      setStatus(act.newStatus);
+      
+      alert(`${act.name} 실행 완료\n\n${act.effect}\n\n상태: ${statusData[act.newStatus].label}\n체감: ${statusData[act.newStatus].meaning}`);
+    }
+    
+    function exportSovereign() {
+      const doc = `
+AUTUS Sovereign Stability Layer
+================================
+
+■ 최종 선언문
+AUTUS stabilizes execution.
+It does not make policy.
+
+■ 핵심 원칙
+- 사람·돈만 표기
+- 의미·정책·책임·판단 영구 배제
+- 공공 목표: "최적화"가 아닌 "폭주 방지"
+- AUTUS = 브레이크 시스템
+
+■ 상태 라벨
+- STABLE: "문제없이 돌아간다" (집행·회수 균형)
+- OVERHEATED: "집중·피크 발생" (단기 집중 집행)
+- DECAYING: "막힘·지연 발생" (회수·정산 지연)
+
+■ 3버튼
+1. DELETE (Decommission Asset)
+   → 비효율 사업 외부 궤도 이전 (돈 유출 차단)
+2. AUTOMATE (Standardize Flow)
+   → 집행·정산 규칙 고정 (시간 비용 ↓)
+3. OUTSOURCE (External Execute)
+   → 민간/외부 노드로 이전 (시너지 ↑)
+
+■ Public Mask (표기 규칙)
+표기: 노드(도시·구·기관), 모션(예산·세입·세출)
+비표기: 개인 신원, 정책 문구, 정치적 의도, 원인·책임
+
+■ 정치·법적 방어
+AUTUS는 절대 하지 않는다:
+- 정책 제안 ❌
+- 우선순위 판단 ❌
+- 성과 평가 ❌
+- 책임 귀속 ❌
+
+AUTUS는 오직:
+- 집행의 물리 안정성만 관측·정렬
+
+■ Emergency Lock
+- DECAYING 2구간 연속 시 자동 발동
+- 버튼 3개만 활성
+- 세부 화면 자동 잠금
+- 설명 완전 제거
+
+■ 글로벌 적용성
+- 통화·제도·문화 무관
+- Coin = 내부 물리 단위
+- NFT = 공공 자산 추상화
+
+생성일: ${new Date().toLocaleDateString('ko-KR')}
+      `.trim();
+      
+      const blob = new Blob([doc], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'autus_sovereign_stability_layer.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    
+    function deployNow() {
+      alert('🚀 Sovereign Stability Layer 배포 준비 완료!\n\n배포 대상:\n- GitHub Pages (무료)\n- Railway (API)\n- Vercel (프론트엔드)\n\n첫 타겟:\n- 세종시 (도시 레벨)\n- 경기도 (광역 레벨)\n\n핵심 메시지:\n"AUTUS stabilizes execution."\n"It does not make policy."');
+    }
+    
+    console.log('🏛️ AUTUS Sovereign Stability Layer 로드 완료');
+  </script>
+</body>
+</html>

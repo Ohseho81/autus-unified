@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUTUS 국제 정부 연계 - Global Strategy Engine</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --card: rgba(18, 18, 26, 0.95);
+      --border: #1e1e2e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --global: #0066cc;      /* 국제 블루 */
+      --multi: #00d4aa;       /* 다자간 민트 */
+      --bilateral: #ffd700;   /* 양자 골드 */
+      --ppp: #a855f7;         /* PPP 퍼플 */
+      --soft: #ff6b6b;        /* 소프트파워 레드 */
+      --accent: #00d4aa;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    
+    /* Header */
+    header {
+      text-align: center;
+      padding: 40px 20px;
+      background: linear-gradient(180deg, rgba(0,102,204,0.2) 0%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .globe-bg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 15rem;
+      opacity: 0.05;
+    }
+    
+    .global-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 25px;
+      background: rgba(0,102,204,0.2);
+      border: 2px solid var(--global);
+      border-radius: 30px;
+      color: var(--global);
+      font-weight: 700;
+      margin-bottom: 15px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(90deg, var(--global), var(--bilateral), var(--multi));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .subtitle { color: var(--dim); margin-top: 10px; position: relative; z-index: 1; }
+    
+    /* Container */
+    .container {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+    
+    /* Master Stats */
+    .master-stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 15px;
+      margin-bottom: 40px;
+    }
+    
+    @media (max-width: 1200px) { .master-stats { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 700px) { .master-stats { grid-template-columns: repeat(2, 1fr); } }
+    
+    .master-stat {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .master-stat.highlight {
+      border-color: var(--global);
+      box-shadow: 0 0 20px rgba(0,102,204,0.3);
+    }
+    
+    .master-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--global);
+    }
+    
+    .master-value.gold { color: var(--bilateral); }
+    .master-value.mint { color: var(--multi); }
+    
+    .master-label {
+      color: var(--dim);
+      font-size: 0.85rem;
+      margin-top: 5px;
+    }
+    
+    /* 4 Strategy Cards */
+    .strategy-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    
+    @media (max-width: 1200px) { .strategy-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .strategy-grid { grid-template-columns: 1fr; } }
+    
+    .strategy-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    
+    .strategy-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    }
+    
+    .strategy-card.active.multi { border-color: var(--multi); box-shadow: 0 0 30px rgba(0,212,170,0.4); }
+    .strategy-card.active.bilateral { border-color: var(--bilateral); box-shadow: 0 0 30px rgba(255,215,0,0.4); }
+    .strategy-card.active.ppp { border-color: var(--ppp); box-shadow: 0 0 30px rgba(168,85,247,0.4); }
+    .strategy-card.active.soft { border-color: var(--soft); box-shadow: 0 0 30px rgba(255,107,107,0.4); }
+    
+    .strategy-header {
+      padding: 25px;
+      text-align: center;
+    }
+    
+    .strategy-header.multi { background: linear-gradient(135deg, rgba(0,212,170,0.3), rgba(0,212,170,0.1)); }
+    .strategy-header.bilateral { background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,215,0,0.1)); }
+    .strategy-header.ppp { background: linear-gradient(135deg, rgba(168,85,247,0.3), rgba(168,85,247,0.1)); }
+    .strategy-header.soft { background: linear-gradient(135deg, rgba(255,107,107,0.3), rgba(255,107,107,0.1)); }
+    
+    .strategy-icon { font-size: 3rem; margin-bottom: 10px; }
+    .strategy-title { font-size: 1.2rem; font-weight: 700; }
+    .strategy-subtitle { font-size: 0.8rem; color: var(--dim); margin-top: 5px; }
+    
+    .strategy-body { padding: 20px; }
+    
+    .strategy-desc {
+      font-size: 0.85rem;
+      color: var(--dim);
+      line-height: 1.5;
+      margin-bottom: 15px;
+      min-height: 60px;
+    }
+    
+    .strategy-formula {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    
+    .strategy-card.multi .strategy-formula { color: var(--multi); }
+    .strategy-card.bilateral .strategy-formula { color: var(--bilateral); }
+    .strategy-card.ppp .strategy-formula { color: var(--ppp); }
+    .strategy-card.soft .strategy-formula { color: var(--soft); }
+    
+    .strategy-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    
+    .s-stat {
+      text-align: center;
+      padding: 10px;
+      background: var(--bg);
+      border-radius: 8px;
+    }
+    
+    .s-stat-value { font-size: 1.2rem; font-weight: 700; }
+    .s-stat.multi .s-stat-value { color: var(--multi); }
+    .s-stat.bilateral .s-stat-value { color: var(--bilateral); }
+    .s-stat.ppp .s-stat-value { color: var(--ppp); }
+    .s-stat.soft .s-stat-value { color: var(--soft); }
+    
+    .s-stat-label { font-size: 0.7rem; color: var(--dim); margin-top: 3px; }
+    
+    /* Case Study */
+    .case-box {
+      margin-top: 15px;
+      padding: 12px;
+      background: rgba(0,102,204,0.1);
+      border: 1px solid var(--global);
+      border-radius: 8px;
+    }
+    
+    .case-title { font-size: 0.75rem; color: var(--global); margin-bottom: 5px; }
+    .case-text { font-size: 0.8rem; color: var(--text); }
+    
+    /* Simulator */
+    .simulator-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 40px;
+    }
+    
+    .sim-title {
+      font-size: 1.5rem;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .sim-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+    
+    @media (max-width: 900px) { .sim-grid { grid-template-columns: 1fr; } }
+    
+    /* Input Panel */
+    .input-panel { display: grid; gap: 15px; }
+    
+    .input-group {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 15px;
+    }
+    
+    .input-group label {
+      display: block;
+      color: var(--dim);
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
+    
+    .input-group select, .input-group input {
+      width: 100%;
+      padding: 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+    }
+    
+    .input-group select:focus, .input-group input:focus {
+      outline: none;
+      border-color: var(--global);
+    }
+    
+    .input-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--global);
+      margin-top: 8px;
+    }
+    
+    /* Result Panel */
+    .result-panel {
+      background: linear-gradient(135deg, var(--bg), rgba(0,102,204,0.1));
+      border: 2px solid var(--global);
+      border-radius: 16px;
+      padding: 25px;
+    }
+    
+    .result-title {
+      font-size: 1.1rem;
+      color: var(--global);
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+    
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+    
+    .result-item {
+      text-align: center;
+      padding: 15px;
+      background: var(--card);
+      border-radius: 10px;
+    }
+    
+    .result-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--global);
+    }
+    
+    .result-value.gold { color: var(--bilateral); }
+    .result-value.mint { color: var(--multi); }
+    
+    .result-label {
+      font-size: 0.8rem;
+      color: var(--dim);
+      margin-top: 5px;
+    }
+    
+    /* World Map */
+    .world-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 40px;
+    }
+    
+    .country-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    @media (max-width: 1000px) { .country-grid { grid-template-columns: repeat(2, 1fr); } }
+    
+    .country-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .country-card:hover {
+      border-color: var(--global);
+      transform: translateY(-3px);
+    }
+    
+    .country-card.active {
+      border-color: var(--bilateral);
+      box-shadow: 0 0 20px rgba(255,215,0,0.3);
+    }
+    
+    .country-flag { font-size: 2.5rem; margin-bottom: 10px; }
+    .country-name { font-weight: 600; margin-bottom: 5px; }
+    .country-value { color: var(--dim); font-size: 0.85rem; }
+    .country-synergy { color: var(--multi); font-weight: 700; margin-top: 5px; }
+    
+    /* Chart */
+    .chart-container { height: 300px; margin-top: 20px; }
+    
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 30px;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: 15px 40px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn:hover { transform: translateY(-3px); }
+    
+    .btn-global {
+      background: linear-gradient(135deg, var(--global), #0050a0);
+      color: white;
+      box-shadow: 0 10px 30px rgba(0,102,204,0.3);
+    }
+    
+    .btn-gold {
+      background: linear-gradient(135deg, var(--bilateral), #cc9900);
+      color: #000;
+    }
+    
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      border-top: 1px solid var(--border);
+      color: var(--dim);
+    }
+    
+    .org-logos {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .org-logo {
+      padding: 10px 20px;
+      background: var(--card);
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="globe-bg">🌍</div>
+    <div class="global-badge">
+      <span>🌐</span>
+      <span>Global Government Strategy</span>
+    </div>
+    <h1>국제 정부 연계 전략</h1>
+    <p class="subtitle">다자간 · 양자 협정 · PPP · 소프트파워 통합 엔진</p>
+  </header>
+  
+  <div class="container">
+    <!-- Master Stats -->
+    <div class="master-stats">
+      <div class="master-stat">
+        <div class="master-value">4</div>
+        <div class="master-label">국제 전략 유형</div>
+      </div>
+      <div class="master-stat">
+        <div class="master-value gold">$19T</div>
+        <div class="master-label">EU 공동시장 GDP</div>
+      </div>
+      <div class="master-stat highlight">
+        <div class="master-value mint" id="stat-synergy">+0.4</div>
+        <div class="master-label">국제 시너지 보너스</div>
+      </div>
+      <div class="master-stat">
+        <div class="master-value">$150B+</div>
+        <div class="master-label">KORUS 무역량</div>
+      </div>
+      <div class="master-stat">
+        <div class="master-value gold" id="stat-growth">50x</div>
+        <div class="master-label">지수승 잠재력</div>
+      </div>
+    </div>
+    
+    <!-- 4 Strategy Cards -->
+    <div class="strategy-grid">
+      <!-- Multilateralism -->
+      <div class="strategy-card active multi" data-strategy="multi" onclick="selectStrategy('multi')">
+        <div class="strategy-header multi">
+          <div class="strategy-icon">🌐</div>
+          <div class="strategy-title">다자간주의</div>
+          <div class="strategy-subtitle">Multilateralism</div>
+        </div>
+        <div class="strategy-body">
+          <div class="strategy-desc">
+            여러 국가가 UN, WTO, IMF 등 국제 기구를 통해 협력. 상호 의존성으로 전체 시스템 안정화.
+          </div>
+          <div class="strategy-formula">V = Σ(국가 × 연결) / r</div>
+          <div class="strategy-stats">
+            <div class="s-stat multi">
+              <div class="s-stat-value">+0.4</div>
+              <div class="s-stat-label">시너지 보너스</div>
+            </div>
+            <div class="s-stat multi">
+              <div class="s-stat-value">27개국</div>
+              <div class="s-stat-label">EU 회원</div>
+            </div>
+          </div>
+          <div class="case-box">
+            <div class="case-title">📊 실증 사례</div>
+            <div class="case-text">EU 공동시장: GDP $19조, Brexit 후에도 안정 유지</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Bilateral -->
+      <div class="strategy-card bilateral" data-strategy="bilateral" onclick="selectStrategy('bilateral')">
+        <div class="strategy-header bilateral">
+          <div class="strategy-icon">🤝</div>
+          <div class="strategy-title">양자 협정</div>
+          <div class="strategy-subtitle">Bilateral Agreements</div>
+        </div>
+        <div class="strategy-body">
+          <div class="strategy-desc">
+            두 국가 간 직접 협정. 다자간보다 빠르고 유연. 무역·안보·투자 중심.
+          </div>
+          <div class="strategy-formula">V = m₁ × m₂ / d²</div>
+          <div class="strategy-stats">
+            <div class="s-stat bilateral">
+              <div class="s-stat-value">+0.3</div>
+              <div class="s-stat-label">시너지 보너스</div>
+            </div>
+            <div class="s-stat bilateral">
+              <div class="s-stat-value">+20%</div>
+              <div class="s-stat-label">KORUS 수출 증가</div>
+            </div>
+          </div>
+          <div class="case-box">
+            <div class="case-title">📊 실증 사례</div>
+            <div class="case-text">US-Korea FTA: 2025년 무역 $150B+</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- PPP -->
+      <div class="strategy-card ppp" data-strategy="ppp" onclick="selectStrategy('ppp')">
+        <div class="strategy-header ppp">
+          <div class="strategy-icon">🏗️</div>
+          <div class="strategy-title">공공-민간 파트너십</div>
+          <div class="strategy-subtitle">Public-Private Partnership</div>
+        </div>
+        <div class="strategy-body">
+          <div class="strategy-desc">
+            정부와 기업 협력으로 인프라 구축. 위험 분산 + 기술 결합 = 지수승 가치.
+          </div>
+          <div class="strategy-formula">V = G × P × (1+s)^t</div>
+          <div class="strategy-stats">
+            <div class="s-stat ppp">
+              <div class="s-stat-value">10x</div>
+              <div class="s-stat-label">복리 가속</div>
+            </div>
+            <div class="s-stat ppp">
+              <div class="s-stat-value">$10B+</div>
+              <div class="s-stat-label">싱가포르 PPP</div>
+            </div>
+          </div>
+          <div class="case-box">
+            <div class="case-title">📊 실증 사례</div>
+            <div class="case-text">Singapore Smart Nation: 도시 데이터 최적화</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Soft Power -->
+      <div class="strategy-card soft" data-strategy="soft" onclick="selectStrategy('soft')">
+        <div class="strategy-header soft">
+          <div class="strategy-icon">🎭</div>
+          <div class="strategy-title">소프트 파워</div>
+          <div class="strategy-subtitle">Soft Power</div>
+        </div>
+        <div class="strategy-body">
+          <div class="strategy-desc">
+            문화·외교·교육으로 영향력 행사. 강제 아닌 유치로 네트워크 자연 확대.
+          </div>
+          <div class="strategy-formula">V = N × log(N) × S</div>
+          <div class="strategy-stats">
+            <div class="s-stat soft">
+              <div class="s-stat-value">+0.2</div>
+              <div class="s-stat-label">시너지 보너스</div>
+            </div>
+            <div class="s-stat soft">
+              <div class="s-stat-value">#1</div>
+              <div class="s-stat-label">US 글로벌 영향</div>
+            </div>
+          </div>
+          <div class="case-box">
+            <div class="case-title">📊 실증 사례</div>
+            <div class="case-text">K-Culture: 한류로 글로벌 시장 확대</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Simulator -->
+    <div class="simulator-section">
+      <h2 class="sim-title">🎮 국제 연계 시뮬레이터</h2>
+      
+      <div class="sim-grid">
+        <div class="input-panel">
+          <div class="input-group">
+            <label>🇰🇷 기준 국가</label>
+            <select id="input-base">
+              <option value="korea" selected>대한민국</option>
+              <option value="usa">미국</option>
+              <option value="japan">일본</option>
+              <option value="eu">유럽연합</option>
+            </select>
+          </div>
+          
+          <div class="input-group">
+            <label>🌐 전략 유형</label>
+            <select id="input-strategy" onchange="runGlobalSim()">
+              <option value="multi">다자간주의 (UN/WTO)</option>
+              <option value="bilateral" selected>양자 협정 (FTA)</option>
+              <option value="ppp">공공-민간 파트너십</option>
+              <option value="soft">소프트 파워</option>
+              <option value="all">🔺 4대 전략 통합</option>
+            </select>
+          </div>
+          
+          <div class="input-group">
+            <label>💵 초기 투자/가치</label>
+            <input type="number" id="input-value" value="100000000" onchange="runGlobalSim()">
+            <div class="input-value" id="display-value">$100M</div>
+          </div>
+          
+          <div class="input-group">
+            <label>📅 협력 기간</label>
+            <input type="range" id="input-years" min="1" max="10" value="5" oninput="runGlobalSim()">
+            <div class="input-value" id="display-years">5년</div>
+          </div>
+        </div>
+        
+        <div class="result-panel">
+          <div class="result-title">📈 국제 연계 예측 결과</div>
+          
+          <div class="result-grid">
+            <div class="result-item">
+              <div class="result-value mint" id="result-synergy">+0.3</div>
+              <div class="result-label">시너지 보너스</div>
+            </div>
+            <div class="result-item">
+              <div class="result-value gold" id="result-final">$1.5B</div>
+              <div class="result-label">예상 최종 가치</div>
+            </div>
+            <div class="result-item">
+              <div class="result-value" id="result-multiple">15x</div>
+              <div class="result-label">성장 배율</div>
+            </div>
+            <div class="result-item">
+              <div class="result-value gold" id="result-trade">$500M</div>
+              <div class="result-label">예상 교역 증가</div>
+            </div>
+          </div>
+          
+          <div class="chart-container">
+            <canvas id="globalChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Country Selection -->
+    <div class="world-section">
+      <h2 class="sim-title">🗺️ 파트너 국가 선택</h2>
+      <p style="color: var(--dim); margin-bottom: 20px;">양자 협정 시뮬레이션을 위한 파트너 국가를 선택하세요.</p>
+      
+      <div class="country-grid">
+        <div class="country-card active" data-country="usa" onclick="selectCountry('usa')">
+          <div class="country-flag">🇺🇸</div>
+          <div class="country-name">미국</div>
+          <div class="country-value">GDP $28T</div>
+          <div class="country-synergy">시너지 +0.35</div>
+        </div>
+        <div class="country-card" data-country="japan" onclick="selectCountry('japan')">
+          <div class="country-flag">🇯🇵</div>
+          <div class="country-name">일본</div>
+          <div class="country-value">GDP $4.2T</div>
+          <div class="country-synergy">시너지 +0.30</div>
+        </div>
+        <div class="country-card" data-country="china" onclick="selectCountry('china')">
+          <div class="country-flag">🇨🇳</div>
+          <div class="country-name">중국</div>
+          <div class="country-value">GDP $18T</div>
+          <div class="country-synergy">시너지 +0.25</div>
+        </div>
+        <div class="country-card" data-country="eu" onclick="selectCountry('eu')">
+          <div class="country-flag">🇪🇺</div>
+          <div class="country-name">EU</div>
+          <div class="country-value">GDP $19T</div>
+          <div class="country-synergy">시너지 +0.40</div>
+        </div>
+        <div class="country-card" data-country="uk" onclick="selectCountry('uk')">
+          <div class="country-flag">🇬🇧</div>
+          <div class="country-name">영국</div>
+          <div class="country-value">GDP $3.3T</div>
+          <div class="country-synergy">시너지 +0.28</div>
+        </div>
+        <div class="country-card" data-country="india" onclick="selectCountry('india')">
+          <div class="country-flag">🇮🇳</div>
+          <div class="country-name">인도</div>
+          <div class="country-value">GDP $4T</div>
+          <div class="country-synergy">시너지 +0.25</div>
+        </div>
+        <div class="country-card" data-country="asean" onclick="selectCountry('asean')">
+          <div class="country-flag">🌏</div>
+          <div class="country-name">ASEAN</div>
+          <div class="country-value">GDP $3.6T</div>
+          <div class="country-synergy">시너지 +0.30</div>
+        </div>
+        <div class="country-card" data-country="australia" onclick="selectCountry('australia')">
+          <div class="country-flag">🇦🇺</div>
+          <div class="country-name">호주</div>
+          <div class="country-value">GDP $1.7T</div>
+          <div class="country-synergy">시너지 +0.25</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Action -->
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="resetGlobalSim()">🔄 리셋</button>
+      <button class="btn btn-gold" onclick="window.location.href='government_poc_engine.html'">🏛️ 국내 PoC</button>
+      <button class="btn btn-global" onclick="startGlobalStrategy()">🌐 국제 연계 시작</button>
+    </div>
+  </div>
+  
+  <footer>
+    <div class="org-logos">
+      <div class="org-logo">🇺🇳 UN</div>
+      <div class="org-logo">🏛️ WTO</div>
+      <div class="org-logo">💰 IMF</div>
+      <div class="org-logo">🏦 World Bank</div>
+      <div class="org-logo">🇪🇺 EU</div>
+      <div class="org-logo">🌏 ASEAN</div>
+    </div>
+    <p>AUTUS 국제 정부 연계 - Global Strategy Engine © 2025</p>
+  </footer>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STRATEGY DATA
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const strategies = {
+      multi: { name: '다자간주의', synergy: 0.40, baseMultiple: 3, risk: 0.1 },
+      bilateral: { name: '양자 협정', synergy: 0.30, baseMultiple: 2.5, risk: 0.15 },
+      ppp: { name: 'PPP', synergy: 0.35, baseMultiple: 4, risk: 0.2 },
+      soft: { name: '소프트 파워', synergy: 0.20, baseMultiple: 2, risk: 0.05 },
+      all: { name: '4대 통합', synergy: 0.50, baseMultiple: 8, risk: 0.1 }
+    };
+    
+    const countries = {
+      usa: { name: '미국', gdp: 28, synergy: 0.35, trade: 150 },
+      japan: { name: '일본', gdp: 4.2, synergy: 0.30, trade: 80 },
+      china: { name: '중국', gdp: 18, synergy: 0.25, trade: 200 },
+      eu: { name: 'EU', gdp: 19, synergy: 0.40, trade: 100 },
+      uk: { name: '영국', gdp: 3.3, synergy: 0.28, trade: 30 },
+      india: { name: '인도', gdp: 4, synergy: 0.25, trade: 25 },
+      asean: { name: 'ASEAN', gdp: 3.6, synergy: 0.30, trade: 120 },
+      australia: { name: '호주', gdp: 1.7, synergy: 0.25, trade: 35 }
+    };
+    
+    let config = {
+      strategy: 'bilateral',
+      country: 'usa',
+      value: 100000000,
+      years: 5
+    };
+    
+    let chart;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CALCULATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function calcGlobalValue(value, strategyKey, countryKey, years) {
+      const strategy = strategies[strategyKey];
+      const country = countries[countryKey];
+      
+      const totalSynergy = strategy.synergy + country.synergy * 0.5;
+      return value * Math.pow(1 + totalSynergy, years) * strategy.baseMultiple;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SIMULATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function runGlobalSim() {
+      config.strategy = document.getElementById('input-strategy').value;
+      config.value = parseInt(document.getElementById('input-value').value) || 100000000;
+      config.years = parseInt(document.getElementById('input-years').value);
+      
+      const strategy = strategies[config.strategy];
+      const country = countries[config.country];
+      const totalSynergy = strategy.synergy + country.synergy * 0.5;
+      const finalValue = calcGlobalValue(config.value, config.strategy, config.country, config.years);
+      const multiple = finalValue / config.value;
+      const tradeIncrease = country.trade * (1 + totalSynergy) * config.years / 5;
+      
+      // Update displays
+      document.getElementById('display-value').textContent = '$' + (config.value / 1000000).toFixed(0) + 'M';
+      document.getElementById('display-years').textContent = config.years + '년';
+      
+      document.getElementById('result-synergy').textContent = '+' + (totalSynergy * 100).toFixed(0) + '%';
+      document.getElementById('result-final').textContent = formatMoney(finalValue);
+      document.getElementById('result-multiple').textContent = multiple.toFixed(0) + 'x';
+      document.getElementById('result-trade').textContent = '$' + tradeIncrease.toFixed(0) + 'B';
+      
+      document.getElementById('stat-synergy').textContent = '+' + (totalSynergy * 100).toFixed(0) + '%';
+      document.getElementById('stat-growth').textContent = multiple.toFixed(0) + 'x';
+      
+      // Update strategy card highlights
+      document.querySelectorAll('.strategy-card').forEach(card => {
+        card.classList.toggle('active', card.dataset.strategy === config.strategy);
+      });
+      
+      updateChart();
+    }
+    
+    function selectStrategy(strategyKey) {
+      document.getElementById('input-strategy').value = strategyKey;
+      runGlobalSim();
+    }
+    
+    function selectCountry(countryKey) {
+      config.country = countryKey;
+      document.querySelectorAll('.country-card').forEach(card => {
+        card.classList.toggle('active', card.dataset.country === countryKey);
+      });
+      runGlobalSim();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CHART
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function initChart() {
+      const ctx = document.getElementById('globalChart').getContext('2d');
+      
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: '선택 전략',
+              data: [],
+              borderColor: '#0066cc',
+              borderWidth: 3,
+              backgroundColor: 'rgba(0,102,204,0.1)',
+              fill: true,
+              tension: 0.4,
+              pointRadius: 4
+            },
+            {
+              label: '연계 없음',
+              data: [],
+              borderColor: '#888',
+              borderDash: [5, 5],
+              tension: 0.4,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#888' } }
+          },
+          scales: {
+            x: {
+              grid: { color: '#1e1e2e' },
+              ticks: { color: '#888' }
+            },
+            y: {
+              grid: { color: '#1e1e2e' },
+              ticks: {
+                color: '#888',
+                callback: function(value) { return formatMoney(value); }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function updateChart() {
+      const labels = [];
+      const selectedData = [];
+      const baseData = [];
+      
+      for (let y = 0; y <= config.years; y++) {
+        labels.push(y + '년');
+        selectedData.push(calcGlobalValue(config.value, config.strategy, config.country, y));
+        baseData.push(config.value * Math.pow(1.05, y)); // 5% baseline growth
+      }
+      
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = selectedData;
+      chart.data.datasets[1].data = baseData;
+      chart.update();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UTILITIES
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      if (value >= 1000000000) return '$' + (value / 1000000000).toFixed(1) + 'B';
+      if (value >= 1000000) return '$' + (value / 1000000).toFixed(0) + 'M';
+      return '$' + (value / 1000).toFixed(0) + 'K';
+    }
+    
+    function resetGlobalSim() {
+      document.getElementById('input-strategy').value = 'bilateral';
+      document.getElementById('input-value').value = 100000000;
+      document.getElementById('input-years').value = 5;
+      config.country = 'usa';
+      document.querySelectorAll('.country-card').forEach(card => {
+        card.classList.toggle('active', card.dataset.country === 'usa');
+      });
+      runGlobalSim();
+    }
+    
+    function startGlobalStrategy() {
+      const strategy = strategies[config.strategy];
+      const country = countries[config.country];
+      alert(`🌐 국제 연계 전략 시작!\n\n전략: ${strategy.name}\n파트너: ${country.name}\n예상 시너지: +${((strategy.synergy + country.synergy * 0.5) * 100).toFixed(0)}%\n\n첫 단계:\n1. 한국-${country.name} 양자 협정 검토\n2. 무역 데이터 연계\n3. Physics Map 국제 버전 배포`);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      initChart();
+      runGlobalSim();
+      console.log('🌐 AUTUS 국제 정부 연계 엔진 로드 완료');
+    });
+  </script>
+</body>
+</html>

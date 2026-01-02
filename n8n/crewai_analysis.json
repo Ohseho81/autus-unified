@@ -1,0 +1,115 @@
+{
+  "name": "AUTUS CrewAI 자동 분석",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 6 }]
+        }
+      },
+      "id": "schedule",
+      "name": "6시간마다 실행",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.AUTUS_API_URL }}/nodes?limit=1000"
+      },
+      "id": "get_nodes",
+      "name": "노드 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [450, 250]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.AUTUS_API_URL }}/motions?limit=5000"
+      },
+      "id": "get_motions",
+      "name": "모션 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [450, 350]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll"
+      },
+      "id": "merge",
+      "name": "데이터 병합",
+      "type": "n8n-nodes-base.merge",
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUTUS_API_URL }}/crewai/analyze",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ nodes: $('노드 조회').item.json, motions: $('모션 조회').item.json }) }}"
+      },
+      "id": "crewai_analyze",
+      "name": "CrewAI 분석",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.total_monthly_impact }}",
+              "operation": "largerEqual",
+              "value2": 1000000
+            }
+          ]
+        }
+      },
+      "id": "impact_check",
+      "name": "영향도 체크 (100만원+)",
+      "type": "n8n-nodes-base.if",
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#autus-alerts",
+        "text": "🤖 *AUTUS CrewAI 분석 결과*\n\n*삭제 대상:* {{ $json.delete.targets.length }}개\n*자동화 대상:* {{ $json.automate.targets.length }}개\n*외부용역 추천:* {{ $json.outsource.recommendations.length }}개\n\n💰 *예상 월 영향:* ₩{{ Math.round($json.total_monthly_impact).toLocaleString() }}\n\n자세히 보기: {{ $env.AUTUS_DASHBOARD_URL }}"
+      },
+      "id": "slack_alert",
+      "name": "Slack 알림",
+      "type": "n8n-nodes-base.slack",
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 분석 결과 저장\nconst result = $input.item.json;\n\n// 자동 삭제 실행 (가치 ≤ 0)\nconst autoDeleteTargets = result.delete?.targets?.filter(t => t.value <= -1000000) || [];\n\nreturn [{\n  json: {\n    analyzed_at: new Date().toISOString(),\n    auto_delete_count: autoDeleteTargets.length,\n    total_impact: result.total_monthly_impact\n  }\n}];"
+      },
+      "id": "process_result",
+      "name": "결과 처리",
+      "type": "n8n-nodes-base.function",
+      "position": [1250, 400]
+    }
+  ],
+  "connections": {
+    "6시간마다 실행": {
+      "main": [
+        [
+          { "node": "노드 조회", "type": "main", "index": 0 },
+          { "node": "모션 조회", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "노드 조회": { "main": [[{ "node": "데이터 병합", "type": "main", "index": 0 }]] },
+    "모션 조회": { "main": [[{ "node": "데이터 병합", "type": "main", "index": 1 }]] },
+    "데이터 병합": { "main": [[{ "node": "CrewAI 분석", "type": "main", "index": 0 }]] },
+    "CrewAI 분석": { "main": [[{ "node": "영향도 체크 (100만원+)", "type": "main", "index": 0 }]] },
+    "영향도 체크 (100만원+)": {
+      "main": [
+        [{ "node": "Slack 알림", "type": "main", "index": 0 }],
+        [{ "node": "결과 처리", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}

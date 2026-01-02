@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌌 AUTUS Physics Map - 글로벌 교육 사업</title>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(ellipse at center, #0a1628 0%, #000 100%);
+      overflow: hidden;
+      color: #fff;
+    }
+    
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    
+    /* 헤더 */
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, transparent 100%);
+      padding: 24px 32px;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    .header-left h1 {
+      font-size: 24px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-shadow: 0 2px 20px rgba(0, 204, 255, 0.5);
+    }
+    
+    .header-left .subtitle {
+      color: #666;
+      font-size: 11px;
+      margin-top: 8px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    
+    .header-right {
+      display: flex;
+      gap: 40px;
+    }
+    
+    .stat { text-align: right; }
+    .stat-label { color: #555; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+    .stat-value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+    
+    .green { color: #00ff88; text-shadow: 0 0 20px rgba(0, 255, 136, 0.7); }
+    .cyan { color: #00ccff; text-shadow: 0 0 20px rgba(0, 204, 255, 0.7); }
+    .gold { color: #ffcc00; text-shadow: 0 0 20px rgba(255, 204, 0, 0.7); }
+    .red { color: #ff4466; text-shadow: 0 0 20px rgba(255, 68, 102, 0.7); }
+    .purple { color: #9966ff; text-shadow: 0 0 20px rgba(153, 102, 255, 0.7); }
+    
+    /* 수식 패널 */
+    .formula-panel {
+      position: absolute;
+      top: 120px;
+      right: 32px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(20px);
+      z-index: 100;
+      min-width: 240px;
+    }
+    
+    .formula-title {
+      color: #555;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+    }
+    
+    .formula-main {
+      color: #00ccff;
+      font-family: 'Courier New', monospace;
+      font-size: 28px;
+      font-weight: bold;
+      text-shadow: 0 0 30px rgba(0, 204, 255, 0.8);
+      margin-bottom: 16px;
+    }
+    
+    .formula-desc {
+      color: #666;
+      font-size: 11px;
+      line-height: 1.8;
+    }
+    
+    .formula-desc strong { color: #888; }
+    
+    /* 노드 정보 패널 */
+    .info-panel {
+      position: absolute;
+      top: 120px;
+      left: 32px;
+      background: rgba(0, 0, 0, 0.95);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      border-radius: 16px;
+      padding: 24px;
+      backdrop-filter: blur(20px);
+      z-index: 100;
+      min-width: 320px;
+      display: none;
+    }
+    
+    .info-panel.visible { display: block; }
+    
+    .info-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 16px;
+    }
+    
+    .info-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      box-shadow: 0 0 30px currentColor;
+    }
+    
+    .info-name { font-weight: bold; font-size: 20px; }
+    .info-type { color: #888; font-size: 12px; margin-top: 4px; }
+    .info-location { color: #00ccff; font-size: 11px; margin-top: 4px; }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    
+    .info-row-label { color: #666; }
+    .info-row-value { font-weight: bold; }
+    
+    .info-desc {
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      font-size: 12px;
+      color: #888;
+      line-height: 1.6;
+    }
+    
+    .info-status {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .status-optimal { background: rgba(0, 255, 136, 0.15); border: 1px solid rgba(0, 255, 136, 0.4); color: #00ff88; }
+    .status-warning { background: rgba(255, 204, 0, 0.15); border: 1px solid rgba(255, 204, 0, 0.4); color: #ffcc00; }
+    .status-bottleneck { background: rgba(255, 68, 102, 0.15); border: 1px solid rgba(255, 68, 102, 0.4); color: #ff4466; animation: pulse 1.5s infinite; }
+    .status-prediction { background: rgba(255, 204, 0, 0.1); border: 1px solid rgba(255, 204, 0, 0.3); color: #ffcc00; }
+    
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    
+    /* 병목 패널 */
+    .bottleneck-panel {
+      position: absolute;
+      bottom: 120px;
+      left: 32px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(255, 68, 102, 0.4);
+      border-radius: 16px;
+      padding: 20px;
+      z-index: 100;
+      min-width: 320px;
+    }
+    
+    .bottleneck-title {
+      color: #ff4466;
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .bottleneck-item {
+      background: rgba(255, 68, 102, 0.1);
+      border: 1px solid rgba(255, 68, 102, 0.3);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    
+    .bottleneck-item .name { color: #fff; font-weight: bold; font-size: 13px; }
+    .bottleneck-item .issue { color: #ff4466; font-size: 11px; margin-top: 4px; }
+    .bottleneck-item .action { color: #ffcc00; font-size: 10px; margin-top: 8px; }
+    
+    /* 기회 패널 */
+    .opportunity-panel {
+      position: absolute;
+      bottom: 120px;
+      right: 32px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(255, 204, 0, 0.4);
+      border-radius: 16px;
+      padding: 20px;
+      z-index: 100;
+      min-width: 280px;
+    }
+    
+    .opportunity-title {
+      color: #ffcc00;
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 14px;
+    }
+    
+    .opportunity-item {
+      background: rgba(255, 204, 0, 0.1);
+      border: 1px solid rgba(255, 204, 0, 0.3);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    
+    .opportunity-item .name { color: #fff; font-weight: bold; font-size: 13px; }
+    .opportunity-item .value { color: #ffcc00; font-size: 14px; font-weight: bold; margin-top: 4px; }
+    .opportunity-item .timeline { color: #888; font-size: 10px; margin-top: 4px; }
+    
+    /* 범례 */
+    .legend-panel {
+      position: absolute;
+      top: 350px;
+      right: 32px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 100;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+      font-size: 11px;
+      color: #888;
+    }
+    
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    
+    .legend-line {
+      width: 30px;
+      height: 3px;
+      border-radius: 2px;
+    }
+    
+    /* 컨트롤 */
+    .controls {
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      z-index: 100;
+    }
+    
+    .control-btn {
+      padding: 12px 24px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(0, 204, 255, 0.4);
+      border-radius: 25px;
+      color: #fff;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .control-btn:hover {
+      background: rgba(0, 204, 255, 0.2);
+      border-color: #00ccff;
+      transform: translateY(-2px);
+    }
+    
+    .control-btn.active {
+      background: rgba(0, 255, 136, 0.2);
+      border-color: #00ff88;
+    }
+    
+    /* 푸터 */
+    .footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
+      padding: 20px 32px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #444;
+      z-index: 50;
+    }
+    
+    /* 미니맵 */
+    .minimap {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-size: 11px;
+      color: #00ccff;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="header-left">
+      <h1>🌌 AUTUS Physics Map</h1>
+      <div class="subtitle">글로벌 교육 사업 • 모든 개체는 사람 • 피시스 해답은 돈</div>
+    </div>
+    <div class="header-right">
+      <div class="stat">
+        <div class="stat-label">Total Value</div>
+        <div class="stat-value green" id="stat-value">₩7.09억</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Net Cashflow</div>
+        <div class="stat-value cyan" id="stat-cashflow">₩4.23억</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Synergy</div>
+        <div class="stat-value purple" id="stat-synergy">₩2.86억</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">12M Forecast</div>
+        <div class="stat-value gold" id="stat-forecast">₩23억</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 수식 패널 -->
+  <div class="formula-panel">
+    <div class="formula-title">Physics Formula</div>
+    <div class="formula-main">V = D - T + S</div>
+    <div class="formula-desc">
+      <strong>D</strong>: Direct (Inflow - Outflow)<br>
+      <strong>T</strong>: Time = Hours × Hourly Value<br>
+      <strong>S</strong>: Synergy = k(N₁×N₂)/d²<br>
+      <strong>F</strong>: Forecast = V × (1+g)^t
+    </div>
+  </div>
+  
+  <!-- 노드 정보 패널 -->
+  <div class="info-panel" id="info-panel">
+    <div class="info-header">
+      <div class="info-icon" id="info-icon">👑</div>
+      <div>
+        <div class="info-name" id="info-name">김세호</div>
+        <div class="info-type" id="info-type">SOVEREIGN • 대표</div>
+        <div class="info-location" id="info-location">📍 서울 강남구</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Inflow (유입)</span>
+      <span class="info-row-value cyan" id="info-inflow">₩4.5억</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Outflow (유출)</span>
+      <span class="info-row-value red" id="info-outflow">₩1.8억</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Time Cost</span>
+      <span class="info-row-value" style="color: #ff6666" id="info-time">-₩5,600만</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Synergy</span>
+      <span class="info-row-value purple" id="info-synergy">+₩8,500만</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Total Value</span>
+      <span class="info-row-value green" id="info-value">₩2.99억</span>
+    </div>
+    <div class="info-desc" id="info-desc">
+      전체 사업 총괄, 전략 수립, 투자 유치
+    </div>
+    <div class="info-status status-optimal" id="info-status">
+      ✅ OPTIMAL
+    </div>
+  </div>
+  
+  <!-- 병목 패널 -->
+  <div class="bottleneck-panel">
+    <div class="bottleneck-title">⚠️ 돈 병목 감지 (2건)</div>
+    <div class="bottleneck-item">
+      <div class="name">🇺🇸 뉴욕 에이전시</div>
+      <div class="issue">유출 ₩4,500만 > 유입 ₩3,000만 (ROI -33%)</div>
+      <div class="action">💡 계약 재협상 또는 대체 에이전시 검토</div>
+    </div>
+    <div class="bottleneck-item">
+      <div class="name">🇦🇺 호주 공급사</div>
+      <div class="issue">유출 ₩2,400만, 시너지 -₩200만</div>
+      <div class="action">💡 국내 공급선 대체 또는 가격 협상</div>
+    </div>
+  </div>
+  
+  <!-- 기회 패널 -->
+  <div class="opportunity-panel">
+    <div class="opportunity-title">⭐ 성장 기회 (3건)</div>
+    <div class="opportunity-item">
+      <div class="name">🇦🇪 두바이 스폰서</div>
+      <div class="value">₩5억 예상</div>
+      <div class="timeline">📅 2025 Q2</div>
+    </div>
+    <div class="opportunity-item">
+      <div class="name">🇬🇧 런던 확장</div>
+      <div class="value">₩3억 예상</div>
+      <div class="timeline">📅 2025 Q3</div>
+    </div>
+    <div class="opportunity-item">
+      <div class="name">🇨🇳 베이징 JV</div>
+      <div class="value">₩8억 예상</div>
+      <div class="timeline">📅 2025 Q4</div>
+    </div>
+  </div>
+  
+  <!-- 범례 -->
+  <div class="legend-panel">
+    <div class="formula-title" style="margin-bottom: 12px;">Legend</div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: #00ff88;"></div>
+      <span>주권자/핵심 인물</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: #00ccff;"></div>
+      <span>팀/파트너</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: #ffcc00;"></div>
+      <span>고객/예측</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: #ff6600;"></div>
+      <span>스폰서/투자자</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: #ff4466;"></div>
+      <span>병목</span>
+    </div>
+    <div class="legend-item" style="margin-top: 12px;">
+      <div class="legend-line" style="background: linear-gradient(90deg, #00ff88, #00ccff);"></div>
+      <span>돈 유입</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line" style="background: linear-gradient(90deg, #ff4466, #ff6600);"></div>
+      <span>돈 유출</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line" style="background: linear-gradient(90deg, #9966ff, #00ccff);"></div>
+      <span>시너지</span>
+    </div>
+  </div>
+  
+  <!-- 미니맵 -->
+  <div class="minimap" id="minimap">
+    🌍 18명 • 25개 연결 • 7개국
+  </div>
+  
+  <!-- 컨트롤 -->
+  <div class="controls">
+    <button class="control-btn" id="btn-korea">🇰🇷 한국</button>
+    <button class="control-btn" id="btn-asia">🌏 아시아</button>
+    <button class="control-btn" id="btn-world">🌍 세계</button>
+    <button class="control-btn active" id="btn-animate">✨ 별똥별</button>
+    <button class="control-btn active" id="btn-bottleneck">⚠️ 병목</button>
+  </div>
+  
+  <!-- 푸터 -->
+  <div class="footer">
+    <span>🖱️ 드래그: 이동 | 스크롤: 줌 | 노드 클릭: 상세 정보</span>
+    <span>AUTUS Physics Map v3.0 • 가상 데이터 (글로벌 교육 사업 시나리오)</span>
+  </div>
+  
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 가상 데이터 (글로벌 교육 사업 시나리오)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const nodes = [
+      // 주권자
+      { id: 'P01', name: '김세호', label: '대표', role: 'SOVEREIGN', 
+        lat: 37.5085, lon: 127.0634, location: '서울 강남구 테헤란로',
+        inflow: 450000000, outflow: 180000000, timeHours: 280, hourlyValue: 200000,
+        synergy: 85000000, growthRate: 0.15, status: 'optimal', icon: '👑', color: '#00ff88',
+        description: '전체 사업 총괄, 전략 수립, 투자 유치' },
+      
+      // 내부 팀
+      { id: 'P02', name: '이정민', label: '운영매니저', role: 'OPERATOR',
+        lat: 37.4979, lon: 127.0276, location: '서울 서초구',
+        inflow: 85000000, outflow: 25000000, timeHours: 200, hourlyValue: 80000,
+        synergy: 12000000, growthRate: 0.10, status: 'optimal', icon: '👤', color: '#00ccff',
+        description: '일일 운영, 스케줄 관리, 고객 응대' },
+      
+      { id: 'P03', name: '박준영', label: '헤드코치', role: 'EXECUTOR',
+        lat: 37.5172, lon: 127.0473, location: '서울 성동구',
+        inflow: 72000000, outflow: 18000000, timeHours: 220, hourlyValue: 70000,
+        synergy: 15000000, growthRate: 0.12, status: 'optimal', icon: '👤', color: '#00ccff',
+        description: '교육 프로그램 개발, 코치 관리' },
+      
+      { id: 'P04', name: '최수진', label: '마케팅', role: 'GROWTH',
+        lat: 37.5662, lon: 126.9779, location: '서울 종로구',
+        inflow: 45000000, outflow: 35000000, timeHours: 180, hourlyValue: 60000,
+        synergy: 25000000, growthRate: 0.20, status: 'warning', icon: '📢', color: '#ff6600',
+        description: '마케팅 전략, SNS 운영, 광고 집행' },
+      
+      { id: 'P05', name: '코치A', label: '코치', role: 'EXECUTOR',
+        lat: 37.5045, lon: 127.0498, location: '서울 삼성동',
+        inflow: 48000000, outflow: 8000000, timeHours: 160, hourlyValue: 50000,
+        synergy: 8000000, growthRate: 0.08, status: 'optimal', icon: '👤', color: '#00ccff',
+        description: '1:1 코칭, 그룹 수업' },
+      
+      { id: 'P06', name: '코치B', label: '코치', role: 'EXECUTOR',
+        lat: 37.5112, lon: 127.0590, location: '서울 청담동',
+        inflow: 48000000, outflow: 8000000, timeHours: 160, hourlyValue: 50000,
+        synergy: 8000000, growthRate: 0.08, status: 'optimal', icon: '👤', color: '#00ccff',
+        description: '1:1 코칭, 그룹 수업' },
+      
+      { id: 'P07', name: '코치C', label: '코치', role: 'EXECUTOR',
+        lat: 37.5140, lon: 127.0565, location: '서울 역삼동',
+        inflow: 42000000, outflow: 12000000, timeHours: 140, hourlyValue: 50000,
+        synergy: 5000000, growthRate: 0.05, status: 'warning', icon: '👤', color: '#ffcc00',
+        description: '신규 코치, 성장 중' },
+      
+      // 고객군
+      { id: 'C01', name: 'VIP 학생군', label: 'VIP 고객', role: 'CUSTOMER', count: 25,
+        lat: 37.5200, lon: 127.0400, location: '서울 강남권',
+        inflow: 0, outflow: 250000000, timeHours: 0, hourlyValue: 0,
+        synergy: 30000000, growthRate: 0.15, status: 'optimal', icon: '👥', color: '#ffcc00',
+        description: '월 100만원+ 프리미엄 고객 25명' },
+      
+      { id: 'C02', name: '일반 학생군', label: '일반 고객', role: 'CUSTOMER', count: 80,
+        lat: 37.4900, lon: 127.0300, location: '서울 서초/송파',
+        inflow: 0, outflow: 160000000, timeHours: 0, hourlyValue: 0,
+        synergy: 15000000, growthRate: 0.10, status: 'optimal', icon: '👥', color: '#00ccff',
+        description: '월 20-50만원 고객 80명' },
+      
+      { id: 'C03', name: '학부모회', label: '학부모', role: 'SPONSOR', count: 105,
+        lat: 37.5300, lon: 127.0200, location: '서울 강남/서초',
+        inflow: 410000000, outflow: 0, timeHours: 0, hourlyValue: 0,
+        synergy: 20000000, growthRate: 0.12, status: 'optimal', icon: '💰', color: '#ff6600',
+        description: '학비 납부 주체 (실제 결제자)' },
+      
+      // 자산
+      { id: 'B01', name: '강남 본원', label: '본원', role: 'ASSET',
+        lat: 37.5085, lon: 127.0634, location: '서울 강남구 테헤란로 123',
+        inflow: 0, outflow: 36000000, timeHours: 0, hourlyValue: 0,
+        synergy: 50000000, growthRate: 0.05, status: 'optimal', icon: '🏢', color: '#9966ff',
+        description: '월세 300만원, 메인 교육 공간' },
+      
+      // 해외 파트너
+      { id: 'X01', name: '도쿄 파트너', label: '일본', role: 'PARTNER',
+        lat: 35.6762, lon: 139.6503, location: 'Tokyo, Japan',
+        inflow: 80000000, outflow: 20000000, timeHours: 40, hourlyValue: 150000,
+        synergy: 35000000, growthRate: 0.18, status: 'optimal', icon: '🇯🇵', color: '#00ccff',
+        description: '일본 시장 진출 파트너, 로열티 수입' },
+      
+      { id: 'X02', name: '싱가포르 투자자', label: '싱가포르', role: 'INVESTOR',
+        lat: 1.3521, lon: 103.8198, location: 'Singapore',
+        inflow: 200000000, outflow: 0, timeHours: 20, hourlyValue: 300000,
+        synergy: 50000000, growthRate: 0.25, status: 'optimal', icon: '🇸🇬', color: '#ff6600',
+        description: '시리즈A 투자자, 2억 투자' },
+      
+      { id: 'X03', name: '뉴욕 에이전시', label: '미국', role: 'PARTNER',
+        lat: 40.7128, lon: -74.0060, location: 'New York, USA',
+        inflow: 30000000, outflow: 45000000, timeHours: 60, hourlyValue: 200000,
+        synergy: -5000000, growthRate: 0.05, status: 'bottleneck', icon: '🇺🇸', color: '#ff4466',
+        description: '미국 마케팅 에이전시, ROI 부족' },
+      
+      { id: 'X04', name: '호주 공급사', label: '호주', role: 'SUPPLIER',
+        lat: -33.8688, lon: 151.2093, location: 'Sydney, Australia',
+        inflow: 0, outflow: 24000000, timeHours: 30, hourlyValue: 100000,
+        synergy: -2000000, growthRate: 0.02, status: 'bottleneck', icon: '🇦🇺', color: '#ff4466',
+        description: '교재/장비 공급, 비용 과다' },
+      
+      // 예측 (미래)
+      { id: 'F01', name: '두바이 스폰서', label: '두바이', role: 'FUTURE',
+        lat: 25.2048, lon: 55.2708, location: 'Dubai, UAE',
+        inflow: 0, outflow: 0, timeHours: 0, hourlyValue: 0,
+        synergy: 0, forecast: 500000000, growthRate: 0.30, status: 'prediction', icon: '⭐', color: '#ffcc00',
+        description: '2025년 Q2 협상 중, 5억 스폰서십 예상' },
+      
+      { id: 'F02', name: '런던 확장', label: '런던', role: 'FUTURE',
+        lat: 51.5074, lon: -0.1278, location: 'London, UK',
+        inflow: 0, outflow: 0, timeHours: 0, hourlyValue: 0,
+        synergy: 0, forecast: 300000000, growthRate: 0.20, status: 'prediction', icon: '⭐', color: '#ffcc00',
+        description: '2025년 Q3 런던 지사 오픈 계획' },
+      
+      { id: 'F03', name: '베이징 JV', label: '베이징', role: 'FUTURE',
+        lat: 39.9042, lon: 116.4074, location: 'Beijing, China',
+        inflow: 0, outflow: 0, timeHours: 0, hourlyValue: 0,
+        synergy: 0, forecast: 800000000, growthRate: 0.35, status: 'prediction', icon: '⭐', color: '#ffcc00',
+        description: '2025년 Q4 합작법인 설립 예정' }
+    ];
+    
+    const flows = [
+      // 학비 수입
+      { from: 'C03', to: 'P01', value: 410000000, type: 'inflow' },
+      
+      // 급여 지급
+      { from: 'P01', to: 'P02', value: 60000000, type: 'inflow' },
+      { from: 'P01', to: 'P03', value: 54000000, type: 'inflow' },
+      { from: 'P01', to: 'P04', value: 36000000, type: 'inflow' },
+      { from: 'P03', to: 'P05', value: 36000000, type: 'inflow' },
+      { from: 'P03', to: 'P06', value: 36000000, type: 'inflow' },
+      { from: 'P03', to: 'P07', value: 30000000, type: 'inflow' },
+      
+      // 교육 시너지
+      { from: 'P05', to: 'C01', value: 120000000, type: 'synergy' },
+      { from: 'P06', to: 'C01', value: 80000000, type: 'synergy' },
+      { from: 'P07', to: 'C02', value: 60000000, type: 'synergy' },
+      { from: 'C01', to: 'C03', value: 250000000, type: 'synergy' },
+      { from: 'C02', to: 'C03', value: 160000000, type: 'synergy' },
+      
+      // 운영비
+      { from: 'P01', to: 'B01', value: 36000000, type: 'outflow' },
+      
+      // 해외
+      { from: 'X01', to: 'P01', value: 80000000, type: 'inflow' },
+      { from: 'X02', to: 'P01', value: 200000000, type: 'inflow' },
+      { from: 'P01', to: 'X03', value: 45000000, type: 'outflow' },
+      { from: 'X03', to: 'P01', value: 30000000, type: 'inflow' },
+      { from: 'P01', to: 'X04', value: 24000000, type: 'outflow' },
+      
+      // 내부 시너지
+      { from: 'P02', to: 'P03', value: 12000000, type: 'synergy' },
+      { from: 'P04', to: 'C01', value: 25000000, type: 'synergy' },
+      { from: 'P04', to: 'C02', value: 35000000, type: 'synergy' },
+      
+      // 예측
+      { from: 'P01', to: 'F01', value: 500000000, type: 'prediction' },
+      { from: 'P01', to: 'F02', value: 300000000, type: 'prediction' },
+      { from: 'X01', to: 'F03', value: 400000000, type: 'prediction' },
+      { from: 'X02', to: 'F01', value: 200000000, type: 'prediction' }
+    ];
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 캔버스 초기화
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let width, height;
+    let offsetX = 0, offsetY = 0;
+    let scale = 1;
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let isAnimating = true;
+    let showBottlenecks = true;
+    let particles = [];
+    let screenNodes = [];
+    
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      updateScreenPositions();
+    }
+    
+    window.addEventListener('resize', resize);
+    resize();
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 좌표 변환 (위경도 → 화면)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function lonLatToScreen(lon, lat) {
+      // Mercator 투영
+      const x = (lon + 180) * (width / 360);
+      const latRad = lat * Math.PI / 180;
+      const mercN = Math.log(Math.tan((Math.PI / 4) + (latRad / 2)));
+      const y = (height / 2) - (width * mercN / (2 * Math.PI));
+      
+      return {
+        x: (x - width / 2) * scale + width / 2 + offsetX,
+        y: (y - height / 2) * scale + height / 2 + offsetY
+      };
+    }
+    
+    function updateScreenPositions() {
+      screenNodes = nodes.map(node => {
+        const pos = lonLatToScreen(node.lon, node.lat);
+        return { ...node, x: pos.x, y: pos.y };
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 파티클 시스템
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function initParticles() {
+      particles = [];
+      flows.forEach(flow => {
+        const count = flow.type === 'prediction' ? 6 : 4;
+        for (let i = 0; i < count; i++) {
+          particles.push({
+            flowFrom: flow.from,
+            flowTo: flow.to,
+            flowType: flow.type,
+            flowValue: flow.value,
+            progress: Math.random(),
+            speed: 0.002 + Math.random() * 0.003,
+            size: flow.type === 'prediction' ? 4 : 3,
+            trail: []
+          });
+        }
+      });
+    }
+    
+    function updateParticles() {
+      particles.forEach(p => {
+        p.progress += p.speed;
+        if (p.progress > 1) {
+          p.progress = 0;
+          p.trail = [];
+        }
+        
+        const fromNode = screenNodes.find(n => n.id === p.flowFrom);
+        const toNode = screenNodes.find(n => n.id === p.flowTo);
+        if (!fromNode || !toNode) return;
+        
+        const midX = (fromNode.x + toNode.x) / 2;
+        const midY = (fromNode.y + toNode.y) / 2 - 60 * scale;
+        
+        const t = p.progress;
+        p.x = Math.pow(1-t, 2) * fromNode.x + 2 * (1-t) * t * midX + Math.pow(t, 2) * toNode.x;
+        p.y = Math.pow(1-t, 2) * fromNode.y + 2 * (1-t) * t * midY + Math.pow(t, 2) * toNode.y;
+        
+        p.trail.push({ x: p.x, y: p.y });
+        if (p.trail.length > 25) p.trail.shift();
+      });
+    }
+    
+    initParticles();
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 렌더링
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function render() {
+      ctx.fillStyle = 'rgba(10, 22, 40, 0.3)';
+      ctx.fillRect(0, 0, width, height);
+      
+      renderFlows();
+      if (isAnimating) renderParticles();
+      renderNodes();
+    }
+    
+    function renderFlows() {
+      flows.forEach(flow => {
+        const fromNode = screenNodes.find(n => n.id === flow.from);
+        const toNode = screenNodes.find(n => n.id === flow.to);
+        if (!fromNode || !toNode) return;
+        
+        const midX = (fromNode.x + toNode.x) / 2;
+        const midY = (fromNode.y + toNode.y) / 2 - 60 * scale;
+        
+        const gradient = ctx.createLinearGradient(fromNode.x, fromNode.y, toNode.x, toNode.y);
+        
+        if (flow.type === 'inflow') {
+          gradient.addColorStop(0, 'rgba(0, 255, 136, 0.5)');
+          gradient.addColorStop(1, 'rgba(0, 204, 255, 0.5)');
+        } else if (flow.type === 'outflow') {
+          gradient.addColorStop(0, 'rgba(255, 68, 102, 0.5)');
+          gradient.addColorStop(1, 'rgba(255, 102, 0, 0.5)');
+        } else if (flow.type === 'synergy') {
+          gradient.addColorStop(0, 'rgba(153, 102, 255, 0.4)');
+          gradient.addColorStop(1, 'rgba(0, 204, 255, 0.4)');
+        } else if (flow.type === 'prediction') {
+          gradient.addColorStop(0, 'rgba(255, 204, 0, 0.4)');
+          gradient.addColorStop(1, 'rgba(255, 102, 0, 0.4)');
+        }
+        
+        const flowWidth = Math.max(1, Math.sqrt(flow.value) / 3000 * scale);
+        
+        ctx.beginPath();
+        ctx.moveTo(fromNode.x, fromNode.y);
+        ctx.quadraticCurveTo(midX, midY, toNode.x, toNode.y);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = flowWidth;
+        
+        if (flow.type === 'prediction') {
+          ctx.setLineDash([8, 8]);
+        } else {
+          ctx.setLineDash([]);
+        }
+        
+        ctx.stroke();
+        ctx.setLineDash([]);
+      });
+    }
+    
+    function renderParticles() {
+      particles.forEach(p => {
+        if (!p.x || !p.y) return;
+        
+        let color;
+        if (p.flowType === 'inflow') color = '#00ff88';
+        else if (p.flowType === 'outflow') color = '#ff4466';
+        else if (p.flowType === 'synergy') color = '#9966ff';
+        else if (p.flowType === 'prediction') color = '#ffcc00';
+        
+        // 트레일
+        if (p.trail.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(p.trail[0].x, p.trail[0].y);
+          for (let i = 1; i < p.trail.length; i++) {
+            ctx.lineTo(p.trail[i].x, p.trail[i].y);
+          }
+          const trailGradient = ctx.createLinearGradient(p.trail[0].x, p.trail[0].y, p.x, p.y);
+          trailGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+          trailGradient.addColorStop(1, color);
+          ctx.strokeStyle = trailGradient;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+        
+        // 파티클
+        const opacity = 0.5 + 0.5 * Math.sin(p.progress * Math.PI);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * scale, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 15;
+        ctx.globalAlpha = opacity;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+      });
+    }
+    
+    function renderNodes() {
+      screenNodes.forEach(node => {
+        const baseSize = node.forecast ? 
+          Math.max(12, Math.sqrt(node.forecast) / 4000) :
+          Math.max(12, Math.sqrt(node.inflow + node.outflow + node.synergy) / 2500);
+        const size = baseSize * scale;
+        
+        // 글로우
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, size * 1.8, 0, Math.PI * 2);
+        ctx.fillStyle = node.color + '15';
+        ctx.fill();
+        
+        // 병목 경고 링
+        if (node.status === 'bottleneck' && showBottlenecks) {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, size * 2.2, 0, Math.PI * 2);
+          ctx.strokeStyle = '#ff4466';
+          ctx.lineWidth = 3;
+          ctx.shadowColor = '#ff4466';
+          ctx.shadowBlur = 20;
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        }
+        
+        // 예측 점선
+        if (node.status === 'prediction') {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, size * 1.5, 0, Math.PI * 2);
+          ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = '#ffcc00';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        
+        // 메인 노드
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = node.color;
+        ctx.shadowColor = node.color;
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // 아이콘
+        ctx.font = `${size * 0.9}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(node.icon, node.x, node.y);
+        
+        // 라벨
+        if (scale > 0.5) {
+          ctx.font = `${11 * scale}px sans-serif`;
+          ctx.fillStyle = '#fff';
+          ctx.fillText(node.name, node.x, node.y + size + 14 * scale);
+        }
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 애니메이션 루프
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function animate() {
+      updateParticles();
+      render();
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 이벤트
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    canvas.addEventListener('mousedown', e => {
+      isDragging = true;
+      dragStart = { x: e.clientX - offsetX, y: e.clientY - offsetY };
+    });
+    
+    canvas.addEventListener('mousemove', e => {
+      if (isDragging) {
+        offsetX = e.clientX - dragStart.x;
+        offsetY = e.clientY - dragStart.y;
+        updateScreenPositions();
+      }
+    });
+    
+    canvas.addEventListener('mouseup', () => isDragging = false);
+    canvas.addEventListener('mouseleave', () => isDragging = false);
+    
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      scale = Math.max(0.3, Math.min(5, scale * delta));
+      updateScreenPositions();
+      initParticles();
+    });
+    
+    canvas.addEventListener('click', e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      let clicked = null;
+      let minDist = Infinity;
+      
+      screenNodes.forEach(node => {
+        const dist = Math.sqrt(Math.pow(node.x - x, 2) + Math.pow(node.y - y, 2));
+        const size = Math.max(12, Math.sqrt(node.inflow + node.outflow) / 2500) * scale * 2;
+        if (dist < size && dist < minDist) {
+          minDist = dist;
+          clicked = node;
+        }
+      });
+      
+      if (clicked) showNodeInfo(clicked);
+      else document.getElementById('info-panel').classList.remove('visible');
+    });
+    
+    function showNodeInfo(node) {
+      const panel = document.getElementById('info-panel');
+      panel.classList.add('visible');
+      
+      document.getElementById('info-icon').textContent = node.icon;
+      document.getElementById('info-icon').style.background = node.color;
+      document.getElementById('info-name').textContent = node.name;
+      document.getElementById('info-type').textContent = `${node.role} • ${node.label}`;
+      document.getElementById('info-location').textContent = `📍 ${node.location}`;
+      document.getElementById('info-inflow').textContent = formatMoney(node.inflow);
+      document.getElementById('info-outflow').textContent = formatMoney(node.outflow);
+      
+      const timeCost = node.timeHours * node.hourlyValue;
+      document.getElementById('info-time').textContent = '-' + formatMoney(timeCost);
+      document.getElementById('info-synergy').textContent = (node.synergy >= 0 ? '+' : '') + formatMoney(node.synergy);
+      
+      const totalValue = node.inflow - node.outflow - timeCost + node.synergy;
+      document.getElementById('info-value').textContent = formatMoney(totalValue);
+      
+      document.getElementById('info-desc').textContent = node.description;
+      
+      const statusEl = document.getElementById('info-status');
+      if (node.status === 'optimal') {
+        statusEl.className = 'info-status status-optimal';
+        statusEl.textContent = '✅ OPTIMAL - 돈 흐름 최적';
+      } else if (node.status === 'warning') {
+        statusEl.className = 'info-status status-warning';
+        statusEl.textContent = '⚠️ WARNING - 주의 필요';
+      } else if (node.status === 'bottleneck') {
+        statusEl.className = 'info-status status-bottleneck';
+        statusEl.textContent = '🚨 BOTTLENECK - 돈 병목!';
+      } else if (node.status === 'prediction') {
+        statusEl.className = 'info-status status-prediction';
+        statusEl.textContent = '⭐ PREDICTION - 예측: ' + formatMoney(node.forecast);
+      }
+    }
+    
+    // 컨트롤 버튼
+    document.getElementById('btn-korea').addEventListener('click', () => {
+      scale = 3;
+      offsetX = -width * 0.6;
+      offsetY = -height * 0.3;
+      updateScreenPositions();
+      initParticles();
+    });
+    
+    document.getElementById('btn-asia').addEventListener('click', () => {
+      scale = 1.5;
+      offsetX = -width * 0.3;
+      offsetY = -height * 0.1;
+      updateScreenPositions();
+      initParticles();
+    });
+    
+    document.getElementById('btn-world').addEventListener('click', () => {
+      scale = 1;
+      offsetX = 0;
+      offsetY = 0;
+      updateScreenPositions();
+      initParticles();
+    });
+    
+    document.getElementById('btn-animate').addEventListener('click', function() {
+      isAnimating = !isAnimating;
+      this.classList.toggle('active', isAnimating);
+      this.textContent = isAnimating ? '✨ 별똥별' : '✨ 정지';
+    });
+    
+    document.getElementById('btn-bottleneck').addEventListener('click', function() {
+      showBottlenecks = !showBottlenecks;
+      this.classList.toggle('active', showBottlenecks);
+      this.textContent = showBottlenecks ? '⚠️ 병목' : '⚠️ 숨김';
+    });
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 유틸리티
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      if (Math.abs(value) >= 100000000) return '₩' + (value / 100000000).toFixed(2) + '억';
+      if (Math.abs(value) >= 10000) return '₩' + Math.round(value / 10000).toLocaleString() + '만';
+      return '₩' + value.toLocaleString();
+    }
+    
+    console.log('🌌 AUTUS Physics Map - 글로벌 교육 사업 initialized');
+    console.log('📊 Nodes:', nodes.length);
+    console.log('💰 Flows:', flows.length);
+  </script>
+</body>
+</html>

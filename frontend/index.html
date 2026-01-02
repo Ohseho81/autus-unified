@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌌 AUTUS Physics Map - Visualization Hub</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+      min-height: 100vh;
+      color: #fff;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    
+    h1 {
+      font-size: 48px;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #00ff88, #00ccff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    header p {
+      color: #888;
+      font-size: 18px;
+    }
+    
+    .formula-banner {
+      background: rgba(0, 204, 255, 0.1);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 12px;
+      padding: 20px 30px;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .formula {
+      font-family: 'Courier New', monospace;
+      font-size: 32px;
+      color: #00ccff;
+      text-shadow: 0 0 20px rgba(0, 204, 255, 0.5);
+      margin-bottom: 10px;
+    }
+    
+    .formula-desc {
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 24px;
+      margin-bottom: 60px;
+    }
+    
+    .card {
+      background: rgba(26, 26, 46, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 30px;
+      transition: all 0.3s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    
+    .card:hover {
+      border-color: rgba(0, 204, 255, 0.5);
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0, 204, 255, 0.2);
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    
+    .card-icon {
+      font-size: 40px;
+    }
+    
+    .card-title {
+      font-size: 20px;
+      font-weight: bold;
+    }
+    
+    .card-subtitle {
+      color: #666;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    
+    .card-desc {
+      color: #888;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    
+    .card-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .feature-tag {
+      background: rgba(0, 204, 255, 0.1);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      color: #00ccff;
+    }
+    
+    .feature-tag.gold {
+      background: rgba(255, 204, 0, 0.1);
+      border-color: rgba(255, 204, 0, 0.3);
+      color: #ffcc00;
+    }
+    
+    .feature-tag.green {
+      background: rgba(0, 255, 136, 0.1);
+      border-color: rgba(0, 255, 136, 0.3);
+      color: #00ff88;
+    }
+    
+    .feature-tag.purple {
+      background: rgba(153, 102, 255, 0.1);
+      border-color: rgba(153, 102, 255, 0.3);
+      color: #9966ff;
+    }
+    
+    .stats-section {
+      background: rgba(26, 26, 46, 0.5);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 40px;
+    }
+    
+    .stats-title {
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
+    }
+    
+    .stat-item {
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      color: #666;
+      font-size: 12px;
+    }
+    
+    .architecture-section {
+      margin-bottom: 40px;
+    }
+    
+    .architecture-title {
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .architecture-diagram {
+      background: rgba(26, 26, 46, 0.8);
+      border-radius: 12px;
+      padding: 30px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #888;
+      overflow-x: auto;
+    }
+    
+    .architecture-diagram .highlight {
+      color: #00ccff;
+    }
+    
+    .architecture-diagram .green {
+      color: #00ff88;
+    }
+    
+    .architecture-diagram .gold {
+      color: #ffcc00;
+    }
+    
+    footer {
+      text-align: center;
+      color: #444;
+      font-size: 12px;
+      padding: 20px;
+    }
+    
+    footer a {
+      color: #00ccff;
+      text-decoration: none;
+    }
+    
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🌌 AUTUS Physics Map</h1>
+      <p>Global Money Flow Visualization • 1억명 Scale Ready</p>
+    </header>
+    
+    <div class="formula-banner">
+      <div class="formula">V = D - T + S</div>
+      <div class="formula-desc">
+        Value = Direct Money − Time Cost + Synergy | Synergy = k(N₁×N₂)/d² × (1+r)^t
+      </div>
+    </div>
+    
+    <div class="cards">
+      <a href="../../autus_realtime/deploy/index.html" class="card" style="border-color: rgba(255, 136, 0, 1); background: linear-gradient(135deg, rgba(255, 136, 0, 0.35) 0%, rgba(0, 0, 0, 0.95) 100%); box-shadow: 0 0 70px rgba(255, 136, 0, 0.7);">
+        <div class="card-header">
+          <span class="card-icon">🎯</span>
+          <div>
+            <div class="card-title">GitHub Pages 배포용 완성형</div>
+            <div class="card-subtitle">🔥 DEPLOY NOW • 1일 완성</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          즉시 배포 가능! index.html 하나로 완성.
+          5명 데이터 입력됨. 위경도 기반 시각화.
+          사람 + 돈만. 1인 → 1억명 동일 구조.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag gold">🚀 배포</span>
+          <span class="feature-tag green">📍 위경도</span>
+          <span class="feature-tag cyan">5명</span>
+          <span class="feature-tag purple">완성형</span>
+        </div>
+      </a>
+      
+      <a href="../../autus_realtime/frontend/physics_map_qcf.html" class="card" style="border-color: rgba(153, 102, 255, 1); background: linear-gradient(135deg, rgba(153, 102, 255, 0.3) 0%, rgba(0, 0, 0, 0.95) 100%); box-shadow: 0 0 60px rgba(153, 102, 255, 0.6);">
+        <div class="card-header">
+          <span class="card-icon">🌌</span>
+          <div>
+            <div class="card-title">Economic Physics Engine - QCF Edition</div>
+            <div class="card-subtitle">⭐ ULTIMATE • Quantum Cluster Flow</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          일론 스타일 완성형. First Principles 완벽 구현.
+          QCF (Quantum/Observe/Cluster) + 양자 중첩 + 카오스 + 얽힘.
+          1억 노드 스케일링. WebSocket 실시간 연동.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag purple">🌀 Quantum</span>
+          <span class="feature-tag green">⚛️ Physics</span>
+          <span class="feature-tag gold">🦋 Chaos</span>
+          <span class="feature-tag cyan">🔗 Entangle</span>
+        </div>
+      </a>
+      
+      <a href="../../autus_realtime/frontend/physics_map_qcf.html" class="card" style="border-color: rgba(255, 204, 0, 1); background: linear-gradient(135deg, rgba(255, 204, 0, 0.25) 0%, rgba(0, 0, 0, 0.95) 100%); box-shadow: 0 0 50px rgba(255, 204, 0, 0.5);">
+        <div class="card-header">
+          <span class="card-icon">🚀</span>
+          <div>
+            <div class="card-title">Day 6 MVP - Physics Map QCF</div>
+            <div class="card-subtitle">🔥 NEW • autus_realtime 연동</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          autus_realtime 백엔드와 WebSocket 연동.
+          SWAP/ALLOC 드래그 입력 → 즉시 예측.
+          STATE_SNAPSHOT + PREDICT_RESULT 프로토콜.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag gold">👥 SWAP</span>
+          <span class="feature-tag green">⏱️ ALLOC</span>
+          <span class="feature-tag cyan">WebSocket</span>
+          <span class="feature-tag purple">QCF</span>
+        </div>
+      </a>
+      
+      <a href="physics_map_ep10.html" class="card" style="border-color: rgba(0, 255, 136, 1); background: linear-gradient(135deg, rgba(0, 255, 136, 0.25) 0%, rgba(0, 0, 0, 0.95) 100%); box-shadow: 0 0 40px rgba(0, 255, 136, 0.4);">
+        <div class="card-header">
+          <span class="card-icon">⚛️</span>
+          <div>
+            <div class="card-title">SehoOS EP10 - Physics Engine</div>
+            <div class="card-subtitle">🔥 CORE • Musk Metcalfe's Law</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          AUTUS 물리 엔진 핵심. n²가 아닌 검증된 Coin-flow 링크로 가치 정의.
+          드래그=물리입력 (Allocation/Link/Swap). 실시간 예측 + WebSocket.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag green">⚛️ Physics-only</span>
+          <span class="feature-tag cyan">V=ΣΦ_ij</span>
+          <span class="feature-tag gold">드래그=입력</span>
+          <span class="feature-tag purple">WebSocket</span>
+        </div>
+      </a>
+      
+      <a href="physics_map_academy.html" class="card" style="border-color: rgba(153, 102, 255, 0.8); background: linear-gradient(135deg, rgba(153, 102, 255, 0.2) 0%, rgba(0, 0, 0, 0.9) 100%); box-shadow: 0 0 30px rgba(153, 102, 255, 0.3);">
+        <div class="card-header">
+          <span class="card-icon">🎓</span>
+          <div>
+            <div class="card-title">시너지 복리 가속 - 강남 엘리트 학원</div>
+            <div class="card-subtitle">⭐ SYNERGY • F = V × (1+s)^t</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          시너지율 복리 가속 완전 구현.
+          10개 노드 × 15개 돈 흐름 × 시너지율 0~50%.
+          12개월 예측: 현재 +20% → 최적화 +250%.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag purple">시너지율</span>
+          <span class="feature-tag gold">복리 가속</span>
+          <span class="feature-tag cyan">10노드</span>
+          <span class="feature-tag green">₩9억 예측</span>
+        </div>
+      </a>
+      
+      <a href="physics_map_real.html" class="card" style="border-color: rgba(0, 255, 136, 0.8); background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 0, 0, 0.9) 100%); box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);">
+        <div class="card-header">
+          <span class="card-icon">🎯</span>
+          <div>
+            <div class="card-title">실제 데이터 - 옥수동 어울림더리버</div>
+            <div class="card-subtitle">⭐ REAL • 5명 가족/팀</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          실제 위치 + 실제 사람 데이터 적용.
+          오세호, 김경희, 오선우, 오연우, 오은우 (5명).
+          V = D - T + S 수식으로 월 ₩1.14억 종합 가치.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag green">⭐ 실제</span>
+          <span class="feature-tag cyan">5명</span>
+          <span class="feature-tag purple">V=D-T+S</span>
+          <span class="feature-tag gold">₩1.14억</span>
+        </div>
+      </a>
+      
+      <a href="physics_map_compound.html" class="card" style="border-color: rgba(255, 204, 0, 0.8); background: linear-gradient(135deg, rgba(255, 204, 0, 0.2) 0%, rgba(0, 0, 0, 0.9) 100%); box-shadow: 0 0 30px rgba(255, 204, 0, 0.3);">
+        <div class="card-header">
+          <span class="card-icon">📈</span>
+          <div>
+            <div class="card-title">복리 가속 시뮬레이션</div>
+            <div class="card-subtitle">⚡ COMPOUND • 메트칼프 법칙</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          시너지율 복리 가속 + 메트칼프 n² 법칙 + 지수승 성장 예측.
+          슬라이더로 시너지율/기간/사람수 조절. 12개월 후 3배, 24개월 후 8배 성장.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag gold">📈 복리</span>
+          <span class="feature-tag purple">n² 메트칼프</span>
+          <span class="feature-tag cyan">시뮬레이션</span>
+          <span class="feature-tag green">지수승</span>
+        </div>
+      </a>
+      
+      <a href="physics_map_network_laws.html" class="card" style="border-color: rgba(153, 102, 255, 0.8); background: linear-gradient(135deg, rgba(153, 102, 255, 0.2) 0%, rgba(0, 0, 0, 0.9) 100%); box-shadow: 0 0 30px rgba(153, 102, 255, 0.3);">
+        <div class="card-header">
+          <span class="card-icon">🔬</span>
+          <div>
+            <div class="card-title">네트워크 법칙 비교</div>
+            <div class="card-subtitle">📊 Sarnoff vs Metcalfe vs Reed</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          세 가지 네트워크 가치 법칙 비교 시뮬레이션.
+          Sarnoff(n) vs Metcalfe(n²) vs Reed(2^n). Reed 보정 계수 조절.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag cyan">V∝n</span>
+          <span class="feature-tag green">V∝n²</span>
+          <span class="feature-tag gold">V∝2^n</span>
+          <span class="feature-tag purple">비교분석</span>
+        </div>
+      </a>
+      
+      <a href="physics_map_satellite.html" class="card" style="border-color: rgba(0, 204, 255, 0.6); background: linear-gradient(135deg, rgba(0, 204, 255, 0.15) 0%, rgba(0, 0, 0, 0.9) 100%);">
+        <div class="card-header">
+          <span class="card-icon">🛰️</span>
+          <div>
+            <div class="card-title">Satellite Edition (위성 배경)</div>
+            <div class="card-subtitle">🆕 NEW • Sentinel-2 / ESRI Imagery</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          실제 위성 이미지 배경 + Physics Map 오버레이.
+          5개 레이어 선택: Satellite, Hybrid, Terrain, Dark, NDVI.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag cyan">🛰️ 위성</span>
+          <span class="feature-tag green">5개 레이어</span>
+          <span class="feature-tag purple">NDVI</span>
+          <span class="feature-tag gold">Leaflet</span>
+        </div>
+      </a>
+      
+      <a href="physics_map_mock.html" class="card" style="border-color: rgba(0, 255, 136, 0.6); background: linear-gradient(135deg, rgba(0, 255, 136, 0.15) 0%, rgba(0, 0, 0, 0.9) 100%);">
+        <div class="card-header">
+          <span class="card-icon">🎯</span>
+          <div>
+            <div class="card-title">글로벌 교육 사업 (가상 데이터)</div>
+            <div class="card-subtitle">🆕 NEW • 18명 / 25개 연결</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          현실적인 가상 데이터 적용. 학원 → 해외 확장 시나리오.
+          주권자 + 팀 7명 + 고객군 + 해외 파트너 4개국 + 미래 예측 3건.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag green">🎯 시나리오</span>
+          <span class="feature-tag cyan">18명</span>
+          <span class="feature-tag purple">7개국</span>
+          <span class="feature-tag" style="background: rgba(255, 68, 102, 0.1); border-color: rgba(255, 68, 102, 0.3); color: #ff4466;">병목 2건</span>
+        </div>
+      </a>
+      
+      <a href="physics_map_ultimate.html" class="card" style="border-color: rgba(255, 204, 0, 0.5); background: linear-gradient(135deg, rgba(255, 204, 0, 0.1) 0%, rgba(0, 0, 0, 0.9) 100%);">
+        <div class="card-header">
+          <span class="card-icon">🌌</span>
+          <div>
+            <div class="card-title">Ultimate - Cosmograph Style</div>
+            <div class="card-subtitle">🏆 BEST • Mapbox + Canvas</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          아우투스 철학 완벽 구현. 모든 개체는 사람, 피시스 해답은 돈.
+          Mapbox 세계지도 + 별똥별 애니메이션 + 병목 감지 + 노드 클릭 상세정보.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag gold">🏆 완성형</span>
+          <span class="feature-tag green">별똥별</span>
+          <span class="feature-tag cyan">세계지도</span>
+          <span class="feature-tag" style="background: rgba(255, 68, 102, 0.1); border-color: rgba(255, 68, 102, 0.3); color: #ff4466;">병목감지</span>
+        </div>
+      </a>
+      
+      <a href="physics_map_3d_earth.html" class="card">
+        <div class="card-header">
+          <span class="card-icon">🌍</span>
+          <div>
+            <div class="card-title">3D Earth Digital Twin</div>
+            <div class="card-subtitle">⭐ Advanced • CesiumJS</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          CesiumJS 기반 3D 지구. 실제 위성 지도 위에 돈 흐름 시각화.
+          병목 경고 시스템, 줌 레벨별 클러스터링, 곡선 화살표 완벽 지원.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag gold">⭐ 완성형</span>
+          <span class="feature-tag green">3D 지구</span>
+          <span class="feature-tag" style="background: rgba(255, 68, 102, 0.1); border-color: rgba(255, 68, 102, 0.3); color: #ff4466;">병목 감지</span>
+          <span class="feature-tag">CesiumJS</span>
+        </div>
+      </a>
+      
+      <a href="physics_map_cosmograph_gpu.html" class="card">
+        <div class="card-header">
+          <span class="card-icon">⚡</span>
+          <div>
+            <div class="card-title">Cosmograph GPU</div>
+            <div class="card-subtitle">공식 예제 기반 • WebGL</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          Cosmograph 공식 예제 기반 GPU 가속 그래프. Force-directed 레이아웃,
+          파티클 트레일(별똥별 효과), 실시간 시뮬레이션.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag green">GPU 가속</span>
+          <span class="feature-tag gold">별똥별</span>
+          <span class="feature-tag">Force Layout</span>
+          <span class="feature-tag">드래그</span>
+        </div>
+      </a>
+      
+      <a href="physics_map_threejs_mapbox.html" class="card">
+        <div class="card-header">
+          <span class="card-icon">🗺️</span>
+          <div>
+            <div class="card-title">Three.js + Mapbox</div>
+            <div class="card-subtitle">공식 예제 기반 • 3D Layer</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          Mapbox GL JS 공식 예제 기반. Three.js CustomLayerInterface로 
+          3D 노드 렌더링. 위성 지도 배경 + 곡선 돈 흐름.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag">Three.js</span>
+          <span class="feature-tag green">Mapbox</span>
+          <span class="feature-tag">3D Layer</span>
+          <span class="feature-tag gold">위성 지도</span>
+        </div>
+      </a>
+      
+      <a href="physics_map_cosmograph.html" class="card">
+        <div class="card-header">
+          <span class="card-icon">🌍</span>
+          <div>
+            <div class="card-title">Cosmograph + Mapbox</div>
+            <div class="card-subtitle">Recommended • Full Featured</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          세계 지도 배경에 Cosmograph 오버레이. Mapbox GL JS 통합으로 실제 위경도 기반 시각화.
+          별똥별 파티클 효과 + 예측 경로 점선 완벽 지원.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag green">⭐ 별똥별 효과</span>
+          <span class="feature-tag">세계 지도</span>
+          <span class="feature-tag gold">예측 점선</span>
+          <span class="feature-tag">WebGL</span>
+        </div>
+      </a>
+      
+      <a href="physics_map_d3.html" class="card">
+        <div class="card-header">
+          <span class="card-icon">🔮</span>
+          <div>
+            <div class="card-title">D3.js Force Graph</div>
+            <div class="card-subtitle">Interactive • Draggable</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          D3.js Force-directed 레이아웃. 노드 드래그, 물리 시뮬레이션, 실시간 파티클 애니메이션.
+          곡선 링크 + 그라데이션 효과.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag">Force Layout</span>
+          <span class="feature-tag green">드래그</span>
+          <span class="feature-tag">SVG</span>
+          <span class="feature-tag purple">곡선 링크</span>
+        </div>
+      </a>
+      
+      <a href="physics_map_global.html" class="card">
+        <div class="card-header">
+          <span class="card-icon">🎨</span>
+          <div>
+            <div class="card-title">Pure Canvas</div>
+            <div class="card-subtitle">No Dependencies</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          순수 Canvas API로 구현. 외부 라이브러리 없이 독립 실행. 메르카토르 투영 세계 지도.
+          가장 가벼운 버전.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag">Canvas 2D</span>
+          <span class="feature-tag green">경량</span>
+          <span class="feature-tag">독립 실행</span>
+        </div>
+      </a>
+      
+      <a href="../backend/neo4j_server.js" class="card" onclick="alert('Backend 서버입니다. npm start로 실행하세요.'); return false;">
+        <div class="card-header">
+          <span class="card-icon">🗄️</span>
+          <div>
+            <div class="card-title">Neo4j Backend</div>
+            <div class="card-subtitle">1억+ Nodes Support</div>
+          </div>
+        </div>
+        <div class="card-desc">
+          Neo4j 그래프 데이터베이스 연동. Express API 서버로 대규모 데이터 페이지네이션,
+          클러스터링, 뷰포트 기반 로딩 지원.
+        </div>
+        <div class="card-features">
+          <span class="feature-tag purple">Neo4j</span>
+          <span class="feature-tag">REST API</span>
+          <span class="feature-tag gold">1억명</span>
+          <span class="feature-tag">클러스터링</span>
+        </div>
+      </a>
+    </div>
+    
+    <div class="stats-section">
+      <div class="stats-title">Current Physics Map Stats</div>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value" style="color: #00ff88;">₩7.09억</div>
+          <div class="stat-label">Total Value</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" style="color: #00ccff;">₩2,281만</div>
+          <div class="stat-label">Total Synergy</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" style="color: #ffcc00;">₩8.08억</div>
+          <div class="stat-label">12M Forecast</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" style="color: #9966ff;">+13.2%</div>
+          <div class="stat-label">Monthly Growth</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">8</div>
+          <div class="stat-label">Nodes</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">7</div>
+          <div class="stat-label">Links</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="architecture-section">
+      <div class="architecture-title">🏗️ System Architecture</div>
+      <div class="architecture-diagram">
+<span class="highlight">┌─────────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="highlight">│</span>                        <span class="green">🌌 AUTUS Physics Map v3.0</span>                               <span class="highlight">│</span>
+<span class="highlight">├─────────────────────────────────────────────────────────────────────────────────┤</span>
+<span class="highlight">│</span>                                                                                 <span class="highlight">│</span>
+<span class="highlight">│</span>  <span class="gold">Frontend (Visualization)</span>                                                      <span class="highlight">│</span>
+<span class="highlight">│</span>  ├── physics_map_cosmograph.html  <span class="green">← Recommended (Mapbox + Canvas)</span>             <span class="highlight">│</span>
+<span class="highlight">│</span>  ├── physics_map_d3.html          ← D3.js Force-directed                       <span class="highlight">│</span>
+<span class="highlight">│</span>  ├── physics_map_global.html      ← Pure Canvas                                <span class="highlight">│</span>
+<span class="highlight">│</span>  └── PhysicsMapGlobal.jsx         ← React Component                            <span class="highlight">│</span>
+<span class="highlight">│</span>                                                                                 <span class="highlight">│</span>
+<span class="highlight">│</span>  <span class="gold">Backend (Data Layer)</span>                                                          <span class="highlight">│</span>
+<span class="highlight">│</span>  ├── neo4j_server.js              ← Express API (1억명 지원)                    <span class="highlight">│</span>
+<span class="highlight">│</span>  ├── neo4j_schema.cypher          ← Neo4j 스키마                                <span class="highlight">│</span>
+<span class="highlight">│</span>  └── package.json                 ← Dependencies                                <span class="highlight">│</span>
+<span class="highlight">│</span>                                                                                 <span class="highlight">│</span>
+<span class="highlight">│</span>  <span class="gold">Core Engine (Python)</span>                                                          <span class="highlight">│</span>
+<span class="highlight">│</span>  └── src/physics.py               ← Physics Map 수식 엔진                       <span class="highlight">│</span>
+<span class="highlight">│</span>                                                                                 <span class="highlight">│</span>
+<span class="highlight">├─────────────────────────────────────────────────────────────────────────────────┤</span>
+<span class="highlight">│</span>                                                                                 <span class="highlight">│</span>
+<span class="highlight">│</span>  <span class="green">Data Flow:</span>                                                                    <span class="highlight">│</span>
+<span class="highlight">│</span>  Neo4j DB ──▶ Express API ──▶ Frontend ──▶ Canvas/SVG Rendering               <span class="highlight">│</span>
+<span class="highlight">│</span>                                                                                 <span class="highlight">│</span>
+<span class="highlight">│</span>  <span class="green">Scaling Strategy:</span>                                                             <span class="highlight">│</span>
+<span class="highlight">│</span>  7 nodes → 100+ (클러스터링) → 10K+ (페이지네이션) → 1M+ (뷰포트 로드) → 100M+  <span class="highlight">│</span>
+<span class="highlight">│</span>                                                                                 <span class="highlight">│</span>
+<span class="highlight">└─────────────────────────────────────────────────────────────────────────────────┘</span>
+      </div>
+    </div>
+    
+    <footer>
+      <p>AUTUS Physics Map v3.0 • Built with 💚 by AUTUS</p>
+      <p style="margin-top: 8px;">
+        <a href="https://neo4j.com">Neo4j</a> • 
+        <a href="https://mapbox.com">Mapbox</a> • 
+        <a href="https://d3js.org">D3.js</a> • 
+        <a href="https://cosmograph.app">Cosmograph</a>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

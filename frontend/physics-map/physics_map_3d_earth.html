@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌍 AUTUS Physics Map - 3D Earth Digital Twin</title>
+  
+  <!-- CesiumJS -->
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    html, body, #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    
+    /* 헤더 */
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0) 100%);
+      padding: 20px 30px;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    .header-left h1 {
+      color: #fff;
+      font-size: 22px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .header-left p {
+      color: #666;
+      font-size: 11px;
+      margin-top: 6px;
+    }
+    
+    .header-right {
+      display: flex;
+      gap: 30px;
+    }
+    
+    .stat {
+      text-align: right;
+    }
+    
+    .stat-label {
+      color: #555;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .stat-value {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    
+    .green { color: #00ff88; text-shadow: 0 0 15px rgba(0, 255, 136, 0.6); }
+    .cyan { color: #00ccff; text-shadow: 0 0 15px rgba(0, 204, 255, 0.6); }
+    .gold { color: #ffcc00; text-shadow: 0 0 15px rgba(255, 204, 0, 0.6); }
+    .red { color: #ff4466; text-shadow: 0 0 15px rgba(255, 68, 102, 0.6); }
+    
+    /* 패널 */
+    .panel {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+    
+    /* 수식 패널 */
+    .formula-panel {
+      top: 100px;
+      right: 30px;
+      width: 200px;
+    }
+    
+    .formula-title {
+      color: #555;
+      font-size: 10px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+    
+    .formula-main {
+      color: #00ccff;
+      font-family: 'Courier New', monospace;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 0 0 20px rgba(0, 204, 255, 0.6);
+      margin-bottom: 12px;
+    }
+    
+    .formula-desc {
+      color: #666;
+      font-size: 11px;
+      line-height: 1.7;
+    }
+    
+    .formula-desc strong {
+      color: #888;
+    }
+    
+    /* 노드 정보 패널 */
+    .info-panel {
+      top: 100px;
+      left: 30px;
+      min-width: 280px;
+      display: none;
+    }
+    
+    .info-panel.visible {
+      display: block;
+    }
+    
+    .info-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 14px;
+    }
+    
+    .info-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 0 20px currentColor;
+    }
+    
+    .info-name {
+      color: #fff;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    
+    .info-type {
+      color: #888;
+      font-size: 11px;
+      margin-top: 2px;
+    }
+    
+    .info-location {
+      color: #00ccff;
+      font-size: 10px;
+      margin-top: 4px;
+    }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    
+    .info-row-label { color: #666; }
+    .info-row-value { font-weight: bold; }
+    
+    .info-status {
+      margin-top: 14px;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .status-optimal {
+      background: rgba(0, 255, 136, 0.15);
+      border: 1px solid rgba(0, 255, 136, 0.4);
+      color: #00ff88;
+    }
+    
+    .status-warning {
+      background: rgba(255, 204, 0, 0.15);
+      border: 1px solid rgba(255, 204, 0, 0.4);
+      color: #ffcc00;
+    }
+    
+    .status-bottleneck {
+      background: rgba(255, 68, 102, 0.15);
+      border: 1px solid rgba(255, 68, 102, 0.4);
+      color: #ff4466;
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    
+    /* 병목 패널 */
+    .bottleneck-panel {
+      bottom: 100px;
+      left: 30px;
+      width: 300px;
+    }
+    
+    .bottleneck-title {
+      color: #ff4466;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .bottleneck-item {
+      background: rgba(255, 68, 102, 0.1);
+      border: 1px solid rgba(255, 68, 102, 0.3);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    
+    .bottleneck-item .route {
+      color: #fff;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    
+    .bottleneck-item .amount {
+      color: #ff4466;
+    }
+    
+    .bottleneck-item .action {
+      color: #ffcc00;
+      font-size: 10px;
+      margin-top: 6px;
+    }
+    
+    /* 범례 */
+    .legend-panel {
+      bottom: 100px;
+      right: 30px;
+      width: 180px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-size: 11px;
+      color: #888;
+    }
+    
+    .legend-line {
+      width: 30px;
+      height: 4px;
+      border-radius: 2px;
+    }
+    
+    .legend-line.inflow { background: linear-gradient(90deg, #00ff88, #00ccff); }
+    .legend-line.outflow { background: linear-gradient(90deg, #ff4466, #ff6600); }
+    .legend-line.prediction { 
+      background: linear-gradient(90deg, #ffcc00, #ff6600); 
+      height: 2px;
+      border-style: dashed;
+    }
+    .legend-line.bottleneck { 
+      background: #ff4466; 
+      box-shadow: 0 0 10px #ff4466;
+      animation: pulse 1.5s infinite;
+    }
+    
+    /* 컨트롤 */
+    .controls {
+      position: absolute;
+      bottom: 30px;
+      right: 30px;
+      display: flex;
+      gap: 10px;
+      z-index: 100;
+    }
+    
+    .control-btn {
+      width: 44px;
+      height: 44px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(0, 204, 255, 0.4);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .control-btn:hover {
+      background: rgba(0, 204, 255, 0.2);
+      border-color: #00ccff;
+      transform: scale(1.05);
+    }
+    
+    /* 푸터 */
+    .footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #444;
+      z-index: 50;
+    }
+    
+    /* Cesium 위젯 숨김 */
+    .cesium-viewer-bottom,
+    .cesium-viewer-animationContainer,
+    .cesium-viewer-timelineContainer,
+    .cesium-viewer-fullscreenContainer {
+      display: none !important;
+    }
+    
+    /* 줌 레벨 표시 */
+    .zoom-indicator {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(0, 204, 255, 0.3);
+      border-radius: 20px;
+      padding: 8px 20px;
+      font-size: 11px;
+      color: #00ccff;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <div id="cesiumContainer"></div>
+  
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="header-left">
+      <h1>🌍 AUTUS Physics Map</h1>
+      <p>3D Earth Digital Twin • 모든 개체는 사람 • 피시스 해답은 돈</p>
+    </div>
+    <div class="header-right">
+      <div class="stat">
+        <div class="stat-label">Total Value</div>
+        <div class="stat-value green" id="stat-value">₩7.09억</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Inflow</div>
+        <div class="stat-value cyan" id="stat-inflow">₩8.56억</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Outflow</div>
+        <div class="stat-value red" id="stat-outflow">₩1.54억</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Bottlenecks</div>
+        <div class="stat-value gold" id="stat-bottleneck">2</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 수식 패널 -->
+  <div class="panel formula-panel">
+    <div class="formula-title">Physics Formula</div>
+    <div class="formula-main">V = D - T + S</div>
+    <div class="formula-desc">
+      <strong>D</strong>: 직접 돈 (유입 - 유출)<br>
+      <strong>T</strong>: 시간 비용 = T × HV<br>
+      <strong>S</strong>: 시너지 = k(N₁×N₂)/d²<br>
+      <strong>병목</strong>: Outflow > Inflow × 0.3
+    </div>
+  </div>
+  
+  <!-- 노드 정보 패널 -->
+  <div class="panel info-panel" id="info-panel">
+    <div class="info-header">
+      <div class="info-icon" id="info-icon" style="background: #00ff88;">👤</div>
+      <div>
+        <div class="info-name" id="info-name">P03</div>
+        <div class="info-type" id="info-type">CONTROLLER</div>
+        <div class="info-location" id="info-location">📍 Seoul, Korea</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Total Value</span>
+      <span class="info-row-value green" id="info-value">₩1.83억</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Inflow (유입)</span>
+      <span class="info-row-value cyan" id="info-inflow">₩2.14억</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Outflow (유출)</span>
+      <span class="info-row-value red" id="info-outflow">₩3,850만</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Time Cost</span>
+      <span class="info-row-value" style="color: #ff6666" id="info-time">-₩400만</span>
+    </div>
+    <div class="info-row">
+      <span class="info-row-label">Synergy</span>
+      <span class="info-row-value gold" id="info-synergy">+₩1,141만</span>
+    </div>
+    <div class="info-status status-optimal" id="info-status">
+      ✅ OPTIMAL - 돈 흐름 최적
+    </div>
+  </div>
+  
+  <!-- 병목 패널 -->
+  <div class="panel bottleneck-panel" id="bottleneck-panel">
+    <div class="bottleneck-title">
+      ⚠️ 돈 병목 감지 (2건)
+    </div>
+    <div class="bottleneck-item">
+      <div class="route">한국 → 미국 (P07)</div>
+      <div class="amount">유출: ₩1,500만 (Inflow의 35%)</div>
+      <div class="action">💡 제안: 미국 파트너 시너지 강화 또는 비용 절감</div>
+    </div>
+    <div class="bottleneck-item">
+      <div class="route">호주 공급망 (P12)</div>
+      <div class="amount">유출: ₩800만 (ROI -20%)</div>
+      <div class="action">💡 제안: 공급선 재검토 또는 현지 대체</div>
+    </div>
+  </div>
+  
+  <!-- 범례 -->
+  <div class="panel legend-panel">
+    <div class="formula-title">Flow Types</div>
+    <div class="legend-item">
+      <div class="legend-line inflow"></div>
+      <span>돈 유입 (Inflow)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line outflow"></div>
+      <span>돈 유출 (Outflow)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line prediction"></div>
+      <span>예측 경로 ⭐</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line bottleneck"></div>
+      <span>병목 (Bottleneck)</span>
+    </div>
+  </div>
+  
+  <!-- 줌 레벨 표시 -->
+  <div class="zoom-indicator" id="zoom-indicator">
+    🌍 World View • 국가 클러스터
+  </div>
+  
+  <!-- 컨트롤 -->
+  <div class="controls">
+    <button class="control-btn" id="btn-korea" title="한국">🇰🇷</button>
+    <button class="control-btn" id="btn-asia" title="아시아">🌏</button>
+    <button class="control-btn" id="btn-world" title="세계">🌍</button>
+    <button class="control-btn" id="btn-play" title="애니메이션">▶</button>
+  </div>
+  
+  <!-- 푸터 -->
+  <div class="footer">
+    <span>🖱️ 드래그: 회전 | 스크롤: 줌 | 클릭: 노드 상세 | 더블클릭: 줌 인</span>
+    <span>AUTUS Physics Map v3.0 • 아우투스 철학: 모든 개체는 사람, 피시스 해답은 돈</span>
+  </div>
+  
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CesiumJS 초기화
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    // Cesium Ion 토큰 (무료 발급: https://cesium.com/ion/)
+    // 토큰 없어도 기본 지도는 작동
+    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlNTRjNWQ1MC1mZjA2LTQ1ZjEtOGI2NC1lNGUwMWE5ZmEwZDUiLCJpZCI6MjU5LCJpYXQiOjE1MjU5NjYzNjh9.fake-token-replace-with-yours';
+    
+    const viewer = new Cesium.Viewer('cesiumContainer', {
+      animation: false,
+      timeline: false,
+      baseLayerPicker: false,
+      geocoder: false,
+      homeButton: false,
+      sceneModePicker: false,
+      navigationHelpButton: false,
+      fullscreenButton: false,
+      infoBox: false,
+      selectionIndicator: false,
+      shadows: false,
+      shouldAnimate: true,
+      
+      // 어두운 테마 지도
+      imageryProvider: new Cesium.UrlTemplateImageryProvider({
+        url: 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',
+        subdomains: ['a', 'b', 'c', 'd'],
+        credit: 'Map tiles by CartoDB'
+      })
+    });
+    
+    // 대기 효과
+    viewer.scene.globe.enableLighting = true;
+    viewer.scene.globe.atmosphereLightIntensity = 3.0;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Physics Map 데이터 (사람 노드 + 돈 흐름)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    const nodes = [
+      { 
+        id: 'P03', type: 'PERSON', role: 'CONTROLLER', 
+        lat: 37.5665, lon: 126.978, location: 'Seoul, Korea',
+        value: 182886563, inflow: 214000000, outflow: 38500000, 
+        time: 4000000, synergy: 11406562, forecast: 210000000,
+        color: Cesium.Color.fromCssColorString('#00ff88'),
+        status: 'optimal', icon: '👤'
+      },
+      { 
+        id: 'P05', type: 'PERSON', role: 'BUILDER', 
+        lat: 35.6762, lon: 139.6503, location: 'Tokyo, Japan',
+        value: 175282188, inflow: 200000000, outflow: 24717812, 
+        time: 4000000, synergy: 3802187, forecast: 200000000,
+        color: Cesium.Color.fromCssColorString('#00ccff'),
+        status: 'optimal', icon: '👤'
+      },
+      { 
+        id: 'P11', type: 'PERSON', role: 'CONNECTOR', 
+        lat: 22.3193, lon: 114.1694, location: 'Hong Kong',
+        value: 175282188, inflow: 195000000, outflow: 19717812, 
+        time: 4000000, synergy: 3802187, forecast: 200000000,
+        color: Cesium.Color.fromCssColorString('#ffcc00'),
+        status: 'optimal', icon: '👤'
+      },
+      { 
+        id: 'P01', type: 'PERSON', role: 'RAINMAKER', 
+        lat: 1.3521, lon: 103.8198, location: 'Singapore',
+        value: 175282188, inflow: 190000000, outflow: 14717812, 
+        time: 4000000, synergy: 3802187, forecast: 200000000,
+        color: Cesium.Color.fromCssColorString('#ff6600'),
+        status: 'optimal', icon: '👤'
+      },
+      { 
+        id: 'P07', type: 'PERSON', role: 'PARTNER', 
+        lat: 40.7128, lon: -74.006, location: 'New York, USA',
+        value: 50000000, inflow: 45000000, outflow: 15000000, 
+        time: 4000000, synergy: -6000000, forecast: 65000000,
+        color: Cesium.Color.fromCssColorString('#9966ff'),
+        status: 'bottleneck', icon: '⚠️'  // 병목!
+      },
+      { 
+        id: 'P08', type: 'PERSON', role: 'INVESTOR', 
+        lat: 51.5074, lon: -0.1278, location: 'London, UK',
+        value: 80000000, inflow: 100000000, outflow: 20000000, 
+        time: 4000000, synergy: -1000000, forecast: 95000000,
+        color: Cesium.Color.fromCssColorString('#ff3366'),
+        status: 'optimal', icon: '💰'
+      },
+      { 
+        id: 'P12', type: 'PERSON', role: 'SUPPLIER', 
+        lat: -33.8688, lon: 151.2093, location: 'Sydney, Australia',
+        value: 30000000, inflow: 25000000, outflow: 8000000, 
+        time: 4000000, synergy: -1000000, forecast: 40000000,
+        color: Cesium.Color.fromCssColorString('#33cccc'),
+        status: 'bottleneck', icon: '⚠️'  // 병목!
+      },
+      { 
+        id: 'FUTURE1', type: 'PREDICTION', role: 'FUTURE', 
+        lat: 24.7136, lon: 46.6753, location: 'Riyadh, Saudi Arabia',
+        value: 0, inflow: 0, outflow: 0, 
+        time: 0, synergy: 0, forecast: 150000000,
+        color: Cesium.Color.fromCssColorString('#ffcc00').withAlpha(0.6),
+        status: 'prediction', icon: '⭐'
+      },
+    ];
+    
+    const flows = [
+      // 돈 유입 (Inflow) - 초록
+      { from: 'P08', to: 'P03', value: 25000000, type: 'inflow' },
+      { from: 'P11', to: 'P03', value: 11406562, type: 'synergy' },
+      { from: 'P05', to: 'P03', value: 3802187, type: 'synergy' },
+      { from: 'P01', to: 'P03', value: 3802187, type: 'synergy' },
+      
+      // 돈 유출 (Outflow) - 빨강
+      { from: 'P03', to: 'P07', value: 15000000, type: 'outflow' },
+      { from: 'P05', to: 'P12', value: 8000000, type: 'outflow' },
+      
+      // 예측 (Prediction) - 점선
+      { from: 'P03', to: 'FUTURE1', value: 50000000, type: 'prediction' },
+    ];
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 노드 렌더링 (사람/기업/국가)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function createNodes() {
+      nodes.forEach(node => {
+        const height = node.type === 'PREDICTION' ? 100000 : 50000;
+        const size = Math.max(15, Math.sqrt(node.value || node.forecast) / 8000);
+        
+        // 노드 위치
+        const position = Cesium.Cartesian3.fromDegrees(node.lon, node.lat, height);
+        
+        // 글로우 효과 (외부 원)
+        viewer.entities.add({
+          position: position,
+          ellipse: {
+            semiMajorAxis: size * 15000,
+            semiMinorAxis: size * 15000,
+            material: node.color.withAlpha(0.2),
+            height: height,
+          }
+        });
+        
+        // 메인 포인트
+        viewer.entities.add({
+          id: node.id,
+          name: node.id,
+          position: position,
+          point: {
+            pixelSize: size * 2,
+            color: node.color,
+            outlineColor: node.status === 'bottleneck' ? Cesium.Color.RED : Cesium.Color.WHITE,
+            outlineWidth: node.status === 'bottleneck' ? 4 : 2,
+            heightReference: Cesium.HeightReference.NONE,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY
+          },
+          label: {
+            text: `${node.icon} ${node.id}`,
+            font: '14px sans-serif',
+            fillColor: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 2,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            pixelOffset: new Cesium.Cartesian2(0, -20),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY
+          },
+          properties: node
+        });
+        
+        // 병목 경고 링
+        if (node.status === 'bottleneck') {
+          viewer.entities.add({
+            position: position,
+            ellipse: {
+              semiMajorAxis: size * 25000,
+              semiMinorAxis: size * 25000,
+              material: Cesium.Color.RED.withAlpha(0.3),
+              outline: true,
+              outlineColor: Cesium.Color.RED,
+              outlineWidth: 3,
+              height: height,
+            }
+          });
+        }
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 돈 흐름 렌더링 (곡선 화살표)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function createFlows() {
+      flows.forEach(flow => {
+        const fromNode = nodes.find(n => n.id === flow.from);
+        const toNode = nodes.find(n => n.id === flow.to);
+        if (!fromNode || !toNode) return;
+        
+        // 높이 (곡선 효과)
+        const midHeight = 500000;  // 500km 높이
+        
+        // 위치 계산
+        const fromPos = Cesium.Cartesian3.fromDegrees(fromNode.lon, fromNode.lat, 50000);
+        const toPos = Cesium.Cartesian3.fromDegrees(toNode.lon, toNode.lat, 50000);
+        
+        // 중간점 (곡선용)
+        const midLon = (fromNode.lon + toNode.lon) / 2;
+        const midLat = (fromNode.lat + toNode.lat) / 2;
+        const midPos = Cesium.Cartesian3.fromDegrees(midLon, midLat, midHeight);
+        
+        // 색상 결정
+        let color;
+        if (flow.type === 'inflow' || flow.type === 'synergy') {
+          color = Cesium.Color.fromCssColorString('#00ff88');
+        } else if (flow.type === 'outflow') {
+          color = Cesium.Color.fromCssColorString('#ff4466');
+        } else if (flow.type === 'prediction') {
+          color = Cesium.Color.fromCssColorString('#ffcc00');
+        }
+        
+        // 선 두께
+        const width = Math.max(2, Math.sqrt(flow.value) / 1500);
+        
+        // 곡선 경로 (여러 점)
+        const positions = [];
+        const segments = 50;
+        for (let i = 0; i <= segments; i++) {
+          const t = i / segments;
+          // 베지어 곡선
+          const lat = Math.pow(1-t, 2) * fromNode.lat + 2 * (1-t) * t * midLat + Math.pow(t, 2) * toNode.lat;
+          const lon = Math.pow(1-t, 2) * fromNode.lon + 2 * (1-t) * t * midLon + Math.pow(t, 2) * toNode.lon;
+          const height = Math.pow(1-t, 2) * 50000 + 2 * (1-t) * t * midHeight + Math.pow(t, 2) * 50000;
+          positions.push(Cesium.Cartesian3.fromDegrees(lon, lat, height));
+        }
+        
+        // 폴리라인 추가
+        viewer.entities.add({
+          polyline: {
+            positions: positions,
+            width: width,
+            material: flow.type === 'prediction' 
+              ? new Cesium.PolylineDashMaterialProperty({
+                  color: color,
+                  dashLength: 20
+                })
+              : new Cesium.PolylineGlowMaterialProperty({
+                  glowPower: 0.3,
+                  color: color
+                }),
+            clampToGround: false
+          }
+        });
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 이벤트 핸들러
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    // 노드 클릭
+    const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    
+    handler.setInputAction(function(click) {
+      const pickedObject = viewer.scene.pick(click.position);
+      
+      if (Cesium.defined(pickedObject) && pickedObject.id && pickedObject.id.properties) {
+        const node = pickedObject.id.properties.getValue();
+        showNodeInfo(node);
+      } else {
+        document.getElementById('info-panel').classList.remove('visible');
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    
+    function showNodeInfo(node) {
+      const panel = document.getElementById('info-panel');
+      panel.classList.add('visible');
+      
+      document.getElementById('info-icon').textContent = node.icon;
+      document.getElementById('info-icon').style.background = node.color.toCssColorString();
+      document.getElementById('info-name').textContent = node.id;
+      document.getElementById('info-type').textContent = node.type + ' • ' + node.role;
+      document.getElementById('info-location').textContent = '📍 ' + node.location;
+      document.getElementById('info-value').textContent = formatMoney(node.value);
+      document.getElementById('info-inflow').textContent = formatMoney(node.inflow);
+      document.getElementById('info-outflow').textContent = formatMoney(node.outflow);
+      document.getElementById('info-time').textContent = '-' + formatMoney(node.time);
+      document.getElementById('info-synergy').textContent = (node.synergy >= 0 ? '+' : '') + formatMoney(node.synergy);
+      
+      const statusEl = document.getElementById('info-status');
+      if (node.status === 'optimal') {
+        statusEl.className = 'info-status status-optimal';
+        statusEl.textContent = '✅ OPTIMAL - 돈 흐름 최적';
+      } else if (node.status === 'bottleneck') {
+        statusEl.className = 'info-status status-bottleneck';
+        statusEl.textContent = '⚠️ BOTTLENECK - 돈 병목 감지!';
+      } else if (node.status === 'prediction') {
+        statusEl.className = 'info-status status-warning';
+        statusEl.textContent = '⭐ PREDICTION - 예측 노드';
+      }
+    }
+    
+    // 줌 레벨 감지
+    viewer.camera.changed.addEventListener(function() {
+      const height = viewer.camera.positionCartographic.height;
+      const indicator = document.getElementById('zoom-indicator');
+      
+      if (height > 10000000) {
+        indicator.textContent = '🌍 World View • 국가 클러스터';
+      } else if (height > 3000000) {
+        indicator.textContent = '🌏 Region View • 도시 노드';
+      } else if (height > 500000) {
+        indicator.textContent = '🏙️ Country View • 개인 노드';
+      } else {
+        indicator.textContent = '👤 Local View • 상세 동선';
+      }
+    });
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 컨트롤 버튼
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    document.getElementById('btn-korea').addEventListener('click', () => {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(127.5, 36, 1000000),
+        duration: 2
+      });
+    });
+    
+    document.getElementById('btn-asia').addEventListener('click', () => {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(110, 25, 8000000),
+        duration: 2
+      });
+    });
+    
+    document.getElementById('btn-world').addEventListener('click', () => {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(100, 20, 20000000),
+        duration: 2
+      });
+    });
+    
+    let isAnimating = false;
+    document.getElementById('btn-play').addEventListener('click', () => {
+      isAnimating = !isAnimating;
+      document.getElementById('btn-play').textContent = isAnimating ? '⏸' : '▶';
+      
+      if (isAnimating) {
+        animateCamera();
+      }
+    });
+    
+    function animateCamera() {
+      if (!isAnimating) return;
+      
+      viewer.camera.rotate(Cesium.Cartesian3.UNIT_Z, 0.001);
+      requestAnimationFrame(animateCamera);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 유틸리티
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    function formatMoney(value) {
+      if (Math.abs(value) >= 100000000) return '₩' + (value / 100000000).toFixed(2) + '억';
+      if (Math.abs(value) >= 10000) return '₩' + Math.round(value / 10000).toLocaleString() + '만';
+      return '₩' + value.toLocaleString();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 초기화
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    createNodes();
+    createFlows();
+    
+    // 초기 카메라 위치 (아시아 중심)
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(110, 20, 15000000),
+      duration: 0
+    });
+    
+    console.log('🌍 AUTUS Physics Map - 3D Earth Digital Twin initialized');
+    console.log('📊 Nodes:', nodes.length);
+    console.log('💰 Flows:', flows.length);
+    console.log('⚠️ Bottlenecks:', nodes.filter(n => n.status === 'bottleneck').length);
+  </script>
+</body>
+</html>
