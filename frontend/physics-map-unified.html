@@ -3,10 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🌌 AUTUS Physics Map - Unified</title>
-  
-  <!-- Three.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <title>🌌 AUTUS Physics Map - Complete</title>
   
   <!-- D3.js -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -14,28 +11,55 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
+    :root {
+      --bg-dark: #0a0a0f;
+      --bg-panel: rgba(15, 15, 25, 0.95);
+      --border: rgba(255, 255, 255, 0.1);
+      --text-primary: #ffffff;
+      --text-secondary: #888;
+      --accent-cyan: #00ccff;
+      --accent-green: #00ff88;
+      --accent-gold: #ffcc00;
+      --accent-red: #ff4466;
+      --accent-purple: #aa66ff;
+    }
+    
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Display', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
       overflow: hidden;
-      color: #fff;
+      height: 100vh;
+    }
+    
+    /* ═══════════════════════════════════════════════════════════
+       메인 컨테이너
+    ═══════════════════════════════════════════════════════════ */
+    #app {
+      display: flex;
+      height: 100vh;
     }
     
     #canvas-container {
-      position: absolute;
-      top: 0;
-      left: 0;
+      flex: 1;
+      position: relative;
+      background: radial-gradient(ellipse at center, #0d1117 0%, #000 100%);
+    }
+    
+    #canvas-container svg {
       width: 100%;
       height: 100%;
     }
     
-    /* 헤더 */
+    /* ═══════════════════════════════════════════════════════════
+       헤더
+    ═══════════════════════════════════════════════════════════ */
     .header {
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0) 100%);
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, transparent 100%);
       padding: 20px 24px;
       z-index: 100;
       display: flex;
@@ -49,15 +73,38 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      text-shadow: 0 2px 20px rgba(0, 204, 255, 0.5);
+    }
+    
+    .header-left h1 .logo {
+      font-size: 24px;
     }
     
     .header-left .subtitle {
-      color: #666;
+      color: var(--text-secondary);
       font-size: 10px;
-      margin-top: 6px;
+      margin-top: 4px;
       letter-spacing: 2px;
       text-transform: uppercase;
+    }
+    
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-red);
+    }
+    
+    .status-dot.connected {
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
     }
     
     .header-right {
@@ -70,1336 +117,1006 @@
     }
     
     .stat-label {
-      color: #555;
+      color: var(--text-secondary);
       font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 1px;
     }
     
     .stat-value {
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 700;
       margin-top: 2px;
     }
     
-    .green { color: #00ff88; text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
-    .cyan { color: #00ccff; text-shadow: 0 0 20px rgba(0, 204, 255, 0.5); }
-    .gold { color: #ffcc00; text-shadow: 0 0 20px rgba(255, 204, 0, 0.5); }
-    .red { color: #ff4466; text-shadow: 0 0 20px rgba(255, 68, 102, 0.5); }
+    .stat-value.green { color: var(--accent-green); text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+    .stat-value.cyan { color: var(--accent-cyan); text-shadow: 0 0 20px rgba(0, 204, 255, 0.5); }
+    .stat-value.gold { color: var(--accent-gold); text-shadow: 0 0 20px rgba(255, 204, 0, 0.5); }
     
-    /* 공식 패널 */
+    /* ═══════════════════════════════════════════════════════════
+       2버튼 시스템 (CUT / LINK)
+    ═══════════════════════════════════════════════════════════ */
+    .action-buttons {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+      z-index: 200;
+    }
+    
+    .action-btn {
+      width: 140px;
+      height: 60px;
+      border: none;
+      border-radius: 16px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    
+    .action-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    
+    .btn-cut {
+      background: linear-gradient(135deg, #ff4466 0%, #cc2244 100%);
+      color: white;
+      box-shadow: 0 8px 30px rgba(255, 68, 102, 0.4);
+    }
+    
+    .btn-cut:hover:not(:disabled) {
+      transform: scale(1.05);
+      box-shadow: 0 12px 40px rgba(255, 68, 102, 0.6);
+    }
+    
+    .btn-cut:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+    
+    .btn-link {
+      background: linear-gradient(135deg, #00ccff 0%, #0088cc 100%);
+      color: white;
+      box-shadow: 0 8px 30px rgba(0, 204, 255, 0.4);
+    }
+    
+    .btn-link:hover:not(:disabled) {
+      transform: scale(1.05);
+      box-shadow: 0 12px 40px rgba(0, 204, 255, 0.6);
+    }
+    
+    .btn-link:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+    
+    .selection-hint {
+      position: absolute;
+      bottom: 110px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      z-index: 200;
+    }
+    
+    .selection-hint .selected-count {
+      color: var(--accent-cyan);
+      font-weight: 700;
+    }
+    
+    /* ═══════════════════════════════════════════════════════════
+       공식 패널
+    ═══════════════════════════════════════════════════════════ */
     .formula-panel {
       position: absolute;
       left: 24px;
-      bottom: 100px;
-      background: rgba(0, 0, 0, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      bottom: 140px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 16px;
+      padding: 16px 20px;
       z-index: 100;
       backdrop-filter: blur(10px);
     }
     
+    .formula-title {
+      font-size: 10px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    
     .formula {
-      font-family: 'Courier New', monospace;
-      font-size: 16px;
-      color: #00ccff;
-      text-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      font-family: 'SF Mono', 'Consolas', monospace;
     }
     
     .formula-desc {
-      color: #666;
       font-size: 10px;
+      color: var(--text-secondary);
       margin-top: 8px;
+      line-height: 1.5;
     }
     
-    /* 액션 버튼 */
-    .action-buttons {
+    /* ═══════════════════════════════════════════════════════════
+       노드 상세 패널
+    ═══════════════════════════════════════════════════════════ */
+    .node-detail {
       position: absolute;
       right: 24px;
-      bottom: 100px;
-      display: flex;
-      gap: 12px;
+      top: 100px;
+      width: 280px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
       z-index: 100;
+      backdrop-filter: blur(10px);
+      display: none;
     }
     
-    .action-btn {
-      padding: 12px 24px;
+    .node-detail.visible {
+      display: block;
+    }
+    
+    .node-detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .node-detail-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    
+    .node-detail-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 20px;
+      cursor: pointer;
+    }
+    
+    .node-detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .node-detail-label {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+    
+    .node-detail-value {
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .node-detail-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    
+    .node-detail-btn {
+      flex: 1;
+      padding: 10px;
       border: none;
       border-radius: 8px;
       font-weight: 600;
-      font-size: 14px;
       cursor: pointer;
-      transition: all 0.3s;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .action-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
-    
-    .btn-cut {
-      background: linear-gradient(135deg, #ff4466, #ff2244);
-      color: white;
-    }
-    
-    .btn-link {
-      background: linear-gradient(135deg, #00ccff, #0099cc);
-      color: white;
-    }
-    
-    .btn-outsource {
-      background: linear-gradient(135deg, #9966ff, #7744dd);
-      color: white;
-    }
-    
-    /* 모드 스위처 */
-    .mode-switcher {
-      position: absolute;
-      top: 20px;
-      right: 24px;
-      display: flex;
-      gap: 8px;
-      z-index: 100;
-    }
-    
-    .mode-btn {
-      padding: 8px 16px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 6px;
-      color: #888;
       font-size: 12px;
-      cursor: pointer;
-      transition: all 0.3s;
     }
     
-    .mode-btn.active {
+    .node-detail-btn.cut {
+      background: rgba(255, 68, 102, 0.2);
+      color: var(--accent-red);
+      border: 1px solid var(--accent-red);
+    }
+    
+    .node-detail-btn.link {
       background: rgba(0, 204, 255, 0.2);
-      border-color: #00ccff;
-      color: #00ccff;
+      color: var(--accent-cyan);
+      border: 1px solid var(--accent-cyan);
     }
     
-    /* 노드 툴팁 */
-    .tooltip {
+    /* ═══════════════════════════════════════════════════════════
+       미니맵
+    ═══════════════════════════════════════════════════════════ */
+    .minimap {
       position: absolute;
-      background: rgba(0, 0, 0, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      right: 24px;
+      bottom: 40px;
+      width: 180px;
+      height: 120px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 12px;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.2s;
-      z-index: 200;
-      min-width: 150px;
-    }
-    
-    .tooltip.visible {
-      opacity: 1;
-    }
-    
-    .tooltip-id {
-      color: #00ccff;
-      font-weight: 600;
-      font-size: 14px;
-    }
-    
-    .tooltip-value {
-      color: #00ff88;
-      font-size: 18px;
-      font-weight: 700;
-      margin-top: 4px;
-    }
-    
-    .tooltip-connections {
-      color: #888;
-      font-size: 11px;
-      margin-top: 8px;
-    }
-    
-    /* 하단 정보 */
-    .footer {
-      position: absolute;
-      bottom: 24px;
-      left: 0;
-      right: 0;
-      text-align: center;
-      color: #444;
-      font-size: 10px;
-      letter-spacing: 2px;
       z-index: 100;
-    }
-    
-    /* 연결 상태 */
-    .connection-status {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 8px 16px;
-      border-radius: 20px;
-      z-index: 100;
-    }
-    
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      animation: pulse 2s infinite;
-    }
-    
-    .status-dot.connected { background: #00ff88; }
-    .status-dot.disconnected { background: #ff4466; }
-    
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-  </style>
-</head>
-<body>
-  <!-- 캔버스 -->
-  <div id="canvas-container"></div>
-  
-  <!-- 헤더 -->
-  <div class="header">
-    <div class="header-left">
-      <h1>🌌 AUTUS Physics Map</h1>
-      <div class="subtitle">ZERO MEANING · MONEY PHYSICS · FLYWHEEL</div>
-    </div>
-    <div class="header-right">
-      <div class="stat">
-        <div class="stat-label">총 가치</div>
-        <div class="stat-value green" id="total-value">₩0</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">노드</div>
-        <div class="stat-value cyan" id="node-count">0</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">모션</div>
-        <div class="stat-value gold" id="motion-count">0</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">시너지</div>
-        <div class="stat-value" id="synergy-value">1.00x</div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- 연결 상태 -->
-  <div class="connection-status">
-    <div class="status-dot" id="status-dot"></div>
-    <span id="status-text" style="color: #888; font-size: 11px;">연결 중...</span>
-  </div>
-  
-  <!-- 모드 스위처 -->
-  <div class="mode-switcher">
-    <button class="mode-btn active" data-mode="force">Force</button>
-    <button class="mode-btn" data-mode="3d">3D</button>
-    <button class="mode-btn" data-mode="radial">Radial</button>
-  </div>
-  
-  <!-- 공식 패널 -->
-  <div class="formula-panel">
-    <div class="formula">V = (M - T) × (1 + s)^t</div>
-    <div class="formula-desc">
-      V: 가치 | M: 매출 | T: 비용 | s: 시너지율 | t: 시간
-    </div>
-  </div>
-  
-  <!-- 액션 버튼 -->
-  <div class="action-buttons">
-    <button class="action-btn btn-cut" id="btn-cut">
-      ✂️ CUT
-    </button>
-    <button class="action-btn btn-link" id="btn-link">
-      🔗 LINK
-    </button>
-    <button class="action-btn btn-outsource" id="btn-outsource">
-      📤 OUTSOURCE
-    </button>
-  </div>
-  
-  <!-- 툴팁 -->
-  <div class="tooltip" id="tooltip">
-    <div class="tooltip-id">node_123</div>
-    <div class="tooltip-value">₩1,000,000</div>
-    <div class="tooltip-connections">연결: 5개</div>
-  </div>
-  
-  <!-- 하단 -->
-  <div class="footer">
-    AUTUS · OPERATING SYSTEM OF REALITY
-  </div>
-
-  <script>
-    // ═══════════════════════════════════════════════════════════
-    // AUTUS Physics Map - Unified Version
-    // ═══════════════════════════════════════════════════════════
-    
-    const CONFIG = {
-      API_URL: 'http://localhost:8000',
-      WS_URL: 'ws://localhost:8000/ws',
-      RECONNECT_INTERVAL: 3000,
-      UPDATE_INTERVAL: 1000
-    };
-    
-    // 상태
-    const state = {
-      nodes: [],
-      motions: [],
-      selectedNode: null,
-      mode: 'force', // force, 3d, radial
-      connected: false,
-      totalValue: 0,
-      synergy: 1.0
-    };
-    
-    // DOM 요소
-    const container = document.getElementById('canvas-container');
-    const tooltip = document.getElementById('tooltip');
-    const statusDot = document.getElementById('status-dot');
-    const statusText = document.getElementById('status-text');
-    
-    // ═══════════════════════════════════════════════════════════
-    // D3 Force Layout (기본 모드)
-    // ═══════════════════════════════════════════════════════════
-    
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    
-    const svg = d3.select('#canvas-container')
-      .append('svg')
-      .attr('width', width)
-      .attr('height', height);
-    
-    // 그라데이션 정의
-    const defs = svg.append('defs');
-    
-    // 노드 그라데이션
-    const nodeGradient = defs.append('radialGradient')
-      .attr('id', 'node-gradient');
-    nodeGradient.append('stop').attr('offset', '0%').attr('stop-color', '#00ccff');
-    nodeGradient.append('stop').attr('offset', '100%').attr('stop-color', '#0066aa');
-    
-    // 링크 컨테이너
-    const linkGroup = svg.append('g').attr('class', 'links');
-    
-    // 노드 컨테이너
-    const nodeGroup = svg.append('g').attr('class', 'nodes');
-    
-    // Force Simulation
-    const simulation = d3.forceSimulation()
-      .force('link', d3.forceLink().id(d => d.id).distance(100))
-      .force('charge', d3.forceManyBody().strength(-300))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(30));
-    
-    // ═══════════════════════════════════════════════════════════
-    // 렌더링
-    // ═══════════════════════════════════════════════════════════
-    
-    function render() {
-      // 링크
-      const links = linkGroup.selectAll('line')
-        .data(state.motions, d => `${d.source.id || d.source}-${d.target.id || d.target}`);
-      
-      links.enter()
-        .append('line')
-        .attr('stroke', 'rgba(0, 204, 255, 0.3)')
-        .attr('stroke-width', d => Math.sqrt(d.amount / 10000))
-        .merge(links);
-      
-      links.exit().remove();
-      
-      // 노드
-      const nodes = nodeGroup.selectAll('g')
-        .data(state.nodes, d => d.id);
-      
-      const nodeEnter = nodes.enter()
-        .append('g')
-        .attr('class', 'node')
-        .call(d3.drag()
-          .on('start', dragStarted)
-          .on('drag', dragged)
-          .on('end', dragEnded))
-        .on('mouseover', showTooltip)
-        .on('mouseout', hideTooltip)
-        .on('click', selectNode);
-      
-      // 노드 원
-      nodeEnter.append('circle')
-        .attr('r', d => Math.max(10, Math.min(40, Math.sqrt(Math.abs(d.value) / 1000))))
-        .attr('fill', d => d.value >= 0 ? 'url(#node-gradient)' : '#ff4466')
-        .attr('stroke', '#fff')
-        .attr('stroke-width', 2)
-        .attr('stroke-opacity', 0.3);
-      
-      // 노드 글로우
-      nodeEnter.append('circle')
-        .attr('r', d => Math.max(15, Math.min(50, Math.sqrt(Math.abs(d.value) / 1000) + 5)))
-        .attr('fill', 'none')
-        .attr('stroke', d => d.value >= 0 ? '#00ccff' : '#ff4466')
-        .attr('stroke-width', 1)
-        .attr('stroke-opacity', 0.2);
-      
-      // 노드 라벨
-      nodeEnter.append('text')
-        .attr('text-anchor', 'middle')
-        .attr('dy', 4)
-        .attr('fill', '#fff')
-        .attr('font-size', 10)
-        .text(d => d.id.substring(0, 6));
-      
-      nodes.merge(nodeEnter);
-      nodes.exit().remove();
-      
-      // 시뮬레이션 업데이트
-      simulation.nodes(state.nodes);
-      simulation.force('link').links(state.motions);
-      simulation.alpha(0.3).restart();
-      
-      // 통계 업데이트
-      updateStats();
-    }
-    
-    // 시뮬레이션 틱
-    simulation.on('tick', () => {
-      linkGroup.selectAll('line')
-        .attr('x1', d => d.source.x)
-        .attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x)
-        .attr('y2', d => d.target.y);
-      
-      nodeGroup.selectAll('g')
-        .attr('transform', d => `translate(${d.x}, ${d.y})`);
-    });
-    
-    // ═══════════════════════════════════════════════════════════
-    // 인터랙션
-    // ═══════════════════════════════════════════════════════════
-    
-    function dragStarted(event, d) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      d.fx = d.x;
-      d.fy = d.y;
-    }
-    
-    function dragged(event, d) {
-      d.fx = event.x;
-      d.fy = event.y;
-    }
-    
-    function dragEnded(event, d) {
-      if (!event.active) simulation.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
-    }
-    
-    function showTooltip(event, d) {
-      const connections = state.motions.filter(
-        m => m.source.id === d.id || m.target.id === d.id
-      ).length;
-      
-      tooltip.querySelector('.tooltip-id').textContent = d.id;
-      tooltip.querySelector('.tooltip-value').textContent = 
-        '₩' + Math.abs(d.value).toLocaleString();
-      tooltip.querySelector('.tooltip-connections').textContent = 
-        `연결: ${connections}개`;
-      
-      tooltip.style.left = (event.pageX + 15) + 'px';
-      tooltip.style.top = (event.pageY + 15) + 'px';
-      tooltip.classList.add('visible');
-    }
-    
-    function hideTooltip() {
-      tooltip.classList.remove('visible');
-    }
-    
-    function selectNode(event, d) {
-      state.selectedNode = d;
-      console.log('Selected:', d);
-    }
-    
-    // ═══════════════════════════════════════════════════════════
-    // 통계 업데이트
-    // ═══════════════════════════════════════════════════════════
-    
-    function updateStats() {
-      const totalValue = state.nodes.reduce((sum, n) => sum + n.value, 0);
-      const nodeCount = state.nodes.length;
-      const motionCount = state.motions.length;
-      const synergy = calculateSynergy();
-      
-      document.getElementById('total-value').textContent = 
-        '₩' + totalValue.toLocaleString();
-      document.getElementById('node-count').textContent = nodeCount;
-      document.getElementById('motion-count').textContent = motionCount;
-      
-      const synergyEl = document.getElementById('synergy-value');
-      synergyEl.textContent = synergy.toFixed(2) + 'x';
-      synergyEl.className = 'stat-value ' + (synergy > 1.5 ? 'green' : synergy > 1 ? 'cyan' : 'red');
-      
-      state.totalValue = totalValue;
-      state.synergy = synergy;
-    }
-    
-    function calculateSynergy() {
-      if (state.nodes.length === 0) return 1.0;
-      
-      const n = state.nodes.length;
-      const e = state.motions.length;
-      const avgConnections = n > 0 ? e / n : 0;
-      
-      // 시너지 공식: 1 + (연결 밀도 × 0.1)
-      return 1 + (avgConnections * 0.1);
-    }
-    
-    // ═══════════════════════════════════════════════════════════
-    // API / WebSocket 연결
-    // ═══════════════════════════════════════════════════════════
-    
-    async function fetchData() {
-      try {
-        const response = await fetch(`${CONFIG.API_URL}/health`);
-        if (response.ok) {
-          setConnected(true);
-          return true;
-        }
-      } catch (e) {
-        setConnected(false);
-      }
-      return false;
-    }
-    
-    function setConnected(connected) {
-      state.connected = connected;
-      statusDot.className = 'status-dot ' + (connected ? 'connected' : 'disconnected');
-      statusText.textContent = connected ? '연결됨' : '오프라인';
-      statusText.style.color = connected ? '#00ff88' : '#ff4466';
-    }
-    
-    // ═══════════════════════════════════════════════════════════
-    // 액션 버튼
-    // ═══════════════════════════════════════════════════════════
-    
-    document.getElementById('btn-cut').addEventListener('click', async () => {
-      if (!state.selectedNode) {
-        alert('노드를 선택하세요');
-        return;
-      }
-      
-      // 노드 삭제
-      state.nodes = state.nodes.filter(n => n.id !== state.selectedNode.id);
-      state.motions = state.motions.filter(
-        m => m.source.id !== state.selectedNode.id && m.target.id !== state.selectedNode.id
-      );
-      state.selectedNode = null;
-      render();
-      
-      console.log('CUT 완료');
-    });
-    
-    document.getElementById('btn-link').addEventListener('click', () => {
-      console.log('LINK 모드');
-      // TODO: 두 노드 선택하여 연결
-    });
-    
-    document.getElementById('btn-outsource').addEventListener('click', () => {
-      if (!state.selectedNode) {
-        alert('노드를 선택하세요');
-        return;
-      }
-      console.log('OUTSOURCE:', state.selectedNode);
-      // TODO: 외부용역 API 호출
-    });
-    
-    // ═══════════════════════════════════════════════════════════
-    // 모드 스위처
-    // ═══════════════════════════════════════════════════════════
-    
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.mode = btn.dataset.mode;
-        
-        if (state.mode === 'radial') {
-          simulation.force('center', null);
-          simulation.force('radial', d3.forceRadial(200, width/2, height/2));
-        } else {
-          simulation.force('radial', null);
-          simulation.force('center', d3.forceCenter(width / 2, height / 2));
-        }
-        
-        simulation.alpha(0.5).restart();
-      });
-    });
-    
-    // ═══════════════════════════════════════════════════════════
-    // 샘플 데이터
-    // ═══════════════════════════════════════════════════════════
-    
-    function loadSampleData() {
-      // 샘플 노드
-      state.nodes = [
-        { id: 'node_001', value: 500000 },
-        { id: 'node_002', value: 300000 },
-        { id: 'node_003', value: 200000 },
-        { id: 'node_004', value: -50000 },
-        { id: 'node_005', value: 150000 },
-        { id: 'node_006', value: 80000 },
-        { id: 'node_007', value: 120000 },
-        { id: 'node_008', value: -30000 },
-        { id: 'node_009', value: 250000 },
-        { id: 'node_010', value: 100000 }
-      ];
-      
-      // 샘플 모션
-      state.motions = [
-        { source: 'node_001', target: 'node_002', amount: 50000 },
-        { source: 'node_001', target: 'node_003', amount: 30000 },
-        { source: 'node_002', target: 'node_005', amount: 20000 },
-        { source: 'node_003', target: 'node_006', amount: 15000 },
-        { source: 'node_005', target: 'node_007', amount: 25000 },
-        { source: 'node_006', target: 'node_009', amount: 10000 },
-        { source: 'node_007', target: 'node_010', amount: 35000 },
-        { source: 'node_009', target: 'node_001', amount: 40000 },
-        { source: 'node_002', target: 'node_009', amount: 20000 },
-        { source: 'node_004', target: 'node_008', amount: 5000 }
-      ];
-      
-      render();
-    }
-    
-    // ═══════════════════════════════════════════════════════════
-    // 🔴 WebSocket 실시간 연결
-    // ═══════════════════════════════════════════════════════════
-    
-    let ws = null;
-    let reconnectAttempts = 0;
-    const MAX_RECONNECT_ATTEMPTS = 5;
-    
-    function connectWebSocket() {
-      const wsUrl = `${CONFIG.WS_URL}/physics-map?client_id=pm_${Date.now()}`;
-      console.log('🔌 WebSocket 연결 시도:', wsUrl);
-      
-      ws = new WebSocket(wsUrl);
-      
-      ws.onopen = () => {
-        console.log('✅ WebSocket 연결됨');
-        setConnected(true);
-        reconnectAttempts = 0;
-        
-        // 연결 상태 업데이트
-        statusText.textContent = '실시간 연결됨';
-      };
-      
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        handleWebSocketMessage(message);
-      };
-      
-      ws.onclose = () => {
-        console.log('❌ WebSocket 연결 해제');
-        setConnected(false);
-        
-        // 재연결 시도
-        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-          reconnectAttempts++;
-          console.log(`🔄 재연결 시도 ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}...`);
-          setTimeout(connectWebSocket, CONFIG.RECONNECT_INTERVAL);
-        }
-      };
-      
-      ws.onerror = (error) => {
-        console.error('WebSocket 에러:', error);
-      };
-    }
-    
-    function handleWebSocketMessage(message) {
-      console.log('📨 WebSocket 메시지:', message.type, message.data);
-      
-      switch (message.type) {
-        case 'connected':
-          console.log('🎉 서버에서 연결 확인:', message.data);
-          break;
-        
-        case 'node_update':
-          handleNodeUpdate(message.data);
-          break;
-        
-        case 'motion_update':
-          handleMotionUpdate(message.data);
-          break;
-        
-        case 'synergy_update':
-          handleSynergyUpdate(message.data);
-          break;
-        
-        case 'flywheel_pulse':
-          handleFlywheelPulse(message.data);
-          break;
-        
-        case 'pong':
-          // 핑-퐁 응답
-          break;
-        
-        default:
-          console.log('알 수 없는 메시지:', message);
-      }
-    }
-    
-    // 노드 업데이트 처리
-    function handleNodeUpdate(data) {
-      const { node_id, value, action } = data;
-      
-      // 기존 노드 찾기
-      let node = state.nodes.find(n => n.id === node_id);
-      
-      if (node) {
-        // 기존 노드 값 업데이트
-        node.value += value;
-      } else {
-        // 새 노드 추가
-        node = { 
-          id: node_id, 
-          value: value,
-          x: width / 2 + (Math.random() - 0.5) * 200,
-          y: height / 2 + (Math.random() - 0.5) * 200
-        };
-        state.nodes.push(node);
-      }
-      
-      // 펄스 애니메이션
-      if (action === 'pulse') {
-        pulseNode(node_id);
-      }
-      
-      render();
-    }
-    
-    // 모션 업데이트 처리
-    function handleMotionUpdate(data) {
-      const { source, target, amount, action } = data;
-      
-      // 새 모션 추가
-      const motion = { source, target, amount };
-      state.motions.push(motion);
-      
-      // 흐름 애니메이션
-      if (action === 'flow') {
-        flowAnimation(source, target);
-      }
-      
-      render();
-    }
-    
-    // 시너지 업데이트 처리
-    function handleSynergyUpdate(data) {
-      const { synergy, total_value } = data;
-      
-      state.synergy = synergy;
-      state.totalValue = total_value;
-      
-      updateStats();
-    }
-    
-    // 플라이휠 펄스 처리
-    function handleFlywheelPulse(data) {
-      const { stage, momentum } = data;
-      
-      console.log(`🔄 Flywheel ${stage}: momentum ${momentum}`);
-      
-      // 전체 화면 펄스 효과
-      document.body.style.boxShadow = `inset 0 0 100px rgba(0, 204, 255, ${momentum * 0.3})`;
-      setTimeout(() => {
-        document.body.style.boxShadow = 'none';
-      }, 500);
-    }
-    
-    // 노드 펄스 애니메이션
-    function pulseNode(nodeId) {
-      const nodeEl = nodeGroup.selectAll('g')
-        .filter(d => d.id === nodeId);
-      
-      if (nodeEl.empty()) return;
-      
-      nodeEl.selectAll('circle')
-        .transition()
-        .duration(200)
-        .attr('stroke', '#00ff88')
-        .attr('stroke-width', 5)
-        .attr('stroke-opacity', 1)
-        .transition()
-        .duration(500)
-        .attr('stroke', d => d.value >= 0 ? '#00ccff' : '#ff4466')
-        .attr('stroke-width', 2)
-        .attr('stroke-opacity', 0.3);
-    }
-    
-    // 흐름 애니메이션
-    function flowAnimation(sourceId, targetId) {
-      const sourceNode = state.nodes.find(n => n.id === sourceId);
-      const targetNode = state.nodes.find(n => n.id === targetId);
-      
-      if (!sourceNode || !targetNode) return;
-      
-      // 임시 파티클 생성
-      const particle = svg.append('circle')
-        .attr('cx', sourceNode.x || width/2)
-        .attr('cy', sourceNode.y || height/2)
-        .attr('r', 5)
-        .attr('fill', '#00ff88')
-        .attr('opacity', 1);
-      
-      particle.transition()
-        .duration(500)
-        .attr('cx', targetNode.x || width/2)
-        .attr('cy', targetNode.y || height/2)
-        .attr('opacity', 0)
-        .remove();
-    }
-    
-    // ═══════════════════════════════════════════════════════════
-    // 초기화
-    // ═══════════════════════════════════════════════════════════
-    
-    async function init() {
-      console.log('🌌 AUTUS Physics Map 초기화');
-      
-      // HTTP 연결 확인
-      await fetchData();
-      
-      // 샘플 데이터 로드
-      loadSampleData();
-      
-      // WebSocket 연결
-      connectWebSocket();
-      
-      // 주기적 ping (연결 유지)
-      setInterval(() => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'ping' }));
-        }
-      }, 30000);
-    }
-    
-    // 윈도우 리사이즈
-    window.addEventListener('resize', () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      
-      svg.attr('width', w).attr('height', h);
-      simulation.force('center', d3.forceCenter(w / 2, h / 2));
-      simulation.alpha(0.3).restart();
-    });
-    
-    // 시작
-    init();
-  </script>
-</body>
-</html>
-
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🌌 AUTUS Physics Map - Unified</title>
-  
-  <!-- Three.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  
-  <!-- D3.js -->
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #000;
       overflow: hidden;
-      color: #fff;
     }
     
-    #canvas-container {
-      position: absolute;
-      top: 0;
-      left: 0;
+    .minimap svg {
       width: 100%;
       height: 100%;
     }
     
-    /* 헤더 */
-    .header {
+    /* ═══════════════════════════════════════════════════════════
+       토스트 알림
+    ═══════════════════════════════════════════════════════════ */
+    .toast-container {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0) 100%);
-      padding: 20px 24px;
-      z-index: 100;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 300;
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
+      flex-direction: column;
+      gap: 10px;
     }
     
-    .header-left h1 {
-      font-size: 20px;
-      font-weight: 700;
+    .toast {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 13px;
       display: flex;
       align-items: center;
       gap: 10px;
-      text-shadow: 0 2px 20px rgba(0, 204, 255, 0.5);
+      animation: slideIn 0.3s ease;
     }
     
-    .header-left .subtitle {
-      color: #666;
-      font-size: 10px;
-      margin-top: 6px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
+    .toast.success { border-color: var(--accent-green); }
+    .toast.error { border-color: var(--accent-red); }
+    .toast.info { border-color: var(--accent-cyan); }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     
-    .header-right {
-      display: flex;
-      gap: 32px;
-    }
-    
-    .stat {
-      text-align: right;
-    }
-    
-    .stat-label {
-      color: #555;
-      font-size: 9px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    
-    .stat-value {
-      font-size: 20px;
-      font-weight: 700;
-      margin-top: 2px;
-    }
-    
-    .green { color: #00ff88; text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
-    .cyan { color: #00ccff; text-shadow: 0 0 20px rgba(0, 204, 255, 0.5); }
-    .gold { color: #ffcc00; text-shadow: 0 0 20px rgba(255, 204, 0, 0.5); }
-    .red { color: #ff4466; text-shadow: 0 0 20px rgba(255, 68, 102, 0.5); }
-    
-    /* 공식 패널 */
-    .formula-panel {
+    /* ═══════════════════════════════════════════════════════════
+       로딩
+    ═══════════════════════════════════════════════════════════ */
+    .loading-overlay {
       position: absolute;
-      left: 24px;
-      bottom: 100px;
-      background: rgba(0, 0, 0, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 16px;
-      z-index: 100;
-      backdrop-filter: blur(10px);
-    }
-    
-    .formula {
-      font-family: 'Courier New', monospace;
-      font-size: 16px;
-      color: #00ccff;
-      text-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
-    }
-    
-    .formula-desc {
-      color: #666;
-      font-size: 10px;
-      margin-top: 8px;
-    }
-    
-    /* 액션 버튼 */
-    .action-buttons {
-      position: absolute;
-      right: 24px;
-      bottom: 100px;
-      display: flex;
-      gap: 12px;
-      z-index: 100;
-    }
-    
-    .action-btn {
-      padding: 12px 24px;
-      border: none;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.3s;
+      inset: 0;
+      background: var(--bg-dark);
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      z-index: 500;
+      transition: opacity 0.5s ease;
     }
     
-    .action-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
-    
-    .btn-cut {
-      background: linear-gradient(135deg, #ff4466, #ff2244);
-      color: white;
-    }
-    
-    .btn-link {
-      background: linear-gradient(135deg, #00ccff, #0099cc);
-      color: white;
-    }
-    
-    .btn-outsource {
-      background: linear-gradient(135deg, #9966ff, #7744dd);
-      color: white;
-    }
-    
-    /* 모드 스위처 */
-    .mode-switcher {
-      position: absolute;
-      top: 20px;
-      right: 24px;
-      display: flex;
-      gap: 8px;
-      z-index: 100;
-    }
-    
-    .mode-btn {
-      padding: 8px 16px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 6px;
-      color: #888;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    
-    .mode-btn.active {
-      background: rgba(0, 204, 255, 0.2);
-      border-color: #00ccff;
-      color: #00ccff;
-    }
-    
-    /* 노드 툴팁 */
-    .tooltip {
-      position: absolute;
-      background: rgba(0, 0, 0, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
-      padding: 12px;
-      pointer-events: none;
+    .loading-overlay.hidden {
       opacity: 0;
-      transition: opacity 0.2s;
-      z-index: 200;
-      min-width: 150px;
+      pointer-events: none;
     }
     
-    .tooltip.visible {
-      opacity: 1;
-    }
-    
-    .tooltip-id {
-      color: #00ccff;
-      font-weight: 600;
-      font-size: 14px;
-    }
-    
-    .tooltip-value {
-      color: #00ff88;
-      font-size: 18px;
-      font-weight: 700;
-      margin-top: 4px;
-    }
-    
-    .tooltip-connections {
-      color: #888;
-      font-size: 11px;
-      margin-top: 8px;
-    }
-    
-    /* 하단 정보 */
-    .footer {
-      position: absolute;
-      bottom: 24px;
-      left: 0;
-      right: 0;
-      text-align: center;
-      color: #444;
-      font-size: 10px;
-      letter-spacing: 2px;
-      z-index: 100;
-    }
-    
-    /* 연결 상태 */
-    .connection-status {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 8px 16px;
-      border-radius: 20px;
-      z-index: 100;
-    }
-    
-    .status-dot {
-      width: 8px;
-      height: 8px;
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent-cyan);
       border-radius: 50%;
-      animation: pulse 2s infinite;
+      animation: spin 1s linear infinite;
     }
     
-    .status-dot.connected { background: #00ff88; }
-    .status-dot.disconnected { background: #ff4466; }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
     
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+    /* ═══════════════════════════════════════════════════════════
+       노드 스타일 (SVG)
+    ═══════════════════════════════════════════════════════════ */
+    .node {
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    
+    .node:hover {
+      filter: brightness(1.2);
+    }
+    
+    .node.selected circle {
+      stroke: var(--accent-gold) !important;
+      stroke-width: 4px !important;
+      stroke-opacity: 1 !important;
+    }
+    
+    .node.selected.link-mode circle {
+      stroke: var(--accent-cyan) !important;
+    }
+    
+    .node text {
+      fill: white;
+      font-size: 11px;
+      font-weight: 600;
+      text-anchor: middle;
+      pointer-events: none;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    }
+    
+    .link {
+      stroke: rgba(255, 255, 255, 0.1);
+      stroke-width: 1;
+    }
+    
+    .link.active {
+      stroke: var(--accent-cyan);
+      stroke-width: 2;
+      stroke-dasharray: 5, 5;
+      animation: dash 0.5s linear infinite;
+    }
+    
+    @keyframes dash {
+      to { stroke-dashoffset: -10; }
+    }
+    
+    /* 그리드 */
+    .grid-line {
+      stroke: rgba(255, 255, 255, 0.03);
+      stroke-width: 1;
     }
   </style>
 </head>
 <body>
-  <!-- 캔버스 -->
-  <div id="canvas-container"></div>
-  
-  <!-- 헤더 -->
-  <div class="header">
-    <div class="header-left">
-      <h1>🌌 AUTUS Physics Map</h1>
-      <div class="subtitle">ZERO MEANING · MONEY PHYSICS · FLYWHEEL</div>
+  <div id="app">
+    <div id="canvas-container">
+      <!-- 로딩 -->
+      <div class="loading-overlay" id="loading">
+        <div class="loading-spinner"></div>
+      </div>
+      
+      <!-- 헤더 -->
+      <div class="header">
+        <div class="header-left">
+          <h1>
+            <span class="logo">🌌</span>
+            <span>AUTUS Physics Map</span>
+          </h1>
+          <div class="subtitle">Zero Meaning · Money Physics · Flywheel</div>
+          <div class="connection-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">연결 중...</span>
+          </div>
+        </div>
+        
+        <div class="header-right">
+          <div class="stat">
+            <div class="stat-label">Total Value</div>
+            <div class="stat-value green" id="totalValue">₩0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Synergy</div>
+            <div class="stat-value cyan" id="synergy">1.00x</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Nodes</div>
+            <div class="stat-value gold" id="nodeCount">0</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 토스트 컨테이너 -->
+      <div class="toast-container" id="toastContainer"></div>
+      
+      <!-- 공식 패널 -->
+      <div class="formula-panel">
+        <div class="formula-title">Money Physics Formula</div>
+        <div class="formula">V = (M - T) × (1 + s)^t</div>
+        <div class="formula-desc">
+          V: Value | M: Money In | T: Money Out<br>
+          s: Synergy | t: Time
+        </div>
+      </div>
+      
+      <!-- 선택 힌트 -->
+      <div class="selection-hint" id="selectionHint" style="display: none;">
+        <span class="selected-count" id="selectedCount">0</span>개 노드 선택됨
+        <span id="linkModeHint" style="display: none;"> · LINK 대상 선택</span>
+      </div>
+      
+      <!-- 2버튼 시스템 -->
+      <div class="action-buttons">
+        <button class="action-btn btn-cut" id="btnCut" disabled>
+          <span>✂️</span> CUT
+        </button>
+        <button class="action-btn btn-link" id="btnLink" disabled>
+          <span>🔗</span> LINK
+        </button>
+      </div>
+      
+      <!-- 노드 상세 -->
+      <div class="node-detail" id="nodeDetail">
+        <div class="node-detail-header">
+          <div class="node-detail-title" id="detailTitle">Node</div>
+          <button class="node-detail-close" id="detailClose">×</button>
+        </div>
+        <div class="node-detail-row">
+          <span class="node-detail-label">ID</span>
+          <span class="node-detail-value" id="detailId">-</span>
+        </div>
+        <div class="node-detail-row">
+          <span class="node-detail-label">Value</span>
+          <span class="node-detail-value" id="detailValue">-</span>
+        </div>
+        <div class="node-detail-row">
+          <span class="node-detail-label">Connections</span>
+          <span class="node-detail-value" id="detailConnections">-</span>
+        </div>
+        <div class="node-detail-actions">
+          <button class="node-detail-btn cut" id="detailCut">✂️ CUT</button>
+          <button class="node-detail-btn link" id="detailLink">🔗 LINK</button>
+        </div>
+      </div>
+      
+      <!-- 미니맵 -->
+      <div class="minimap" id="minimap"></div>
+      
+      <!-- 메인 SVG -->
+      <svg id="mainSvg"></svg>
     </div>
-    <div class="header-right">
-      <div class="stat">
-        <div class="stat-label">총 가치</div>
-        <div class="stat-value green" id="total-value">₩0</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">노드</div>
-        <div class="stat-value cyan" id="node-count">0</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">모션</div>
-        <div class="stat-value gold" id="motion-count">0</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">시너지</div>
-        <div class="stat-value" id="synergy-value">1.00x</div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- 연결 상태 -->
-  <div class="connection-status">
-    <div class="status-dot" id="status-dot"></div>
-    <span id="status-text" style="color: #888; font-size: 11px;">연결 중...</span>
-  </div>
-  
-  <!-- 모드 스위처 -->
-  <div class="mode-switcher">
-    <button class="mode-btn active" data-mode="force">Force</button>
-    <button class="mode-btn" data-mode="3d">3D</button>
-    <button class="mode-btn" data-mode="radial">Radial</button>
-  </div>
-  
-  <!-- 공식 패널 -->
-  <div class="formula-panel">
-    <div class="formula">V = (M - T) × (1 + s)^t</div>
-    <div class="formula-desc">
-      V: 가치 | M: 매출 | T: 비용 | s: 시너지율 | t: 시간
-    </div>
-  </div>
-  
-  <!-- 액션 버튼 -->
-  <div class="action-buttons">
-    <button class="action-btn btn-cut" id="btn-cut">
-      ✂️ CUT
-    </button>
-    <button class="action-btn btn-link" id="btn-link">
-      🔗 LINK
-    </button>
-    <button class="action-btn btn-outsource" id="btn-outsource">
-      📤 OUTSOURCE
-    </button>
-  </div>
-  
-  <!-- 툴팁 -->
-  <div class="tooltip" id="tooltip">
-    <div class="tooltip-id">node_123</div>
-    <div class="tooltip-value">₩1,000,000</div>
-    <div class="tooltip-connections">연결: 5개</div>
-  </div>
-  
-  <!-- 하단 -->
-  <div class="footer">
-    AUTUS · OPERATING SYSTEM OF REALITY
   </div>
 
   <script>
-    // ═══════════════════════════════════════════════════════════
-    // AUTUS Physics Map - Unified Version
-    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
+    // AUTUS Physics Map - Complete Version
+    // ═══════════════════════════════════════════════════════════════
     
+    // 설정
     const CONFIG = {
       API_URL: 'http://localhost:8000',
-      WS_URL: 'ws://localhost:8000/ws',
+      WS_URL: 'ws://localhost:8000/ws/physics-map',
       RECONNECT_INTERVAL: 3000,
-      UPDATE_INTERVAL: 1000
+      NODE_MIN_RADIUS: 15,
+      NODE_MAX_RADIUS: 60,
+      LINK_DISTANCE: 150,
+      CHARGE_STRENGTH: -400
     };
     
     // 상태
     const state = {
       nodes: [],
-      motions: [],
-      selectedNode: null,
-      mode: 'force', // force, 3d, radial
-      connected: false,
+      links: [],
+      selectedNodes: new Set(),
+      linkMode: false,
+      linkSource: null,
       totalValue: 0,
-      synergy: 1.0
+      synergy: 1.0,
+      connected: false
     };
     
     // DOM 요소
-    const container = document.getElementById('canvas-container');
-    const tooltip = document.getElementById('tooltip');
-    const statusDot = document.getElementById('status-dot');
-    const statusText = document.getElementById('status-text');
+    const elements = {
+      svg: null,
+      nodeGroup: null,
+      linkGroup: null,
+      simulation: null,
+      ws: null
+    };
     
-    // ═══════════════════════════════════════════════════════════
-    // D3 Force Layout (기본 모드)
-    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
+    // 초기화
+    // ═══════════════════════════════════════════════════════════════
     
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    async function init() {
+      console.log('🌌 AUTUS Physics Map 초기화');
+      
+      setupSVG();
+      setupEventListeners();
+      
+      // 데이터 로드 시도
+      try {
+        await fetchInitialData();
+      } catch (e) {
+        console.log('API 연결 실패, 샘플 데이터 사용');
+        loadSampleData();
+      }
+      
+      // WebSocket 연결
+      connectWebSocket();
+      
+      // 로딩 숨기기
+      setTimeout(() => {
+        document.getElementById('loading').classList.add('hidden');
+      }, 500);
+      
+      render();
+    }
     
-    const svg = d3.select('#canvas-container')
-      .append('svg')
-      .attr('width', width)
-      .attr('height', height);
+    // ═══════════════════════════════════════════════════════════════
+    // SVG 설정
+    // ═══════════════════════════════════════════════════════════════
     
-    // 그라데이션 정의
-    const defs = svg.append('defs');
+    function setupSVG() {
+      const container = document.getElementById('canvas-container');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      
+      elements.svg = d3.select('#mainSvg')
+        .attr('width', width)
+        .attr('height', height);
+      
+      // 그리드 배경
+      const gridSize = 50;
+      const gridGroup = elements.svg.append('g').attr('class', 'grid');
+      
+      for (let x = 0; x < width; x += gridSize) {
+        gridGroup.append('line')
+          .attr('class', 'grid-line')
+          .attr('x1', x).attr('y1', 0)
+          .attr('x2', x).attr('y2', height);
+      }
+      for (let y = 0; y < height; y += gridSize) {
+        gridGroup.append('line')
+          .attr('class', 'grid-line')
+          .attr('x1', 0).attr('y1', y)
+          .attr('x2', width).attr('y2', y);
+      }
+      
+      // 링크 그룹
+      elements.linkGroup = elements.svg.append('g').attr('class', 'links');
+      
+      // 노드 그룹
+      elements.nodeGroup = elements.svg.append('g').attr('class', 'nodes');
+      
+      // 시뮬레이션
+      elements.simulation = d3.forceSimulation()
+        .force('link', d3.forceLink().id(d => d.id).distance(CONFIG.LINK_DISTANCE))
+        .force('charge', d3.forceManyBody().strength(CONFIG.CHARGE_STRENGTH))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(d => getNodeRadius(d) + 10))
+        .on('tick', ticked);
+    }
     
-    // 노드 그라데이션
-    const nodeGradient = defs.append('radialGradient')
-      .attr('id', 'node-gradient');
-    nodeGradient.append('stop').attr('offset', '0%').attr('stop-color', '#00ccff');
-    nodeGradient.append('stop').attr('offset', '100%').attr('stop-color', '#0066aa');
+    // ═══════════════════════════════════════════════════════════════
+    // 이벤트 리스너
+    // ═══════════════════════════════════════════════════════════════
     
-    // 링크 컨테이너
-    const linkGroup = svg.append('g').attr('class', 'links');
+    function setupEventListeners() {
+      // CUT 버튼
+      document.getElementById('btnCut').addEventListener('click', handleCut);
+      
+      // LINK 버튼
+      document.getElementById('btnLink').addEventListener('click', handleLink);
+      
+      // 노드 상세 닫기
+      document.getElementById('detailClose').addEventListener('click', () => {
+        document.getElementById('nodeDetail').classList.remove('visible');
+      });
+      
+      // 노드 상세 액션
+      document.getElementById('detailCut').addEventListener('click', () => {
+        const nodeId = document.getElementById('detailId').textContent;
+        cutNodes([nodeId]);
+        document.getElementById('nodeDetail').classList.remove('visible');
+      });
+      
+      document.getElementById('detailLink').addEventListener('click', () => {
+        const nodeId = document.getElementById('detailId').textContent;
+        state.linkMode = true;
+        state.linkSource = nodeId;
+        state.selectedNodes.clear();
+        state.selectedNodes.add(nodeId);
+        updateSelectionUI();
+        showToast('LINK 대상 노드를 선택하세요', 'info');
+      });
+      
+      // 윈도우 리사이즈
+      window.addEventListener('resize', handleResize);
+      
+      // 키보드 단축키
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          cancelSelection();
+        }
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          if (state.selectedNodes.size > 0) {
+            handleCut();
+          }
+        }
+      });
+      
+      // 배경 클릭 시 선택 해제
+      elements.svg.on('click', (event) => {
+        if (event.target.tagName === 'svg' || event.target.classList.contains('grid-line')) {
+          cancelSelection();
+        }
+      });
+    }
     
-    // 노드 컨테이너
-    const nodeGroup = svg.append('g').attr('class', 'nodes');
+    // ═══════════════════════════════════════════════════════════════
+    // 데이터 로드
+    // ═══════════════════════════════════════════════════════════════
     
-    // Force Simulation
-    const simulation = d3.forceSimulation()
-      .force('link', d3.forceLink().id(d => d.id).distance(100))
-      .force('charge', d3.forceManyBody().strength(-300))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(30));
+    async function fetchInitialData() {
+      const response = await fetch(`${CONFIG.API_URL}/physics/state`);
+      if (!response.ok) throw new Error('API Error');
+      
+      const data = await response.json();
+      
+      state.nodes = data.nodes || [];
+      state.links = data.links || [];
+      state.totalValue = data.total_value || 0;
+      state.synergy = data.synergy || 1.0;
+      
+      updateStats();
+      showToast('서버 연결 성공', 'success');
+    }
     
-    // ═══════════════════════════════════════════════════════════
+    function loadSampleData() {
+      // 샘플 데이터
+      state.nodes = [
+        { id: 'P01', name: '오세호', value: 50000000 },
+        { id: 'P02', name: '김경희', value: 20000000 },
+        { id: 'P03', name: '오선우', value: 35000000 },
+        { id: 'P04', name: '오연우', value: -5000000 },
+        { id: 'P05', name: '오은우', value: 10000000 },
+        { id: 'C01', name: '학원A', value: 80000000 },
+        { id: 'C02', name: '학원B', value: 45000000 },
+        { id: 'C03', name: '학원C', value: -15000000 },
+      ];
+      
+      state.links = [
+        { source: 'P01', target: 'C01' },
+        { source: 'P01', target: 'C02' },
+        { source: 'P02', target: 'C01' },
+        { source: 'P03', target: 'C02' },
+        { source: 'P03', target: 'C03' },
+      ];
+      
+      calculateStats();
+      showToast('샘플 데이터 로드됨 (오프라인 모드)', 'info');
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // WebSocket
+    // ═══════════════════════════════════════════════════════════════
+    
+    function connectWebSocket() {
+      try {
+        elements.ws = new WebSocket(CONFIG.WS_URL);
+        
+        elements.ws.onopen = () => {
+          console.log('✅ WebSocket 연결됨');
+          state.connected = true;
+          updateConnectionStatus(true);
+        };
+        
+        elements.ws.onmessage = (event) => {
+          const msg = JSON.parse(event.data);
+          handleWebSocketMessage(msg);
+        };
+        
+        elements.ws.onclose = () => {
+          console.log('❌ WebSocket 연결 끊김');
+          state.connected = false;
+          updateConnectionStatus(false);
+          
+          // 재연결
+          setTimeout(connectWebSocket, CONFIG.RECONNECT_INTERVAL);
+        };
+        
+        elements.ws.onerror = (err) => {
+          console.error('WebSocket 에러:', err);
+        };
+      } catch (e) {
+        console.log('WebSocket 연결 실패');
+        updateConnectionStatus(false);
+      }
+    }
+    
+    function handleWebSocketMessage(msg) {
+      switch (msg.type) {
+        case 'node_update':
+          handleNodeUpdate(msg.data);
+          break;
+        case 'motion_update':
+          handleMotionUpdate(msg.data);
+          break;
+        case 'synergy_update':
+          handleSynergyUpdate(msg.data);
+          break;
+        case 'pong':
+          // 연결 유지 확인
+          break;
+        default:
+          console.log('Unknown message:', msg);
+      }
+    }
+    
+    function handleNodeUpdate(data) {
+      const node = state.nodes.find(n => n.id === data.node_id);
+      if (node) {
+        node.value = data.value;
+        pulseNode(data.node_id);
+        calculateStats();
+        render();
+      }
+    }
+    
+    function handleMotionUpdate(data) {
+      const { source, target, amount } = data;
+      animateFlow(source, target);
+    }
+    
+    function handleSynergyUpdate(data) {
+      state.synergy = data.synergy;
+      state.totalValue = data.total_value;
+      updateStats();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // CUT / LINK 액션
+    // ═══════════════════════════════════════════════════════════════
+    
+    async function handleCut() {
+      if (state.selectedNodes.size === 0) return;
+      
+      const nodeIds = Array.from(state.selectedNodes);
+      await cutNodes(nodeIds);
+    }
+    
+    async function cutNodes(nodeIds) {
+      console.log('✂️ CUT:', nodeIds);
+      
+      // API 호출
+      if (state.connected) {
+        try {
+          for (const nodeId of nodeIds) {
+            await fetch(`${CONFIG.API_URL}/physics/event`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                event_type: 'burn',
+                amount: Math.abs(state.nodes.find(n => n.id === nodeId)?.value || 0),
+                participants: [nodeId]
+              })
+            });
+          }
+        } catch (e) {
+          console.error('CUT API 에러:', e);
+        }
+      }
+      
+      // 로컬 상태 업데이트
+      state.nodes = state.nodes.filter(n => !nodeIds.includes(n.id));
+      state.links = state.links.filter(l => 
+        !nodeIds.includes(l.source.id || l.source) && 
+        !nodeIds.includes(l.target.id || l.target)
+      );
+      
+      state.selectedNodes.clear();
+      updateSelectionUI();
+      calculateStats();
+      render();
+      
+      showToast(`${nodeIds.length}개 노드 삭제됨`, 'success');
+    }
+    
+    function handleLink() {
+      if (state.linkMode && state.linkSource && state.selectedNodes.size > 0) {
+        // LINK 실행
+        const targets = Array.from(state.selectedNodes).filter(id => id !== state.linkSource);
+        if (targets.length > 0) {
+          linkNodes(state.linkSource, targets);
+        }
+        state.linkMode = false;
+        state.linkSource = null;
+      } else if (state.selectedNodes.size > 0) {
+        // LINK 모드 시작
+        const sourceId = Array.from(state.selectedNodes)[0];
+        state.linkMode = true;
+        state.linkSource = sourceId;
+        state.selectedNodes.clear();
+        state.selectedNodes.add(sourceId);
+        updateSelectionUI();
+        showToast('LINK 대상 노드를 선택하세요', 'info');
+      }
+    }
+    
+    async function linkNodes(sourceId, targetIds) {
+      console.log('🔗 LINK:', sourceId, '->', targetIds);
+      
+      // API 호출
+      if (state.connected) {
+        try {
+          await fetch(`${CONFIG.API_URL}/physics/drag`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              drag_type: 'link',
+              params: { source: sourceId, target: targetIds[0] }
+            })
+          });
+        } catch (e) {
+          console.error('LINK API 에러:', e);
+        }
+      }
+      
+      // 로컬 상태 업데이트
+      for (const targetId of targetIds) {
+        if (!state.links.find(l => 
+          (l.source === sourceId || l.source.id === sourceId) && 
+          (l.target === targetId || l.target.id === targetId)
+        )) {
+          state.links.push({ source: sourceId, target: targetId });
+        }
+      }
+      
+      state.selectedNodes.clear();
+      state.linkMode = false;
+      state.linkSource = null;
+      updateSelectionUI();
+      render();
+      
+      showToast(`${targetIds.length}개 노드 연결됨`, 'success');
+    }
+    
+    function cancelSelection() {
+      state.selectedNodes.clear();
+      state.linkMode = false;
+      state.linkSource = null;
+      updateSelectionUI();
+      render();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
     // 렌더링
-    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
     
     function render() {
-      // 링크
-      const links = linkGroup.selectAll('line')
-        .data(state.motions, d => `${d.source.id || d.source}-${d.target.id || d.target}`);
+      // 링크 렌더링
+      const link = elements.linkGroup.selectAll('.link')
+        .data(state.links, d => `${d.source.id || d.source}-${d.target.id || d.target}`);
       
-      links.enter()
+      link.exit().remove();
+      
+      link.enter()
         .append('line')
-        .attr('stroke', 'rgba(0, 204, 255, 0.3)')
-        .attr('stroke-width', d => Math.sqrt(d.amount / 10000))
-        .merge(links);
+        .attr('class', 'link')
+        .merge(link);
       
-      links.exit().remove();
-      
-      // 노드
-      const nodes = nodeGroup.selectAll('g')
+      // 노드 렌더링
+      const node = elements.nodeGroup.selectAll('.node')
         .data(state.nodes, d => d.id);
       
-      const nodeEnter = nodes.enter()
+      node.exit()
+        .transition()
+        .duration(300)
+        .attr('transform', 'scale(0)')
+        .remove();
+      
+      const nodeEnter = node.enter()
         .append('g')
         .attr('class', 'node')
         .call(d3.drag()
           .on('start', dragStarted)
           .on('drag', dragged)
-          .on('end', dragEnded))
-        .on('mouseover', showTooltip)
-        .on('mouseout', hideTooltip)
-        .on('click', selectNode);
+          .on('end', dragEnded)
+        )
+        .on('click', handleNodeClick)
+        .on('dblclick', handleNodeDoubleClick);
       
-      // 노드 원
       nodeEnter.append('circle')
-        .attr('r', d => Math.max(10, Math.min(40, Math.sqrt(Math.abs(d.value) / 1000))))
-        .attr('fill', d => d.value >= 0 ? 'url(#node-gradient)' : '#ff4466')
-        .attr('stroke', '#fff')
-        .attr('stroke-width', 2)
-        .attr('stroke-opacity', 0.3);
+        .attr('r', d => getNodeRadius(d))
+        .attr('fill', d => getNodeColor(d))
+        .attr('stroke', d => d.value >= 0 ? 'rgba(0, 204, 255, 0.3)' : 'rgba(255, 68, 102, 0.3)')
+        .attr('stroke-width', 2);
       
-      // 노드 글로우
-      nodeEnter.append('circle')
-        .attr('r', d => Math.max(15, Math.min(50, Math.sqrt(Math.abs(d.value) / 1000) + 5)))
-        .attr('fill', 'none')
-        .attr('stroke', d => d.value >= 0 ? '#00ccff' : '#ff4466')
-        .attr('stroke-width', 1)
-        .attr('stroke-opacity', 0.2);
-      
-      // 노드 라벨
       nodeEnter.append('text')
-        .attr('text-anchor', 'middle')
         .attr('dy', 4)
-        .attr('fill', '#fff')
-        .attr('font-size', 10)
-        .text(d => d.id.substring(0, 6));
+        .text(d => d.name || d.id);
       
-      nodes.merge(nodeEnter);
-      nodes.exit().remove();
+      // 노드 업데이트
+      const nodeUpdate = nodeEnter.merge(node);
+      
+      nodeUpdate.select('circle')
+        .attr('r', d => getNodeRadius(d))
+        .attr('fill', d => getNodeColor(d));
+      
+      nodeUpdate.classed('selected', d => state.selectedNodes.has(d.id));
+      nodeUpdate.classed('link-mode', state.linkMode);
       
       // 시뮬레이션 업데이트
-      simulation.nodes(state.nodes);
-      simulation.force('link').links(state.motions);
-      simulation.alpha(0.3).restart();
+      elements.simulation.nodes(state.nodes);
+      elements.simulation.force('link').links(state.links);
+      elements.simulation.alpha(0.3).restart();
       
-      // 통계 업데이트
-      updateStats();
+      // 미니맵 업데이트
+      updateMinimap();
     }
     
-    // 시뮬레이션 틱
-    simulation.on('tick', () => {
-      linkGroup.selectAll('line')
+    function ticked() {
+      elements.linkGroup.selectAll('.link')
         .attr('x1', d => d.source.x)
         .attr('y1', d => d.source.y)
         .attr('x2', d => d.target.x)
         .attr('y2', d => d.target.y);
       
-      nodeGroup.selectAll('g')
+      elements.nodeGroup.selectAll('.node')
         .attr('transform', d => `translate(${d.x}, ${d.y})`);
-    });
+    }
     
-    // ═══════════════════════════════════════════════════════════
-    // 인터랙션
-    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
+    // 노드 상호작용
+    // ═══════════════════════════════════════════════════════════════
     
+    function handleNodeClick(event, d) {
+      event.stopPropagation();
+      
+      if (state.linkMode) {
+        // LINK 모드: 대상 노드 선택
+        if (d.id !== state.linkSource) {
+          state.selectedNodes.add(d.id);
+          updateSelectionUI();
+          render();
+        }
+      } else {
+        // 일반 모드: 토글 선택
+        if (event.shiftKey || event.ctrlKey || event.metaKey) {
+          // 멀티 선택
+          if (state.selectedNodes.has(d.id)) {
+            state.selectedNodes.delete(d.id);
+          } else {
+            state.selectedNodes.add(d.id);
+          }
+        } else {
+          // 단일 선택
+          state.selectedNodes.clear();
+          state.selectedNodes.add(d.id);
+        }
+        updateSelectionUI();
+        render();
+      }
+    }
+    
+    function handleNodeDoubleClick(event, d) {
+      event.stopPropagation();
+      showNodeDetail(d);
+    }
+    
+    function showNodeDetail(node) {
+      document.getElementById('detailTitle').textContent = node.name || node.id;
+      document.getElementById('detailId').textContent = node.id;
+      document.getElementById('detailValue').textContent = formatCurrency(node.value);
+      document.getElementById('detailValue').style.color = node.value >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+      
+      const connections = state.links.filter(l => 
+        (l.source.id || l.source) === node.id || 
+        (l.target.id || l.target) === node.id
+      ).length;
+      document.getElementById('detailConnections').textContent = connections;
+      
+      document.getElementById('nodeDetail').classList.add('visible');
+    }
+    
+    // 드래그
     function dragStarted(event, d) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
+      if (!event.active) elements.simulation.alphaTarget(0.3).restart();
       d.fx = d.x;
       d.fy = d.y;
     }
@@ -1410,415 +1127,194 @@
     }
     
     function dragEnded(event, d) {
-      if (!event.active) simulation.alphaTarget(0);
+      if (!event.active) elements.simulation.alphaTarget(0);
       d.fx = null;
       d.fy = null;
     }
     
-    function showTooltip(event, d) {
-      const connections = state.motions.filter(
-        m => m.source.id === d.id || m.target.id === d.id
-      ).length;
+    // ═══════════════════════════════════════════════════════════════
+    // UI 업데이트
+    // ═══════════════════════════════════════════════════════════════
+    
+    function updateSelectionUI() {
+      const count = state.selectedNodes.size;
+      const hint = document.getElementById('selectionHint');
+      const btnCut = document.getElementById('btnCut');
+      const btnLink = document.getElementById('btnLink');
       
-      tooltip.querySelector('.tooltip-id').textContent = d.id;
-      tooltip.querySelector('.tooltip-value').textContent = 
-        '₩' + Math.abs(d.value).toLocaleString();
-      tooltip.querySelector('.tooltip-connections').textContent = 
-        `연결: ${connections}개`;
-      
-      tooltip.style.left = (event.pageX + 15) + 'px';
-      tooltip.style.top = (event.pageY + 15) + 'px';
-      tooltip.classList.add('visible');
+      if (count > 0) {
+        hint.style.display = 'block';
+        document.getElementById('selectedCount').textContent = count;
+        document.getElementById('linkModeHint').style.display = state.linkMode ? 'inline' : 'none';
+        
+        btnCut.disabled = state.linkMode;
+        btnLink.disabled = false;
+        
+        if (state.linkMode) {
+          btnLink.innerHTML = '<span>✅</span> 연결';
+        } else {
+          btnLink.innerHTML = '<span>🔗</span> LINK';
+        }
+      } else {
+        hint.style.display = 'none';
+        btnCut.disabled = true;
+        btnLink.disabled = true;
+        btnLink.innerHTML = '<span>🔗</span> LINK';
+      }
     }
-    
-    function hideTooltip() {
-      tooltip.classList.remove('visible');
-    }
-    
-    function selectNode(event, d) {
-      state.selectedNode = d;
-      console.log('Selected:', d);
-    }
-    
-    // ═══════════════════════════════════════════════════════════
-    // 통계 업데이트
-    // ═══════════════════════════════════════════════════════════
     
     function updateStats() {
-      const totalValue = state.nodes.reduce((sum, n) => sum + n.value, 0);
-      const nodeCount = state.nodes.length;
-      const motionCount = state.motions.length;
-      const synergy = calculateSynergy();
-      
-      document.getElementById('total-value').textContent = 
-        '₩' + totalValue.toLocaleString();
-      document.getElementById('node-count').textContent = nodeCount;
-      document.getElementById('motion-count').textContent = motionCount;
-      
-      const synergyEl = document.getElementById('synergy-value');
-      synergyEl.textContent = synergy.toFixed(2) + 'x';
-      synergyEl.className = 'stat-value ' + (synergy > 1.5 ? 'green' : synergy > 1 ? 'cyan' : 'red');
-      
-      state.totalValue = totalValue;
-      state.synergy = synergy;
+      document.getElementById('totalValue').textContent = formatCurrency(state.totalValue);
+      document.getElementById('synergy').textContent = state.synergy.toFixed(2) + 'x';
+      document.getElementById('nodeCount').textContent = state.nodes.length;
     }
     
-    function calculateSynergy() {
-      if (state.nodes.length === 0) return 1.0;
-      
-      const n = state.nodes.length;
-      const e = state.motions.length;
-      const avgConnections = n > 0 ? e / n : 0;
-      
-      // 시너지 공식: 1 + (연결 밀도 × 0.1)
-      return 1 + (avgConnections * 0.1);
-    }
-    
-    // ═══════════════════════════════════════════════════════════
-    // API / WebSocket 연결
-    // ═══════════════════════════════════════════════════════════
-    
-    async function fetchData() {
-      try {
-        const response = await fetch(`${CONFIG.API_URL}/health`);
-        if (response.ok) {
-          setConnected(true);
-          return true;
-        }
-      } catch (e) {
-        setConnected(false);
-      }
-      return false;
-    }
-    
-    function setConnected(connected) {
-      state.connected = connected;
-      statusDot.className = 'status-dot ' + (connected ? 'connected' : 'disconnected');
-      statusText.textContent = connected ? '연결됨' : '오프라인';
-      statusText.style.color = connected ? '#00ff88' : '#ff4466';
-    }
-    
-    // ═══════════════════════════════════════════════════════════
-    // 액션 버튼
-    // ═══════════════════════════════════════════════════════════
-    
-    document.getElementById('btn-cut').addEventListener('click', async () => {
-      if (!state.selectedNode) {
-        alert('노드를 선택하세요');
-        return;
-      }
-      
-      // 노드 삭제
-      state.nodes = state.nodes.filter(n => n.id !== state.selectedNode.id);
-      state.motions = state.motions.filter(
-        m => m.source.id !== state.selectedNode.id && m.target.id !== state.selectedNode.id
-      );
-      state.selectedNode = null;
-      render();
-      
-      console.log('CUT 완료');
-    });
-    
-    document.getElementById('btn-link').addEventListener('click', () => {
-      console.log('LINK 모드');
-      // TODO: 두 노드 선택하여 연결
-    });
-    
-    document.getElementById('btn-outsource').addEventListener('click', () => {
-      if (!state.selectedNode) {
-        alert('노드를 선택하세요');
-        return;
-      }
-      console.log('OUTSOURCE:', state.selectedNode);
-      // TODO: 외부용역 API 호출
-    });
-    
-    // ═══════════════════════════════════════════════════════════
-    // 모드 스위처
-    // ═══════════════════════════════════════════════════════════
-    
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.mode = btn.dataset.mode;
-        
-        if (state.mode === 'radial') {
-          simulation.force('center', null);
-          simulation.force('radial', d3.forceRadial(200, width/2, height/2));
-        } else {
-          simulation.force('radial', null);
-          simulation.force('center', d3.forceCenter(width / 2, height / 2));
-        }
-        
-        simulation.alpha(0.5).restart();
-      });
-    });
-    
-    // ═══════════════════════════════════════════════════════════
-    // 샘플 데이터
-    // ═══════════════════════════════════════════════════════════
-    
-    function loadSampleData() {
-      // 샘플 노드
-      state.nodes = [
-        { id: 'node_001', value: 500000 },
-        { id: 'node_002', value: 300000 },
-        { id: 'node_003', value: 200000 },
-        { id: 'node_004', value: -50000 },
-        { id: 'node_005', value: 150000 },
-        { id: 'node_006', value: 80000 },
-        { id: 'node_007', value: 120000 },
-        { id: 'node_008', value: -30000 },
-        { id: 'node_009', value: 250000 },
-        { id: 'node_010', value: 100000 }
-      ];
-      
-      // 샘플 모션
-      state.motions = [
-        { source: 'node_001', target: 'node_002', amount: 50000 },
-        { source: 'node_001', target: 'node_003', amount: 30000 },
-        { source: 'node_002', target: 'node_005', amount: 20000 },
-        { source: 'node_003', target: 'node_006', amount: 15000 },
-        { source: 'node_005', target: 'node_007', amount: 25000 },
-        { source: 'node_006', target: 'node_009', amount: 10000 },
-        { source: 'node_007', target: 'node_010', amount: 35000 },
-        { source: 'node_009', target: 'node_001', amount: 40000 },
-        { source: 'node_002', target: 'node_009', amount: 20000 },
-        { source: 'node_004', target: 'node_008', amount: 5000 }
-      ];
-      
-      render();
-    }
-    
-    // ═══════════════════════════════════════════════════════════
-    // 🔴 WebSocket 실시간 연결
-    // ═══════════════════════════════════════════════════════════
-    
-    let ws = null;
-    let reconnectAttempts = 0;
-    const MAX_RECONNECT_ATTEMPTS = 5;
-    
-    function connectWebSocket() {
-      const wsUrl = `${CONFIG.WS_URL}/physics-map?client_id=pm_${Date.now()}`;
-      console.log('🔌 WebSocket 연결 시도:', wsUrl);
-      
-      ws = new WebSocket(wsUrl);
-      
-      ws.onopen = () => {
-        console.log('✅ WebSocket 연결됨');
-        setConnected(true);
-        reconnectAttempts = 0;
-        
-        // 연결 상태 업데이트
-        statusText.textContent = '실시간 연결됨';
-      };
-      
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        handleWebSocketMessage(message);
-      };
-      
-      ws.onclose = () => {
-        console.log('❌ WebSocket 연결 해제');
-        setConnected(false);
-        
-        // 재연결 시도
-        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-          reconnectAttempts++;
-          console.log(`🔄 재연결 시도 ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}...`);
-          setTimeout(connectWebSocket, CONFIG.RECONNECT_INTERVAL);
-        }
-      };
-      
-      ws.onerror = (error) => {
-        console.error('WebSocket 에러:', error);
-      };
-    }
-    
-    function handleWebSocketMessage(message) {
-      console.log('📨 WebSocket 메시지:', message.type, message.data);
-      
-      switch (message.type) {
-        case 'connected':
-          console.log('🎉 서버에서 연결 확인:', message.data);
-          break;
-        
-        case 'node_update':
-          handleNodeUpdate(message.data);
-          break;
-        
-        case 'motion_update':
-          handleMotionUpdate(message.data);
-          break;
-        
-        case 'synergy_update':
-          handleSynergyUpdate(message.data);
-          break;
-        
-        case 'flywheel_pulse':
-          handleFlywheelPulse(message.data);
-          break;
-        
-        case 'pong':
-          // 핑-퐁 응답
-          break;
-        
-        default:
-          console.log('알 수 없는 메시지:', message);
-      }
-    }
-    
-    // 노드 업데이트 처리
-    function handleNodeUpdate(data) {
-      const { node_id, value, action } = data;
-      
-      // 기존 노드 찾기
-      let node = state.nodes.find(n => n.id === node_id);
-      
-      if (node) {
-        // 기존 노드 값 업데이트
-        node.value += value;
-      } else {
-        // 새 노드 추가
-        node = { 
-          id: node_id, 
-          value: value,
-          x: width / 2 + (Math.random() - 0.5) * 200,
-          y: height / 2 + (Math.random() - 0.5) * 200
-        };
-        state.nodes.push(node);
-      }
-      
-      // 펄스 애니메이션
-      if (action === 'pulse') {
-        pulseNode(node_id);
-      }
-      
-      render();
-    }
-    
-    // 모션 업데이트 처리
-    function handleMotionUpdate(data) {
-      const { source, target, amount, action } = data;
-      
-      // 새 모션 추가
-      const motion = { source, target, amount };
-      state.motions.push(motion);
-      
-      // 흐름 애니메이션
-      if (action === 'flow') {
-        flowAnimation(source, target);
-      }
-      
-      render();
-    }
-    
-    // 시너지 업데이트 처리
-    function handleSynergyUpdate(data) {
-      const { synergy, total_value } = data;
-      
-      state.synergy = synergy;
-      state.totalValue = total_value;
-      
+    function calculateStats() {
+      state.totalValue = state.nodes.reduce((sum, n) => sum + (n.value || 0), 0);
+      const positiveNodes = state.nodes.filter(n => n.value > 0).length;
+      state.synergy = positiveNodes > 0 ? Math.pow(positiveNodes, 1.1) : 1;
       updateStats();
     }
     
-    // 플라이휠 펄스 처리
-    function handleFlywheelPulse(data) {
-      const { stage, momentum } = data;
+    function updateConnectionStatus(connected) {
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
       
-      console.log(`🔄 Flywheel ${stage}: momentum ${momentum}`);
-      
-      // 전체 화면 펄스 효과
-      document.body.style.boxShadow = `inset 0 0 100px rgba(0, 204, 255, ${momentum * 0.3})`;
-      setTimeout(() => {
-        document.body.style.boxShadow = 'none';
-      }, 500);
+      if (connected) {
+        dot.classList.add('connected');
+        text.textContent = '실시간 연결됨';
+      } else {
+        dot.classList.remove('connected');
+        text.textContent = '오프라인 모드';
+      }
     }
     
-    // 노드 펄스 애니메이션
+    function updateMinimap() {
+      const minimap = d3.select('#minimap');
+      minimap.selectAll('*').remove();
+      
+      const svg = minimap.append('svg');
+      const scale = 0.1;
+      
+      state.nodes.forEach(node => {
+        svg.append('circle')
+          .attr('cx', (node.x || 500) * scale)
+          .attr('cy', (node.y || 300) * scale)
+          .attr('r', 3)
+          .attr('fill', node.value >= 0 ? 'var(--accent-cyan)' : 'var(--accent-red)');
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // 애니메이션
+    // ═══════════════════════════════════════════════════════════════
+    
     function pulseNode(nodeId) {
-      const nodeEl = nodeGroup.selectAll('g')
+      const node = elements.nodeGroup.selectAll('.node')
         .filter(d => d.id === nodeId);
       
-      if (nodeEl.empty()) return;
-      
-      nodeEl.selectAll('circle')
+      node.select('circle')
         .transition()
         .duration(200)
-        .attr('stroke', '#00ff88')
-        .attr('stroke-width', 5)
+        .attr('stroke', 'var(--accent-green)')
+        .attr('stroke-width', 6)
         .attr('stroke-opacity', 1)
         .transition()
         .duration(500)
-        .attr('stroke', d => d.value >= 0 ? '#00ccff' : '#ff4466')
         .attr('stroke-width', 2)
         .attr('stroke-opacity', 0.3);
     }
     
-    // 흐름 애니메이션
-    function flowAnimation(sourceId, targetId) {
-      const sourceNode = state.nodes.find(n => n.id === sourceId);
-      const targetNode = state.nodes.find(n => n.id === targetId);
+    function animateFlow(sourceId, targetId) {
+      const source = state.nodes.find(n => n.id === sourceId);
+      const target = state.nodes.find(n => n.id === targetId);
       
-      if (!sourceNode || !targetNode) return;
+      if (!source || !target) return;
       
-      // 임시 파티클 생성
-      const particle = svg.append('circle')
-        .attr('cx', sourceNode.x || width/2)
-        .attr('cy', sourceNode.y || height/2)
-        .attr('r', 5)
-        .attr('fill', '#00ff88')
+      const particle = elements.svg.append('circle')
+        .attr('cx', source.x)
+        .attr('cy', source.y)
+        .attr('r', 6)
+        .attr('fill', 'var(--accent-green)')
         .attr('opacity', 1);
       
       particle.transition()
-        .duration(500)
-        .attr('cx', targetNode.x || width/2)
-        .attr('cy', targetNode.y || height/2)
+        .duration(600)
+        .attr('cx', target.x)
+        .attr('cy', target.y)
         .attr('opacity', 0)
         .remove();
     }
     
-    // ═══════════════════════════════════════════════════════════
-    // 초기화
-    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
+    // 유틸리티
+    // ═══════════════════════════════════════════════════════════════
     
-    async function init() {
-      console.log('🌌 AUTUS Physics Map 초기화');
-      
-      // HTTP 연결 확인
-      await fetchData();
-      
-      // 샘플 데이터 로드
-      loadSampleData();
-      
-      // WebSocket 연결
-      connectWebSocket();
-      
-      // 주기적 ping (연결 유지)
-      setInterval(() => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'ping' }));
-        }
-      }, 30000);
+    function getNodeRadius(node) {
+      const absValue = Math.abs(node.value || 0);
+      const minVal = 0;
+      const maxVal = 100000000;
+      const normalized = Math.min(1, Math.max(0, (absValue - minVal) / (maxVal - minVal)));
+      return CONFIG.NODE_MIN_RADIUS + (CONFIG.NODE_MAX_RADIUS - CONFIG.NODE_MIN_RADIUS) * Math.sqrt(normalized);
     }
     
-    // 윈도우 리사이즈
-    window.addEventListener('resize', () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+    function getNodeColor(node) {
+      if (node.value >= 0) {
+        const intensity = Math.min(1, node.value / 50000000);
+        return `rgba(0, ${Math.floor(180 + 75 * intensity)}, ${Math.floor(200 + 55 * intensity)}, 0.9)`;
+      } else {
+        const intensity = Math.min(1, Math.abs(node.value) / 50000000);
+        return `rgba(${Math.floor(200 + 55 * intensity)}, ${Math.floor(68 - 30 * intensity)}, ${Math.floor(102 - 50 * intensity)}, 0.9)`;
+      }
+    }
+    
+    function formatCurrency(value) {
+      const absVal = Math.abs(value);
+      let formatted;
       
-      svg.attr('width', w).attr('height', h);
-      simulation.force('center', d3.forceCenter(w / 2, h / 2));
-      simulation.alpha(0.3).restart();
-    });
+      if (absVal >= 100000000) {
+        formatted = (absVal / 100000000).toFixed(1) + '억';
+      } else if (absVal >= 10000) {
+        formatted = (absVal / 10000).toFixed(0) + '만';
+      } else {
+        formatted = absVal.toLocaleString();
+      }
+      
+      return (value < 0 ? '-' : '') + '₩' + formatted;
+    }
+    
+    function handleResize() {
+      const container = document.getElementById('canvas-container');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      
+      elements.svg.attr('width', width).attr('height', height);
+      elements.simulation.force('center', d3.forceCenter(width / 2, height / 2));
+      elements.simulation.alpha(0.3).restart();
+    }
+    
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span> ${message}`;
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+    
+    // 주기적 ping
+    setInterval(() => {
+      if (elements.ws && elements.ws.readyState === WebSocket.OPEN) {
+        elements.ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 30000);
     
     // 시작
     init();
   </script>
 </body>
 </html>
-
-
-
