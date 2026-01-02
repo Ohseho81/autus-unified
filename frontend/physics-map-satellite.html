@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌍 AUTUS Physics Map - Satellite</title>
+  
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- D3.js for animations -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg-panel: rgba(10, 10, 20, 0.9);
+      --border: rgba(255, 255, 255, 0.15);
+      --accent-cyan: #00ccff;
+      --accent-green: #00ff88;
+      --accent-gold: #ffcc00;
+      --accent-red: #ff4466;
+      --accent-purple: #aa66ff;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #000;
+      overflow: hidden;
+      color: #fff;
+    }
+    
+    #map {
+      width: 100vw;
+      height: 100vh;
+    }
+    
+    /* ═══════════════════════════════════════════════════════════
+       헤더
+    ═══════════════════════════════════════════════════════════ */
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
+      padding: 20px 24px;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+    }
+    
+    .header > * {
+      pointer-events: auto;
+    }
+    
+    .header-left h1 {
+      font-size: 22px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+    }
+    
+    .header-left .subtitle {
+      color: #888;
+      font-size: 11px;
+      margin-top: 4px;
+      letter-spacing: 2px;
+    }
+    
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-red);
+    }
+    
+    .status-dot.connected {
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
+    }
+    
+    .header-right {
+      display: flex;
+      gap: 28px;
+    }
+    
+    .stat {
+      text-align: right;
+    }
+    
+    .stat-label {
+      color: #666;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+    
+    .green { color: var(--accent-green); }
+    .cyan { color: var(--accent-cyan); }
+    .gold { color: var(--accent-gold); }
+    
+    /* ═══════════════════════════════════════════════════════════
+       2버튼 시스템
+    ═══════════════════════════════════════════════════════════ */
+    .action-buttons {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 16px;
+      z-index: 1000;
+    }
+    
+    .action-btn {
+      width: 130px;
+      height: 56px;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    
+    .action-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    
+    .btn-cut {
+      background: linear-gradient(135deg, #ff4466, #cc2244);
+      color: white;
+      box-shadow: 0 6px 25px rgba(255, 68, 102, 0.5);
+    }
+    
+    .btn-cut:hover:not(:disabled) {
+      transform: scale(1.05);
+      box-shadow: 0 10px 35px rgba(255, 68, 102, 0.7);
+    }
+    
+    .btn-link {
+      background: linear-gradient(135deg, #00ccff, #0088cc);
+      color: white;
+      box-shadow: 0 6px 25px rgba(0, 204, 255, 0.5);
+    }
+    
+    .btn-link:hover:not(:disabled) {
+      transform: scale(1.05);
+      box-shadow: 0 10px 35px rgba(0, 204, 255, 0.7);
+    }
+    
+    /* ═══════════════════════════════════════════════════════════
+       정보 패널
+    ═══════════════════════════════════════════════════════════ */
+    .info-panel {
+      position: absolute;
+      left: 20px;
+      bottom: 120px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+      min-width: 200px;
+    }
+    
+    .info-title {
+      font-size: 10px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    
+    .formula {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      font-family: 'SF Mono', monospace;
+      margin-bottom: 8px;
+    }
+    
+    .legend {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      margin: 6px 0;
+    }
+    
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    
+    .legend-line {
+      width: 20px;
+      height: 3px;
+      border-radius: 2px;
+    }
+    
+    /* ═══════════════════════════════════════════════════════════
+       선택 힌트
+    ═══════════════════════════════════════════════════════════ */
+    .selection-hint {
+      position: absolute;
+      bottom: 110px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 12px;
+      color: #888;
+      z-index: 1000;
+      display: none;
+    }
+    
+    .selection-hint.visible {
+      display: block;
+    }
+    
+    .selection-hint .count {
+      color: var(--accent-cyan);
+      font-weight: 700;
+    }
+    
+    /* ═══════════════════════════════════════════════════════════
+       노드 상세 팝업
+    ═══════════════════════════════════════════════════════════ */
+    .node-popup {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      min-width: 180px;
+    }
+    
+    .node-popup h3 {
+      font-size: 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .node-popup .row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 4px 0;
+    }
+    
+    .node-popup .label {
+      color: #666;
+    }
+    
+    .node-popup .value {
+      font-weight: 600;
+    }
+    
+    .node-popup .value.positive { color: var(--accent-green); }
+    .node-popup .value.negative { color: var(--accent-red); }
+    
+    /* ═══════════════════════════════════════════════════════════
+       토스트
+    ═══════════════════════════════════════════════════════════ */
+    .toast-container {
+      position: absolute;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2000;
+    }
+    
+    .toast {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 20px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      animation: slideIn 0.3s ease;
+    }
+    
+    .toast.success { border-color: var(--accent-green); }
+    .toast.error { border-color: var(--accent-red); }
+    .toast.info { border-color: var(--accent-cyan); }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* ═══════════════════════════════════════════════════════════
+       모션 라인 (SVG Overlay)
+    ═══════════════════════════════════════════════════════════ */
+    .leaflet-overlay-pane svg {
+      pointer-events: none;
+    }
+    
+    .motion-line {
+      fill: none;
+      stroke: var(--accent-gold);
+      stroke-width: 3;
+      stroke-linecap: round;
+      opacity: 0.8;
+    }
+    
+    .motion-line.active {
+      stroke-dasharray: 10, 5;
+      animation: flowDash 0.5s linear infinite;
+    }
+    
+    @keyframes flowDash {
+      to { stroke-dashoffset: -15; }
+    }
+    
+    .motion-particle {
+      fill: var(--accent-gold);
+      filter: drop-shadow(0 0 6px var(--accent-gold));
+    }
+    
+    /* ═══════════════════════════════════════════════════════════
+       커스텀 마커
+    ═══════════════════════════════════════════════════════════ */
+    .person-marker {
+      background: none;
+      border: none;
+    }
+    
+    .marker-inner {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .marker-circle {
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+      color: white;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .marker-circle.positive {
+      background: linear-gradient(135deg, #00ccff, #0088aa);
+      box-shadow: 0 4px 20px rgba(0, 204, 255, 0.5);
+    }
+    
+    .marker-circle.negative {
+      background: linear-gradient(135deg, #ff4466, #cc2244);
+      box-shadow: 0 4px 20px rgba(255, 68, 102, 0.5);
+    }
+    
+    .marker-circle.selected {
+      border-color: var(--accent-gold);
+      box-shadow: 0 0 0 4px rgba(255, 204, 0, 0.3), 0 4px 20px rgba(255, 204, 0, 0.5);
+    }
+    
+    .marker-circle:hover {
+      transform: scale(1.1);
+    }
+    
+    .marker-label {
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+      white-space: nowrap;
+    }
+    
+    .marker-value {
+      font-size: 9px;
+      color: #aaa;
+    }
+    
+    /* 펄스 애니메이션 */
+    .marker-circle.pulse::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2px solid var(--accent-green);
+      animation: pulseRing 1s ease-out;
+    }
+    
+    @keyframes pulseRing {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+    
+    /* Leaflet 컨트롤 스타일 */
+    .leaflet-control-zoom {
+      border: none !important;
+    }
+    
+    .leaflet-control-zoom a {
+      background: var(--bg-panel) !important;
+      color: white !important;
+      border: 1px solid var(--border) !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- 지도 -->
+  <div id="map"></div>
+  
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="header-left">
+      <h1>
+        <span>🌍</span>
+        <span>AUTUS Physics Map</span>
+      </h1>
+      <div class="subtitle">SATELLITE · MONEY PHYSICS · REAL-TIME</div>
+      <div class="connection-status">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">연결 중...</span>
+      </div>
+    </div>
+    
+    <div class="header-right">
+      <div class="stat">
+        <div class="stat-label">Total Value</div>
+        <div class="stat-value green" id="totalValue">₩0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Synergy</div>
+        <div class="stat-value cyan" id="synergy">1.00x</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">People</div>
+        <div class="stat-value gold" id="nodeCount">0</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 토스트 -->
+  <div class="toast-container" id="toastContainer"></div>
+  
+  <!-- 정보 패널 -->
+  <div class="info-panel">
+    <div class="info-title">Money Physics</div>
+    <div class="formula">V = (M - T) × (1 + s)^t</div>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--accent-cyan);"></div>
+        <span>사람 (양수 가치)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--accent-red);"></div>
+        <span>사람 (음수 가치)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="background: var(--accent-gold);"></div>
+        <span>돈 흐름 (모션)</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 선택 힌트 -->
+  <div class="selection-hint" id="selectionHint">
+    <span class="count" id="selectedCount">0</span>명 선택됨
+    <span id="linkModeHint" style="display: none;"> · 연결 대상 선택</span>
+  </div>
+  
+  <!-- 2버튼 -->
+  <div class="action-buttons">
+    <button class="action-btn btn-cut" id="btnCut" disabled>
+      <span>✂️</span> CUT
+    </button>
+    <button class="action-btn btn-link" id="btnLink" disabled>
+      <span>🔗</span> LINK
+    </button>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════
+    // AUTUS Physics Map - Satellite Version
+    // 노드 = 사람, 모션 = 돈 흐름
+    // ═══════════════════════════════════════════════════════════════
+    
+    const CONFIG = {
+      API_URL: 'http://localhost:8000',
+      WS_URL: 'ws://localhost:8000/ws/physics-map',
+      DEFAULT_CENTER: [37.5665, 126.9780], // 서울
+      DEFAULT_ZOOM: 12,
+      MIN_MARKER_SIZE: 30,
+      MAX_MARKER_SIZE: 80
+    };
+    
+    // 상태
+    const state = {
+      people: [],      // 노드 = 사람
+      motions: [],     // 모션 = 돈 흐름
+      selectedIds: new Set(),
+      linkMode: false,
+      linkSource: null,
+      totalValue: 0,
+      synergy: 1.0,
+      connected: false
+    };
+    
+    // Leaflet 요소
+    let map;
+    let markers = {};
+    let motionLines = {};
+    let svgOverlay;
+    let ws;
+    
+    // ═══════════════════════════════════════════════════════════════
+    // 초기화
+    // ═══════════════════════════════════════════════════════════════
+    
+    function init() {
+      console.log('🌍 AUTUS Physics Map (Satellite) 초기화');
+      
+      initMap();
+      setupEventListeners();
+      loadData();
+      connectWebSocket();
+    }
+    
+    function initMap() {
+      // Leaflet 지도 생성
+      map = L.map('map', {
+        center: CONFIG.DEFAULT_CENTER,
+        zoom: CONFIG.DEFAULT_ZOOM,
+        zoomControl: true
+      });
+      
+      // 위성 타일 (Esri World Imagery)
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Esri',
+        maxZoom: 19
+      }).addTo(map);
+      
+      // 도로/라벨 오버레이
+      L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 19,
+        opacity: 0.7
+      }).addTo(map);
+      
+      // SVG 오버레이 (모션 라인용)
+      svgOverlay = L.svg().addTo(map);
+      
+      // 지도 클릭 시 선택 해제
+      map.on('click', (e) => {
+        if (e.originalEvent.target === map._container || 
+            e.originalEvent.target.classList.contains('leaflet-tile')) {
+          cancelSelection();
+        }
+      });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // 데이터 로드
+    // ═══════════════════════════════════════════════════════════════
+    
+    async function loadData() {
+      try {
+        const response = await fetch(`${CONFIG.API_URL}/physics/state`);
+        if (response.ok) {
+          const data = await response.json();
+          processServerData(data);
+          showToast('서버 연결 성공', 'success');
+        } else {
+          throw new Error('API Error');
+        }
+      } catch (e) {
+        console.log('서버 연결 실패, 샘플 데이터 사용');
+        loadSampleData();
+      }
+      
+      renderAll();
+    }
+    
+    function processServerData(data) {
+      // 서버 데이터를 위치 정보와 함께 변환
+      state.people = (data.nodes || []).map((node, i) => ({
+        id: node.id,
+        name: node.name || node.id,
+        value: node.value || 0,
+        lat: node.lat || CONFIG.DEFAULT_CENTER[0] + (Math.random() - 0.5) * 0.05,
+        lng: node.lng || CONFIG.DEFAULT_CENTER[1] + (Math.random() - 0.5) * 0.05
+      }));
+      
+      state.motions = (data.links || []).map(link => ({
+        source: link.source?.id || link.source,
+        target: link.target?.id || link.target,
+        amount: link.amount || Math.random() * 10000000
+      }));
+      
+      state.totalValue = data.total_value || 0;
+      state.synergy = data.synergy || 1.0;
+      updateStats();
+    }
+    
+    function loadSampleData() {
+      // 서울 지역 샘플 데이터
+      state.people = [
+        { id: 'P01', name: '오세호', value: 50000000, lat: 37.5665, lng: 126.9780 },
+        { id: 'P02', name: '김경희', value: 20000000, lat: 37.5700, lng: 126.9850 },
+        { id: 'P03', name: '오선우', value: 35000000, lat: 37.5600, lng: 126.9700 },
+        { id: 'P04', name: '오연우', value: -5000000, lat: 37.5550, lng: 126.9900 },
+        { id: 'P05', name: '오은우', value: 10000000, lat: 37.5750, lng: 126.9650 },
+        { id: 'P06', name: '이철수', value: 45000000, lat: 37.5520, lng: 126.9550 },
+        { id: 'P07', name: '박영희', value: -15000000, lat: 37.5800, lng: 126.9950 },
+        { id: 'P08', name: '최민수', value: 30000000, lat: 37.5450, lng: 126.9800 },
+      ];
+      
+      state.motions = [
+        { source: 'P01', target: 'P02', amount: 5000000 },
+        { source: 'P01', target: 'P03', amount: 8000000 },
+        { source: 'P02', target: 'P06', amount: 3000000 },
+        { source: 'P03', target: 'P05', amount: 2000000 },
+        { source: 'P06', target: 'P08', amount: 10000000 },
+        { source: 'P08', target: 'P04', amount: 1500000 },
+      ];
+      
+      calculateStats();
+      showToast('샘플 데이터 로드됨 (오프라인)', 'info');
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // 렌더링
+    // ═══════════════════════════════════════════════════════════════
+    
+    function renderAll() {
+      renderMotionLines();
+      renderPeople();
+      updateStats();
+    }
+    
+    function renderPeople() {
+      // 기존 마커 제거
+      Object.values(markers).forEach(m => map.removeLayer(m));
+      markers = {};
+      
+      state.people.forEach(person => {
+        const size = getMarkerSize(person.value);
+        const isPositive = person.value >= 0;
+        const isSelected = state.selectedIds.has(person.id);
+        
+        // 커스텀 아이콘
+        const icon = L.divIcon({
+          className: 'person-marker',
+          html: `
+            <div class="marker-inner">
+              <div class="marker-circle ${isPositive ? 'positive' : 'negative'} ${isSelected ? 'selected' : ''}"
+                   style="width: ${size}px; height: ${size}px;"
+                   data-id="${person.id}">
+                ${person.name.charAt(0)}
+              </div>
+              <div class="marker-label">${person.name}</div>
+              <div class="marker-value">${formatCurrency(person.value)}</div>
+            </div>
+          `,
+          iconSize: [size, size + 30],
+          iconAnchor: [size / 2, size / 2]
+        });
+        
+        const marker = L.marker([person.lat, person.lng], { icon })
+          .addTo(map)
+          .on('click', (e) => handleMarkerClick(e, person))
+          .on('dblclick', (e) => showPersonPopup(person, e.latlng));
+        
+        // 드래그 가능
+        marker.dragging?.enable();
+        marker.on('dragend', (e) => {
+          const pos = e.target.getLatLng();
+          person.lat = pos.lat;
+          person.lng = pos.lng;
+          renderMotionLines();
+        });
+        
+        markers[person.id] = marker;
+      });
+    }
+    
+    function renderMotionLines() {
+      // SVG 선 그리기
+      const svg = d3.select(svgOverlay._container).select('svg');
+      svg.selectAll('.motion-group').remove();
+      
+      const g = svg.append('g').attr('class', 'motion-group');
+      
+      state.motions.forEach(motion => {
+        const source = state.people.find(p => p.id === motion.source);
+        const target = state.people.find(p => p.id === motion.target);
+        
+        if (!source || !target) return;
+        
+        const sourcePoint = map.latLngToLayerPoint([source.lat, source.lng]);
+        const targetPoint = map.latLngToLayerPoint([target.lat, target.lng]);
+        
+        // 곡선 경로
+        const midX = (sourcePoint.x + targetPoint.x) / 2;
+        const midY = (sourcePoint.y + targetPoint.y) / 2 - 30;
+        
+        const path = g.append('path')
+          .attr('class', 'motion-line active')
+          .attr('d', `M ${sourcePoint.x} ${sourcePoint.y} Q ${midX} ${midY} ${targetPoint.x} ${targetPoint.y}`)
+          .attr('stroke-width', Math.max(2, Math.min(6, motion.amount / 2000000)));
+        
+        // 돈 흐름 파티클 애니메이션
+        animateMoneyFlow(g, sourcePoint, targetPoint, midX, midY);
+      });
+      
+      // 뷰 변경 시 업데이트
+      map.on('moveend zoomend', () => {
+        renderMotionLines();
+      });
+    }
+    
+    function animateMoneyFlow(g, source, target, midX, midY) {
+      const particle = g.append('circle')
+        .attr('class', 'motion-particle')
+        .attr('r', 5)
+        .attr('cx', source.x)
+        .attr('cy', source.y);
+      
+      function animate() {
+        particle
+          .attr('cx', source.x)
+          .attr('cy', source.y)
+          .transition()
+          .duration(2000)
+          .ease(d3.easeLinear)
+          .attrTween('cx', () => {
+            return (t) => {
+              const x1 = source.x + (midX - source.x) * t * 2;
+              const x2 = midX + (target.x - midX) * (t * 2 - 1);
+              return t < 0.5 ? x1 : x2;
+            };
+          })
+          .attrTween('cy', () => {
+            return (t) => {
+              const y1 = source.y + (midY - source.y) * t * 2;
+              const y2 = midY + (target.y - midY) * (t * 2 - 1);
+              return t < 0.5 ? y1 : y2;
+            };
+          })
+          .on('end', animate);
+      }
+      
+      animate();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // 이벤트 핸들러
+    // ═══════════════════════════════════════════════════════════════
+    
+    function setupEventListeners() {
+      document.getElementById('btnCut').addEventListener('click', handleCut);
+      document.getElementById('btnLink').addEventListener('click', handleLink);
+      
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') cancelSelection();
+        if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedIds.size > 0) {
+          handleCut();
+        }
+      });
+    }
+    
+    function handleMarkerClick(e, person) {
+      L.DomEvent.stopPropagation(e);
+      
+      if (state.linkMode) {
+        if (person.id !== state.linkSource) {
+          state.selectedIds.add(person.id);
+          updateSelectionUI();
+          renderPeople();
+        }
+      } else {
+        if (e.originalEvent.shiftKey || e.originalEvent.ctrlKey || e.originalEvent.metaKey) {
+          if (state.selectedIds.has(person.id)) {
+            state.selectedIds.delete(person.id);
+          } else {
+            state.selectedIds.add(person.id);
+          }
+        } else {
+          state.selectedIds.clear();
+          state.selectedIds.add(person.id);
+        }
+        updateSelectionUI();
+        renderPeople();
+      }
+    }
+    
+    function showPersonPopup(person, latlng) {
+      const popup = L.popup({
+        className: 'node-popup-container',
+        closeButton: true
+      })
+        .setLatLng(latlng)
+        .setContent(`
+          <div class="node-popup">
+            <h3>👤 ${person.name}</h3>
+            <div class="row">
+              <span class="label">ID</span>
+              <span class="value">${person.id}</span>
+            </div>
+            <div class="row">
+              <span class="label">가치</span>
+              <span class="value ${person.value >= 0 ? 'positive' : 'negative'}">
+                ${formatCurrency(person.value)}
+              </span>
+            </div>
+            <div class="row">
+              <span class="label">위치</span>
+              <span class="value">${person.lat.toFixed(4)}, ${person.lng.toFixed(4)}</span>
+            </div>
+          </div>
+        `)
+        .openOn(map);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // CUT / LINK 액션
+    // ═══════════════════════════════════════════════════════════════
+    
+    async function handleCut() {
+      if (state.selectedIds.size === 0) return;
+      
+      const ids = Array.from(state.selectedIds);
+      console.log('✂️ CUT:', ids);
+      
+      // API 호출
+      if (state.connected) {
+        try {
+          for (const id of ids) {
+            await fetch(`${CONFIG.API_URL}/physics/event`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                event_type: 'burn',
+                amount: Math.abs(state.people.find(p => p.id === id)?.value || 0),
+                participants: [id]
+              })
+            });
+          }
+        } catch (e) {
+          console.error('CUT API 에러:', e);
+        }
+      }
+      
+      // 로컬 상태 업데이트
+      state.people = state.people.filter(p => !ids.includes(p.id));
+      state.motions = state.motions.filter(m => 
+        !ids.includes(m.source) && !ids.includes(m.target)
+      );
+      
+      state.selectedIds.clear();
+      updateSelectionUI();
+      calculateStats();
+      renderAll();
+      
+      showToast(`${ids.length}명 삭제됨`, 'success');
+    }
+    
+    function handleLink() {
+      if (state.linkMode && state.linkSource && state.selectedIds.size > 0) {
+        const targets = Array.from(state.selectedIds).filter(id => id !== state.linkSource);
+        if (targets.length > 0) {
+          linkPeople(state.linkSource, targets);
+        }
+        state.linkMode = false;
+        state.linkSource = null;
+      } else if (state.selectedIds.size > 0) {
+        const sourceId = Array.from(state.selectedIds)[0];
+        state.linkMode = true;
+        state.linkSource = sourceId;
+        state.selectedIds.clear();
+        state.selectedIds.add(sourceId);
+        updateSelectionUI();
+        renderPeople();
+        showToast('연결할 대상을 선택하세요', 'info');
+      }
+    }
+    
+    async function linkPeople(sourceId, targetIds) {
+      console.log('🔗 LINK:', sourceId, '->', targetIds);
+      
+      if (state.connected) {
+        try {
+          await fetch(`${CONFIG.API_URL}/physics/drag`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              drag_type: 'link',
+              params: { source: sourceId, target: targetIds[0] }
+            })
+          });
+        } catch (e) {
+          console.error('LINK API 에러:', e);
+        }
+      }
+      
+      // 로컬 상태 업데이트
+      for (const targetId of targetIds) {
+        if (!state.motions.find(m => m.source === sourceId && m.target === targetId)) {
+          state.motions.push({
+            source: sourceId,
+            target: targetId,
+            amount: Math.random() * 5000000 + 1000000
+          });
+        }
+      }
+      
+      state.selectedIds.clear();
+      state.linkMode = false;
+      state.linkSource = null;
+      updateSelectionUI();
+      renderAll();
+      
+      showToast(`${targetIds.length}개 연결 생성됨`, 'success');
+    }
+    
+    function cancelSelection() {
+      state.selectedIds.clear();
+      state.linkMode = false;
+      state.linkSource = null;
+      updateSelectionUI();
+      renderPeople();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // WebSocket
+    // ═══════════════════════════════════════════════════════════════
+    
+    function connectWebSocket() {
+      try {
+        ws = new WebSocket(CONFIG.WS_URL);
+        
+        ws.onopen = () => {
+          state.connected = true;
+          updateConnectionStatus(true);
+          console.log('✅ WebSocket 연결됨');
+        };
+        
+        ws.onmessage = (e) => {
+          const msg = JSON.parse(e.data);
+          handleWSMessage(msg);
+        };
+        
+        ws.onclose = () => {
+          state.connected = false;
+          updateConnectionStatus(false);
+          setTimeout(connectWebSocket, 3000);
+        };
+        
+        ws.onerror = () => {
+          updateConnectionStatus(false);
+        };
+      } catch (e) {
+        updateConnectionStatus(false);
+      }
+    }
+    
+    function handleWSMessage(msg) {
+      if (msg.type === 'node_update') {
+        const person = state.people.find(p => p.id === msg.data.node_id);
+        if (person) {
+          person.value = msg.data.value;
+          pulseMarker(msg.data.node_id);
+          calculateStats();
+          renderPeople();
+        }
+      } else if (msg.type === 'motion_update') {
+        animateNewMotion(msg.data.source, msg.data.target);
+      }
+    }
+    
+    function pulseMarker(id) {
+      const marker = markers[id];
+      if (marker) {
+        const el = marker.getElement()?.querySelector('.marker-circle');
+        if (el) {
+          el.classList.add('pulse');
+          setTimeout(() => el.classList.remove('pulse'), 1000);
+        }
+      }
+    }
+    
+    function animateNewMotion(sourceId, targetId) {
+      const source = state.people.find(p => p.id === sourceId);
+      const target = state.people.find(p => p.id === targetId);
+      
+      if (!source || !target) return;
+      
+      // 큰 파티클 애니메이션
+      const svg = d3.select(svgOverlay._container).select('svg');
+      const sp = map.latLngToLayerPoint([source.lat, source.lng]);
+      const tp = map.latLngToLayerPoint([target.lat, target.lng]);
+      
+      svg.append('circle')
+        .attr('cx', sp.x)
+        .attr('cy', sp.y)
+        .attr('r', 10)
+        .attr('fill', 'var(--accent-green)')
+        .attr('filter', 'drop-shadow(0 0 10px var(--accent-green))')
+        .transition()
+        .duration(800)
+        .attr('cx', tp.x)
+        .attr('cy', tp.y)
+        .attr('r', 0)
+        .remove();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // UI 업데이트
+    // ═══════════════════════════════════════════════════════════════
+    
+    function updateSelectionUI() {
+      const count = state.selectedIds.size;
+      const hint = document.getElementById('selectionHint');
+      const btnCut = document.getElementById('btnCut');
+      const btnLink = document.getElementById('btnLink');
+      
+      if (count > 0) {
+        hint.classList.add('visible');
+        document.getElementById('selectedCount').textContent = count;
+        document.getElementById('linkModeHint').style.display = state.linkMode ? 'inline' : 'none';
+        
+        btnCut.disabled = state.linkMode;
+        btnLink.disabled = false;
+        
+        btnLink.innerHTML = state.linkMode 
+          ? '<span>✅</span> 연결' 
+          : '<span>🔗</span> LINK';
+      } else {
+        hint.classList.remove('visible');
+        btnCut.disabled = true;
+        btnLink.disabled = true;
+        btnLink.innerHTML = '<span>🔗</span> LINK';
+      }
+    }
+    
+    function updateStats() {
+      document.getElementById('totalValue').textContent = formatCurrency(state.totalValue);
+      document.getElementById('synergy').textContent = state.synergy.toFixed(2) + 'x';
+      document.getElementById('nodeCount').textContent = state.people.length;
+    }
+    
+    function calculateStats() {
+      state.totalValue = state.people.reduce((sum, p) => sum + p.value, 0);
+      const positive = state.people.filter(p => p.value > 0).length;
+      state.synergy = positive > 0 ? Math.pow(positive, 1.1) : 1;
+      updateStats();
+    }
+    
+    function updateConnectionStatus(connected) {
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      
+      if (connected) {
+        dot.classList.add('connected');
+        text.textContent = '실시간 연결됨';
+      } else {
+        dot.classList.remove('connected');
+        text.textContent = '오프라인 모드';
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // 유틸리티
+    // ═══════════════════════════════════════════════════════════════
+    
+    function getMarkerSize(value) {
+      const absVal = Math.abs(value);
+      const normalized = Math.min(1, absVal / 50000000);
+      return CONFIG.MIN_MARKER_SIZE + (CONFIG.MAX_MARKER_SIZE - CONFIG.MIN_MARKER_SIZE) * Math.sqrt(normalized);
+    }
+    
+    function formatCurrency(value) {
+      const abs = Math.abs(value);
+      let str;
+      if (abs >= 100000000) str = (abs / 100000000).toFixed(1) + '억';
+      else if (abs >= 10000) str = (abs / 10000).toFixed(0) + '만';
+      else str = abs.toLocaleString();
+      return (value < 0 ? '-' : '') + '₩' + str;
+    }
+    
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'} ${message}`;
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+    
+    // Ping
+    setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 30000);
+    
+    // 시작
+    init();
+  </script>
+</body>
+</html>
